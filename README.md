@@ -3,7 +3,7 @@
 A Flutter pilot proving that **one codebase reaches all six platforms** Skrog
 needs, ahead of building livestock transfer tracking on top of it.
 
-This is deliberately a *shell*. It has no livestock functionality and no
+This is deliberately a _shell_. It has no livestock functionality and no
 persistence. Its job is to answer one question — "can we actually ship this
 everywhere?" — with evidence rather than a vendor claim.
 
@@ -27,14 +27,14 @@ Flutter **3.44.9** (stable). Everything else is per-platform.
 
 ## Running it
 
-| Target | Command | Host needed |
-|---|---|---|
-| Web | `flutter run -d chrome` | any |
-| Linux | `flutter run -d linux` | Linux + GTK toolchain |
-| Android | `flutter run -d <device>` | any + Android SDK, JDK 17 |
-| Windows | `flutter run -d windows` | Windows + Visual Studio 2022 (Desktop C++) |
-| macOS | `flutter run -d macos` | macOS + Xcode |
-| iOS | `flutter run -d <device>` | macOS + Xcode |
+| Target  | Command                   | Host needed                                |
+| ------- | ------------------------- | ------------------------------------------ |
+| Web     | `flutter run -d chrome`   | any                                        |
+| Linux   | `flutter run -d linux`    | Linux + GTK toolchain                      |
+| Android | `flutter run -d <device>` | any + Android SDK, JDK 17                  |
+| Windows | `flutter run -d windows`  | Windows + Visual Studio 2022 (Desktop C++) |
+| macOS   | `flutter run -d macos`    | macOS + Xcode                              |
+| iOS     | `flutter run -d <device>` | macOS + Xcode                              |
 
 Flutter compiles to native binaries, so **each target must be built on its own
 OS**. There is no cross-compiling to Windows from Linux, or to iOS/macOS from
@@ -68,6 +68,15 @@ flutter analyze
 flutter test
 ```
 
+## Versioning and history
+
+- [`CHANGELOG.md`](CHANGELOG.md) — what changed, in Keep a Changelog format,
+  plus the semver and build-number policy. The version lives in `pubspec.yaml`
+  and is displayed in the running app, so any build is identifiable from a
+  screenshot.
+- [`JOURNAL.md`](JOURNAL.md) — a dated narrative of what happened and why:
+  decisions, dead ends and open questions.
+
 ## CI
 
 `.github/workflows/ci.yml` builds all six targets on `ubuntu`, `windows` and
@@ -95,12 +104,12 @@ lib/
 
 `lib/features/platform_proof/platform_facts.dart` contains **no `dart:io`
 import**, by design. `dart:io` does not exist in a browser and its absence is a
-*compile-time* failure on web — so a runtime `if (!kIsWeb)` guard around
+_compile-time_ failure on web — so a runtime `if (!kIsWeb)` guard around
 `Platform.operatingSystem` does not help; the build never gets that far.
 Reaching for `dart:io` is the most common way a Flutter app quietly stops being
 cross-platform. Use `defaultTargetPlatform` and `device_info_plus` instead.
 
-Related: on web, `defaultTargetPlatform` reports the *host* OS — it returns
+Related: on web, `defaultTargetPlatform` reports the _host_ OS — it returns
 `TargetPlatform.linux` for Chrome on Linux. Always test `kIsWeb` first.
 
 ## Not yet proven
