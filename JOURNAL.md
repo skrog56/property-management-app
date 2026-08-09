@@ -96,8 +96,21 @@ first contact, CocoaPods and all.
 
 ### Open
 
-- Screenshot pack for `docs/proof/` — not started. Needs interactive runs, and
-  three of the six need the Mac and Windows PC.
+- Screenshot pack for `docs/proof/` — Linux and web done, both captured wide and
+  narrow. Windows, macOS, iOS and Android outstanding; each needs its own
+  hardware.
+
+  Capturing these was fiddlier than expected. GNOME 46 denies
+  `org.gnome.Shell.Screenshot` to unsandboxed callers, so the Linux app is run
+  under `GDK_BACKEND=x11` and grabbed with ImageMagick `import -window` — which
+  also has the virtue of capturing only the app window rather than the whole
+  desktop. Headless Chrome needs `--enable-unsafe-swiftshader` or CanvasKit has
+  no GPU to render through and the capture comes out blank. Both recipes are
+  written down in `docs/proof/README.md`.
+
+  First attempt captured `1.0.0+1` because the web bundle predated the version
+  change — worth remembering that these artefacts embed the version, so rebuild
+  before capturing.
 - No Android phone attached yet, so the APK has not run on real hardware.
 - System default Java is 17; revert if anything on the machine needs 8.
 - **Next pilot: offline-first storage.** The likeliest thing to invalidate the

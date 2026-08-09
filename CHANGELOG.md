@@ -32,7 +32,13 @@ same commit — a deliberate act, never a side effect of another change.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- `docs/proof/` — platform proof screenshots for Linux desktop and web, each
+  captured wide and narrow to show the layout re-flowing across the 600 dp
+  breakpoint, with an index explaining what each image demonstrates and how to
+  reproduce it. Windows, macOS, iOS and Android remain outstanding; each must be
+  captured on its own hardware.
 
 ## [0.1.0] - 2026-08-09
 
