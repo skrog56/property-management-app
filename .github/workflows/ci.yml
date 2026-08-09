@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Supersede in-flight runs on the same ref. Matters more than usual here:
+# macOS runners bill at 10x and Windows at 2x on private repositories.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.44.9'
+
+jobs:
+  analyze:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  build:
+    # Gate the expensive runners behind a passing analysis.
+    needs: analyze
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # One platform failing should not hide the state of the other five.
+      fail-fast: false
+      matrix:
+        include:
+          - name: Web
+            os: ubuntu-latest
+            build: flutter build web --release
+            artifact: build/web
+
+          - name: Android
+            os: ubuntu-latest
+            build: flutter build apk --release
+            artifact: build/app/outputs/flutter-apk/app-release.apk
+            java: true
+
+          - name: Linux
+            os: ubuntu-latest
+            build: flutter build linux --release
+            artifact: build/linux/x64/release/bundle
+            gtk: true
+
+          - name: Windows
+            os: windows-latest
+            build: flutter build windows --release
+            artifact: build/windows/x64/runner/Release
+
+          - name: macOS
+            os: macos-latest
+            build: flutter build macos --release
+            artifact: build/macos/Build/Products/Release
+
+          - name: iOS
+            os: macos-latest
+            # --no-codesign is what lets this compile without an Apple
+            # Developer account. It proves the target builds; signing is only
+            # needed to install on a physical device.
+            build: flutter build ios --release --no-codesign
+            artifact: build/ios/iphoneos
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GTK toolchain
+        if: matrix.gtk
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev
+
+      - name: Set up JDK 17
+        if: matrix.java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: ${{ matrix.build }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
