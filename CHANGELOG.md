@@ -34,6 +34,10 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- Installation instructions in the README, covering a clone-to-running path:
+  installing the pinned Flutter 3.44.9, fetching packages, and the host
+  toolchain for each of the six targets. Previously the README documented build
+  dependencies but assumed a working Flutter install.
 - `docs/proof/` — platform proof screenshots for Linux desktop and web, each
   captured wide and narrow to show the layout re-flowing across the 600 dp
   breakpoint, with an index explaining what each image demonstrates and how to
@@ -80,5 +84,5 @@ out of scope.
 <!-- No release tags exist yet, so these point at commits. Once v0.1.0 is
      tagged, switch them to the conventional compare/tag URLs. -->
 
-[unreleased]: https://github.com/skrog56/property-management-app/compare/920aa0e...HEAD
-[0.1.0]: https://github.com/skrog56/property-management-app/commit/920aa0e
+[unreleased]: https://github.com/skrog56/property-management-app/compare/bd9a8fb...HEAD
+[0.1.0]: https://github.com/skrog56/property-management-app/commit/bd9a8fb

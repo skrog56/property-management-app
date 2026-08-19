@@ -7,6 +7,47 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-08-19 — Installation instructions
+
+### What prompted it
+
+The README explained per-platform *build dependencies* but assumed a working
+Flutter install, so a fresh clone had no path from nothing to a running app. The
+dependency sections also sat under "Running it" — after the point at which they
+were needed.
+
+### What was added
+
+An Installation section ahead of "Running it", in three steps: install the
+pinned Flutter 3.44.9, clone and `flutter pub get`, then the host toolchain for
+whichever targets you actually intend to build. Web needs nothing beyond Flutter
+and Chrome, which is worth saying explicitly — it means the pilot can be seen
+running within a minute of cloning.
+
+Everything was checked against this machine rather than transcribed from the
+original plan: Flutter at `~/development/flutter`, SDK at `~/Android/Sdk` with
+`android-36` and `build-tools;36.0.0`, `jdk-dir` pinned to
+`java-17-openjdk-amd64`, and `FLUTTER_VERSION: '3.44.9'` in CI.
+
+### The gap that mattered
+
+Android was the section that would genuinely have failed someone. It documented
+the JDK 17 pin but never said how to obtain the SDK at all, and omitted
+`sdkmanager --licenses` — which does not warn, it just fails the build later.
+
+Also now stated explicitly: `flutter config --jdk-dir` is **global to a Flutter
+installation, not per-repo**. Anyone following these steps changes Flutter for
+every project on their machine, and that deserved to be said rather than
+discovered.
+
+### Open
+
+- Flutter is advertising a release newer than the pinned 3.44.9. Upgrading means
+  bumping `FLUTTER_VERSION` in the CI workflow in the same commit, so it stays a
+  deliberate act rather than drift.
+
+---
+
 ## 2026-08-09 — Six-platform pilot: from empty directory to all six targets green
 
 ### Goal

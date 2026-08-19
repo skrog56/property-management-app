@@ -21,9 +21,109 @@ everywhere?" — with evidence rather than a vendor claim.
   `package_info_plus` each have a distinct native implementation per platform
   behind a single Dart API.
 
-## Requirements
+## Installation
 
-Flutter **3.44.9** (stable). Everything else is per-platform.
+### 1. Flutter
+
+Pinned to **3.44.9** stable (Dart 3.12.2) — the same version
+`.github/workflows/ci.yml` installs. Other versions will likely work, but CI is
+the arbiter, so match it before investigating anything strange. Upgrading is a
+deliberate change: bump `FLUTTER_VERSION` in the workflow in the same commit.
+
+Use [Flutter's install guide](https://docs.flutter.dev/get-started/install) for
+your OS, or on Linux take the tarball directly:
+
+```bash
+curl -O https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.44.9-stable.tar.xz
+mkdir -p ~/development
+tar -xf flutter_linux_3.44.9-stable.tar.xz -C ~/development
+echo 'export PATH="$HOME/development/flutter/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+`flutter --version` should report `3.44.9 • channel stable`.
+
+### 2. The project
+
+```bash
+git clone https://github.com/skrog56/property-management-app.git
+cd property-management-app
+flutter pub get
+```
+
+At this point `flutter run -d chrome` already works — web needs nothing beyond
+Flutter and a Chrome install. Every other target needs its host toolchain.
+
+### 3. Toolchain, per target you intend to build
+
+Run `flutter doctor -v` and fix what it reports. Targets your OS cannot build at
+all are simply **absent** from its output rather than listed as failures — no
+Xcode section on Linux is correct, not a problem to solve.
+
+Install only what you need:
+
+#### Linux desktop
+
+```bash
+sudo apt install -y clang cmake ninja-build pkg-config \
+  libgtk-3-dev liblzma-dev libstdc++-12-dev
+```
+
+#### Android
+
+Two pieces: the SDK, and **JDK 17** — Gradle rejects JDK 8.
+
+Android Studio bundles both and is the easy path. For a CLI-only install, take
+`commandlinetools-linux-*.zip` from
+[developer.android.com/studio](https://developer.android.com/studio#command-line-tools-only),
+then:
+
+```bash
+mkdir -p ~/Android/Sdk/cmdline-tools
+unzip commandlinetools-linux-*.zip -d ~/Android/Sdk/cmdline-tools
+mv ~/Android/Sdk/cmdline-tools/cmdline-tools ~/Android/Sdk/cmdline-tools/latest
+
+# Add both to ~/.bashrc — Flutter looks for ANDROID_HOME, and the second
+# puts adb and sdkmanager on PATH.
+export ANDROID_HOME="$HOME/Android/Sdk"
+export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+
+sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+sdkmanager --licenses    # must be accepted or builds fail
+```
+
+If JDK 17 is not your system default, point Flutter at it rather than switching
+the default and disturbing other tooling:
+
+```bash
+sudo apt install -y openjdk-17-jdk
+flutter config --jdk-dir /usr/lib/jvm/java-17-openjdk-amd64
+```
+
+This setting is global to your Flutter install, not to this repo, and is what to
+check first if Gradle ever complains about a Java version.
+
+#### Windows desktop
+
+Visual Studio 2022 with the **Desktop development with C++** workload. The
+Build Tools edition is enough; the full IDE is not required.
+
+#### macOS and iOS
+
+Xcode from the App Store, then:
+
+```bash
+sudo xcodebuild -runFirstLaunch
+sudo gem install cocoapods
+```
+
+First build of either target runs a CocoaPods step and takes noticeably longer
+than later ones.
+
+To run on a **physical** iPhone or iPad, open `ios/Runner.xcworkspace` in Xcode
+and select a team under Signing & Capabilities. A free Apple ID is sufficient
+for development builds — the CI iOS build uses `--no-codesign` precisely so that
+no paid Developer account is needed just to prove the target compiles.
 
 ## Running it
 
@@ -36,30 +136,18 @@ Flutter **3.44.9** (stable). Everything else is per-platform.
 | macOS   | `flutter run -d macos`    | macOS + Xcode                              |
 | iOS     | `flutter run -d <device>` | macOS + Xcode                              |
 
+`flutter devices` lists what is currently attached and its device ID.
+
 Flutter compiles to native binaries, so **each target must be built on its own
 OS**. There is no cross-compiling to Windows from Linux, or to iOS/macOS from
 anything but a Mac. The CI matrix exists precisely to cover that.
 
-### Linux build dependencies
+Release builds, should you want the artefacts locally:
 
 ```bash
-sudo apt install -y clang cmake ninja-build pkg-config \
-  libgtk-3-dev liblzma-dev libstdc++-12-dev
+flutter build web | linux | apk | windows | macos --release
+flutter build ios --release --no-codesign
 ```
-
-### Android
-
-Needs JDK 17 — Gradle rejects JDK 8. If Java 17 is not your system default,
-point Flutter at it without disturbing the rest of your system:
-
-```bash
-flutter config --jdk-dir /usr/lib/jvm/java-17-openjdk-amd64
-```
-
-### iOS on a physical device
-
-Open `ios/Runner.xcworkspace` in Xcode and select a team under
-Signing & Capabilities. A free Apple ID is sufficient for development builds.
 
 ## Checks
 
