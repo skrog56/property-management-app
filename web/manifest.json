@@ -1,6 +1,6 @@
 {
-    "name": "property_management_app",
-    "short_name": "property_management_app",
+    "name": "Property Management App",
+    "short_name": "Property Management App",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

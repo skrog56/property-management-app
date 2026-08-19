@@ -7,6 +7,56 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-08-19 — Display name across all six targets
+
+Closes the loose end from the deployment review below: every target except iOS
+was showing the raw Dart package name, `property_management_app`, in launchers,
+window titles and browser tabs.
+
+Settled on **Property Management App**, uniform everywhere. Brand-prefixed and
+short-form variants were both considered — phone launchers truncate at roughly
+twelve characters, so a longer name is cut off there — and the uniform name was
+chosen anyway, on the grounds that one string is easier to reason about than a
+per-platform split and this is still a pilot nobody is installing from a store.
+
+### Where a display name actually lives
+
+Seven places, and no two platforms agree:
+
+- Android — `android:label` in the manifest.
+- iOS — `CFBundleDisplayName` (already correct; `flutter create` title-cases it,
+  which is why iOS was the only target that looked right) and `CFBundleName`.
+- macOS — `PRODUCT_NAME` in `AppInfo.xcconfig`, which feeds `CFBundleName`.
+- Linux — two literals in `my_application.cc`, one per titlebar branch.
+- Windows — the `Win32Window::Create` title, plus `FileDescription` and
+  `ProductName` in `Runner.rc`.
+- Web — `<title>`, the `apple-mobile-web-app-title` meta tag, and both name
+  fields in `manifest.json`.
+- In-app — `MaterialApp.title`, which is what Android's task switcher reads.
+
+### The one that needed care
+
+macOS `PRODUCT_NAME` is not only the display name — it is also the `.app`
+filename and the executable inside it. Changing it strands the `TEST_HOST`
+paths, the product file reference and five `BuildableName` entries in the Xcode
+project and scheme, which all hardcode `property_management_app.app`. Those were
+updated in step; CI does not run macOS unit tests, so a stale `TEST_HOST` would
+have gone unnoticed until someone did.
+
+Executable filenames on Linux and Windows were deliberately *not* renamed.
+`BINARY_NAME` is a path, and spaces in a binary name are hostile to shells and
+scripts for no user-visible gain — the window title is what people read.
+
+### Verification
+
+Analyze clean, 17/17 tests passing. Read the name back out of built artifacts
+rather than trusting the source: `aapt2 dump badging` reports
+`application-label:'Property Management App'`, the web build's `<title>` and
+manifest carry it, and it is present in the compiled Linux binary. macOS and
+Windows rest on CI, since neither builds here.
+
+---
+
 ## 2026-08-19 — Deployment gap, and one identifier that had to be settled now
 
 ### What prompted it

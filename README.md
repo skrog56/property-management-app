@@ -194,10 +194,11 @@ it everywhere a single step.
   incremented. Play and TestFlight both reject an upload whose build number does
   not exceed the last one accepted — see the versioning policy in
   [`CHANGELOG.md`](CHANGELOG.md).
-- **A display name.** Every target still shows the Dart package name —
-  `property_management_app` in the Android manifest label, the window titles,
-  `web/manifest.json` and the macOS `PRODUCT_NAME`. That string is what users
-  and store listings see.
+- **A display name.** All six show **Property Management App** — the Android
+  manifest label, both Apple bundle-name keys, the Linux and Windows window
+  titles, and the web title and manifest. Executable and bundle *filenames*
+  stay `property_management_app` on Linux and Windows, deliberately: those are
+  paths, and spaces in them are hostile to shells and scripts.
 - **Application ID.** All six now share `com.skrog.propertyManagementApp`. On
   Android and Apple platforms this is **permanent from first publication**; it
   cannot be changed later without becoming a separate listing.

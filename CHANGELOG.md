@@ -49,6 +49,13 @@ same commit — a deliberate act, never a side effect of another change.
   reproduce it. Windows, macOS, iOS and Android remain outstanding; each must be
   captured on its own hardware.
 
+### Changed
+
+- Display name is **Property Management App** on all six targets, replacing the
+  raw Dart package name (`property_management_app`) that every platform except
+  iOS was showing in launchers, window titles and browser tabs. Executable and
+  bundle filenames on Linux and Windows are unchanged.
+
 ### Fixed
 
 - Application ID is now `com.skrog.propertyManagementApp` on all six targets.

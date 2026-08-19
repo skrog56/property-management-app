@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.skrog" "\0"
-            VALUE "FileDescription", "property_management_app" "\0"
+            VALUE "FileDescription", "Property Management App" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "property_management_app" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.skrog. All rights reserved." "\0"
             VALUE "OriginalFilename", "property_management_app.exe" "\0"
-            VALUE "ProductName", "property_management_app" "\0"
+            VALUE "ProductName", "Property Management App" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
