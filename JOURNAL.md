@@ -7,6 +7,77 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-08-19 — Deployment gap, and one identifier that had to be settled now
+
+### What prompted it
+
+A question with a short answer: are there deployment instructions? There were
+not. The README ran clone → install → run → `flutter build --release`, and CI
+uploaded the results, but nothing said what happens after an artifact exists.
+
+Looking into that turned up something with a deadline attached, which is the
+part worth recording.
+
+### The application ID was never actually unified
+
+`flutter create` derives platform identifiers differently per target. Apple
+platforms got `com.skrog.propertyManagementApp`; Android and Linux got
+`com.skrog.property_management_app`, straight from the Dart package name. The
+0.1.0 changelog entry claimed a single bundle ID across all six, which was true
+of Apple only.
+
+Normally cosmetic. Not here: on Android and Apple platforms the application ID
+is **permanent from first publication** — changing it later means a new store
+listing with no upgrade path for existing installs. So this was a free fix today
+and an unfixable one after a first release.
+
+Settled on `com.skrog.propertyManagementApp` everywhere, because it was already
+in the most places and is legal in every ecosystem. Underscores were the other
+candidate and were rejected: Apple documents bundle identifiers as alphanumerics,
+hyphens and periods, so `property_management_app` is outside the sanctioned set
+even where Xcode tolerates it. Hyphens are worse — illegal in an Android
+identifier.
+
+Android's Kotlin `namespace` was deliberately left as
+`com.skrog.property_management_app`. It is the source package, tied to the
+directory holding `MainActivity.kt`, and is not required to match the
+`applicationId` — changing it would mean moving source for no benefit.
+
+Verified rather than assumed: rebuilt the APK and read the ID back out with
+`aapt2 dump badging`, which reports `com.skrog.propertyManagementApp`. Linux
+rebuilt clean, analyze clean, 17/17 tests passing.
+
+### What the deployment section says, and what it deliberately does not
+
+A new "Going to production" section covers each target's channel, signing story
+and packaging, plus what CI would need to become a release pipeline.
+
+It documents the gap rather than closing it. No keystore was generated, no
+signing config written, no release workflow added — those need decisions and
+money that a pilot has not earned yet. The point of writing it down was to make
+the cost of shipping visible, because "it builds on six platforms" reads as
+much closer to shippable than it is. Deployment is six independent channels,
+each with its own account, review queue and signing regime.
+
+Two findings from that survey are worth flagging on their own:
+
+- **Android release builds are signed with the debug keystore.** The Flutter
+  template TODO is untouched, so the APK CI produces is sideload-only.
+- **`macos/Runner/Release.entitlements` enables the app sandbox but not
+  `com.apple.security.network.client`.** Correct today, since the pilot makes no
+  network calls — but the first release build that talks to a server will fail
+  silently rather than loudly. Worth remembering when storage syncing lands.
+
+### Open
+
+- Display name is still the Dart package name on every target — Android manifest
+  label, window titles, `web/manifest.json`, macOS `PRODUCT_NAME`. Cosmetic for
+  a pilot, but it is what a store listing would show.
+- The build number has never moved off `+1`. Any real upload path needs it
+  incrementing, most cheaply from the CI run number.
+
+---
+
 ## 2026-08-19 — Installation instructions
 
 ### What prompted it

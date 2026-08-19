@@ -15,8 +15,12 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.skrog.property_management_app"
+        // Matches the Apple bundle ID and the Linux application ID, so all six
+        // targets share one identity. Permanent once published to Play: an
+        // applicationId cannot be changed without becoming a new listing.
+        // Deliberately not the same as `namespace` above, which is the Kotlin
+        // package and is tied to the source directory layout.
+        applicationId = "com.skrog.propertyManagementApp"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

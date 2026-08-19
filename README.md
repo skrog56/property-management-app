@@ -176,6 +176,144 @@ no Apple Developer account is required to prove the target compiles.
 > passing `analyze` job and cancels superseded runs to limit the damage either
 > way.
 
+## Going to production
+
+**None of this is configured.** The pilot builds release binaries but nothing
+here is distributable: CI uploads raw build output, and the Android release type
+is still signed with debug keys. This section is the map, not a pipeline — it
+exists so the cost of shipping is visible before anyone commits to it.
+
+Worth being blunt about the shape of the problem: "deploy" is six independent
+channels, not one. Each has its own account, its own signing story and its own
+review queue. Nothing about proving the app *builds* everywhere makes shipping
+it everywhere a single step.
+
+### What every target needs first
+
+- **A build number that moves.** `pubspec.yaml` is `0.1.0+1` and has never been
+  incremented. Play and TestFlight both reject an upload whose build number does
+  not exceed the last one accepted — see the versioning policy in
+  [`CHANGELOG.md`](CHANGELOG.md).
+- **A display name.** Every target still shows the Dart package name —
+  `property_management_app` in the Android manifest label, the window titles,
+  `web/manifest.json` and the macOS `PRODUCT_NAME`. That string is what users
+  and store listings see.
+- **Application ID.** All six now share `com.skrog.propertyManagementApp`. On
+  Android and Apple platforms this is **permanent from first publication**; it
+  cannot be changed later without becoming a separate listing.
+
+### Accounts and costs
+
+| Channel                | Requires                                     |
+| ---------------------- | -------------------------------------------- |
+| Google Play            | Play Console account, one-off registration fee |
+| App Store / TestFlight | Apple Developer Program, billed annually     |
+| macOS outside the store| Same Apple membership, for a Developer ID cert |
+| Windows                | Code-signing certificate (optional but see below) |
+| Linux / web            | No account; hosting or a repository only     |
+
+The Apple membership is unavoidable for iOS in any form — including handing a
+build to a tester. CI builds iOS with `--no-codesign` precisely because that
+proves compilation without one, but that artifact cannot be installed anywhere.
+
+### Android → Play
+
+Release builds currently use the debug keystore
+(`android/app/build.gradle.kts`), which Play rejects. Shipping needs an upload
+keystore, kept out of git:
+
+```bash
+keytool -genkey -v -keystore ~/upload-keystore.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+Reference it from `android/key.properties` (gitignored), and replace the debug
+`signingConfig` with one reading that file. Then build an **app bundle**, not an
+APK — Play requires `.aab`:
+
+```bash
+flutter build appbundle --release
+```
+
+Enrol in Play App Signing when creating the listing. Without it, losing the
+keystore permanently ends your ability to update the app; with it, Google holds
+the app-signing key and only the upload key is yours to lose.
+
+### iOS → App Store / TestFlight
+
+Needs a team selected under Signing & Capabilities in `ios/Runner.xcworkspace`,
+then:
+
+```bash
+flutter build ipa --release
+```
+
+Upload the `.ipa` via Xcode or Transporter. TestFlight review is lighter than
+App Store review but is still a review. Distributing to devices you own without
+any of this is possible only through a free personal team, whose builds expire
+after seven days.
+
+### macOS
+
+Two routes, and they differ more than they look:
+
+- **Outside the store** — sign with a Developer ID certificate, then
+  **notarize** with `xcrun notarytool`. Unnotarized apps are refused by
+  Gatekeeper on any machine that did not build them.
+- **Mac App Store** — a separate provisioning profile and full review.
+
+One thing already relevant: `macos/Runner/Release.entitlements` enables the app
+sandbox but **not** `com.apple.security.network.client`. The pilot needs no
+network, so this is currently correct — but the first release build that talks
+to a server will fail silently until that entitlement is added.
+
+### Windows
+
+No store account is required; `build/windows/x64/runner/Release/` can be zipped
+and shipped. Two caveats:
+
+- The folder is the unit — `.exe` plus its DLLs and `data/`. The executable
+  alone does not run.
+- Unsigned binaries trigger SmartScreen warnings until the download builds
+  reputation. A code-signing certificate avoids that; an EV certificate avoids
+  the reputation-building period as well.
+
+For a real installer, `msix` (pub package) or MSI tooling wraps the same output.
+
+### Linux
+
+`build/linux/x64/release/bundle/` is likewise a directory, not a single binary.
+Packaging options in rough order of effort: tarball, `.deb`, then Flatpak or
+Snap if you want sandboxed distribution and automatic updates. The GTK
+application ID in `linux/CMakeLists.txt` is what desktop integration keys off.
+
+### Web
+
+The simplest target by a wide margin — `build/web/` is static files, servable
+from any static host with no runtime.
+
+```bash
+flutter build web --release                      # served from the domain root
+flutter build web --release --base-href /app/    # served from a subpath
+```
+
+`web/index.html` carries a `$FLUTTER_BASE_HREF` placeholder, so getting the
+base href wrong is the usual cause of a blank page behind a reverse proxy.
+Flutter also emits a service worker, so a stale cache is the second usual cause
+— serve `flutter_service_worker.js` and `index.html` with no-cache headers and
+let the fingerprinted assets cache normally.
+
+### What CI would need
+
+`.github/workflows/ci.yml` builds and uploads artifacts on push to `main`. It
+has no tag trigger, no release job and no secrets. Turning it into a release
+pipeline means at minimum: a `push: tags:` trigger, the Android keystore and
+Apple certificates as encrypted secrets, and a build-number source — commonly
+`--build-number=${{ github.run_number }}` so uploads are monotonic without
+hand-editing `pubspec.yaml`.
+
+None of that is worth building until there is something to ship.
+
 ## Layout
 
 ```

@@ -38,11 +38,25 @@ same commit — a deliberate act, never a side effect of another change.
   installing the pinned Flutter 3.44.9, fetching packages, and the host
   toolchain for each of the six targets. Previously the README documented build
   dependencies but assumed a working Flutter install.
+- "Going to production" section in the README, mapping each of the six targets
+  to its distribution channel, prerequisites and blockers — signing and
+  notarization, store accounts, packaging, and what CI would need to become a
+  release pipeline. Documents the gap rather than closing it: nothing about
+  deployment is configured.
 - `docs/proof/` — platform proof screenshots for Linux desktop and web, each
   captured wide and narrow to show the layout re-flowing across the 600 dp
   breakpoint, with an index explaining what each image demonstrates and how to
   reproduce it. Windows, macOS, iOS and Android remain outstanding; each must be
   captured on its own hardware.
+
+### Fixed
+
+- Application ID is now `com.skrog.propertyManagementApp` on all six targets.
+  Android was scaffolded as `com.skrog.property_management_app` and Linux
+  likewise, so the identity claimed in 0.1.0 held only on Apple platforms.
+  Corrected while nothing is published — on Android and Apple platforms this
+  identifier is permanent from first release. The Android Kotlin `namespace` is
+  deliberately left as-is, being the source package rather than the app ID.
 
 ## [0.1.0] - 2026-08-09
 
