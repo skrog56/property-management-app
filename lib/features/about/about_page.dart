@@ -30,14 +30,14 @@ class AboutPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Skrog Property Management — Pilot',
+                  'Skrog Property Management',
                   style: theme.textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'A proof that one Flutter codebase reaches every device '
-                  'Skrog needs, ahead of building livestock transfer '
-                  'tracking on top of it.',
+                  'Livestock transfers, from one codebase on every device '
+                  'Skrog needs. Paddocks, movements and templates are stored '
+                  'on this device.',
                   style: theme.textTheme.bodyMedium,
                 ),
               ],
@@ -80,13 +80,12 @@ class AboutPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Not yet proven', style: theme.textTheme.titleMedium),
+                Text('Not yet built', style: theme.textTheme.titleMedium),
                 const Divider(height: 20),
                 Text(
-                  'Offline-first local storage, camera and QR tag scanning, '
-                  'and GPS are the parts most likely to behave differently '
-                  'per platform. They are deliberately out of scope here and '
-                  'should be the next things piloted.',
+                  'There is no backend: no accounts, no roles, no syncing '
+                  'between devices, and no admin approvals. Paddock mapping, '
+                  'tag scanning and reporting are still to come.',
                   style: theme.textTheme.bodyMedium,
                 ),
               ],

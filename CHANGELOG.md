@@ -34,6 +34,31 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- **Local persistence on all six targets**, via `drift`. The database is real
+  SQLite everywhere: a native library on desktop and mobile, WebAssembly in the
+  browser. Data survives restarts; nothing is in memory only. This closes the
+  question the 0.1.0 notes left open, where storage was called out as the most
+  likely thing to invalidate the architecture.
+- **Properties and paddocks**, created in-app and persisted. The paddocks screen
+  now shows live head counts instead of the static placeholder list, broken down
+  by livestock class, and reports an empty paddock as empty rather than as zero.
+- **A movement ledger** — the core of the domain. One append-only table records
+  all four kinds of event: intake, a move between paddocks, ageing into the next
+  class, and an end state such as meatworks or sold. Paddock counts are derived
+  from it rather than stored, so history is never lost and cannot disagree with
+  the totals. A movement that would drive a count negative is rejected.
+- **Movement form**, one sheet serving all four kinds, which offers only
+  livestock actually standing in the chosen paddock and preselects the
+  destination class from the template's ageing chain.
+- **Activity screen**, listing every recorded movement newest first. It is the
+  ledger rendered, so it required no separate audit log.
+- **Templates screen**, read-only, listing livestock classes and their ageing
+  chains. Two provisional templates — Beef and Dairy — are seeded on first run
+  from `assets/templates/default_templates.json`; the real lists are still
+  awaited, and replacing them is a content change rather than a code one.
+- **Storage card on the platform-proof screen**, reporting the database engine,
+  SQLite version, location and movement count — so the evidence screenshots now
+  prove persistence per platform, not just that the app runs.
 - Installation instructions in the README, covering a clone-to-running path:
   installing the pinned Flutter 3.44.9, fetching packages, and the host
   toolchain for each of the six targets. Previously the README documented build
@@ -51,6 +76,9 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Changed
 
+- Navigation now leads with the domain: Paddocks, Activity, Templates, then
+  Platform and About. The platform-proof screen remains, demoted from the
+  landing screen but still carrying evidence.
 - Display name is **Property Management App** on all six targets, replacing the
   raw Dart package name (`property_management_app`) that every platform except
   iOS was showing in launchers, window titles and browser tabs. Executable and

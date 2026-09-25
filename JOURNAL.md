@@ -7,6 +7,158 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-09-25 — The pilot becomes an application: persistence and the movement ledger
+
+### What prompted it
+
+A specification arrived — a stakeholder brainstorm covering paddocks and
+transfers, a drawable map, admin and user roles, cattle templates with age
+bands, offline sync with admin approval, activity and reporting views, and an
+onboarding wizard. Its final heading, "Priorities:", was left blank.
+
+That is a much larger app than this repo was chartered for. Four decisions were
+settled before any code was written:
+
+- **Livestock is tracked as head counts by class**, not as individual animals.
+  The notes point this way throughout — "numbers in them", templates by type and
+  age — and never mention ear tags or NLIS. Individual tracking would have meant
+  tag scanning hardware and far more sync volume for a benefit nobody asked for.
+- **No backend yet.** Roles, approvals, sync and notifications are all deferred.
+  The app is single-user and local.
+- **The map will be georeferenced** when it lands, not a schematic diagram.
+- **First milestone is a vertical slice**: properties, paddocks, templates and
+  transfers, persisted, on all six targets.
+
+Deferring the backend defers most of the specification, so the job became
+building the local model such that sync can be *added* rather than retrofitted.
+
+### The line in the notes that decided the data model
+
+> For aging → can do transfer within paddocks
+
+Ageing is expressed as a transfer that does not change paddock. Follow that
+through and a single movement primitive covers every event in the app: a move
+changes paddock and not class, ageing changes class and not paddock, intake has
+no origin, and an end state has no destination. One table, one form, one audit
+trail — which is why the admin "Activity" view the notes ask for cost nothing
+extra. It is the movements table, rendered.
+
+The corollary is that **paddock counts are derived, never stored**. That was the
+most consequential decision of the session and it was made for the backend that
+does not exist yet: an append-only log merges trivially, so two devices
+appending different movements never conflict at the row level. The only genuine
+conflict is semantic — a count driven negative because two people each moved
+cattle out of the same paddock while offline — which reduces the notes'
+"notifications to admin for conflicts" from a general merge problem to one
+well-defined check. Storing mutable counts instead would have made that
+unrecoverable.
+
+For the same reason, rows carry client-generated UUIDs and soft deletes from the
+first migration. Both are nearly free now and neither can be retrofitted once
+devices are syncing.
+
+### Storage: drift, and two rejections that mattered more
+
+The 0.1.0 entry flagged that "the usual SQLite package works on neither web nor
+Linux desktop" — that is `sqflite`, which declares Android, iOS and macOS only.
+`drift` declares all six and is the direct answer.
+
+Every candidate was checked against the six-target rule before adoption, and two
+obvious choices failed it:
+
+- **`cloud_firestore` does not support Linux.** It has the best offline story of
+  anything available, and choosing it would have silently cost a platform this
+  project exists to prove.
+- **`google_maps_flutter` supports only Android, iOS and web** — it would cost
+  three. `flutter_map` is pure Dart, declares all six, and is what the map
+  screen should use.
+
+Both are the default choice in their category, which is precisely the trap. Worth
+re-reading before anyone reaches for either.
+
+One wrinkle accepted rather than fought: `drift_flutter` pulls
+`sqlite3_flutter_libs`, which pub.dev marks end-of-life pending a `sqlite3` 3.x
+migration. It is the drift maintainer's own pinned combination, so it is the
+sanctioned path today. Revisit on the next drift upgrade.
+
+### The `dart:io` rule needed amending, not obeying
+
+CLAUDE.md said, flatly, "never import `dart:io`". Taken literally, drift is
+unusable — its native connection reaches `dart:io`, and so does `path_provider`,
+whose API returns `Directory` objects.
+
+The rule is now stated precisely: `dart:io` may appear **only** inside a
+conditional-import branch the web build cannot reach. `lib/data/connection/` is
+the worked example. The original reasoning — that this is a compile-time failure,
+so a runtime `kIsWeb` guard cannot save you — survives intact and is exactly why
+the conditional import is the only mechanism that works.
+
+That distinction also drove a late refactor. The database location wanted
+`path_provider`, which meant the whole connection had to move behind the
+conditional import rather than just a diagnostic label.
+
+### Four things that were not obvious
+
+- **Drift stores `DateTime` as whole unix seconds by default.** Sub-second
+  precision and the UTC flag are simply lost. The ledger orders by time, so two
+  movements recorded in the same second sorted arbitrarily — caught by a test
+  asserting the newest entry first. `build.yaml` now sets
+  `store_date_time_values_as_text`. Changing this after data exists needs a
+  migration; the schema was still at version 1, so it was free.
+- **The database landed in `~/Documents`.** That is drift's default, and it is a
+  poor one: user-visible clutter, and Documents is commonly cloud-synced, where a
+  sync client copying a live SQLite file risks corrupting it. Now overridden to
+  the application support directory —
+  `~/.local/share/com.skrog.propertyManagementApp/` on Linux.
+- **`pumpAndSettle` hangs on any page that shows a spinner.** A
+  `CircularProgressIndicator` schedules frames forever, so the tree never goes
+  idle. Every page here shows one while its stream is cold. Bounded pumping
+  replaces it.
+- **Disposing a drift `StreamBuilder` schedules a zero-duration timer**, and
+  `testWidgets` fails a body that ends with one pending. The fix has to happen
+  *inside* the test body, because that check runs before `addTearDown` does —
+  hence the `testPage` wrapper in `test/support.dart`.
+
+The drift documentation also names the web worker `drift_worker.dart.js`; the
+actual release asset for 2.35.0 is `drift_worker.js`. Both it and `sqlite3.wasm`
+are committed under `web/` and must be re-downloaded when drift is upgraded.
+
+### Verification
+
+Analyze clean, 36 tests passing, up from 17. The new ones cover balance
+derivation across all four movement kinds, ageing leaving a paddock total
+unchanged, rejection of a movement that would go negative, and the movement form
+recording end-to-end.
+
+`flutter build web` succeeded, which is the only real check on the `dart:io`
+boundary — it fails at compile time if native code leaks into shared imports.
+The WASM dry run passed too.
+
+Persistence was verified on the Linux release build rather than assumed: the app
+was run, the database inspected directly with `sqlite3`, a row inserted
+underneath it, and the app restarted — the seeded templates kept their original
+UUIDs (so the file was read, not rewritten) and the injected row came back. A
+screenshot confirmed derived counts agree with the ledger: North Ridge showing
+73 after an intake of 128, a move of 30 out and 25 to meatworks.
+
+### Open
+
+- **The seeded templates are provisional.** The real lists of cattle types were
+  promised by Alex and have not arrived. `assets/templates/default_templates.json`
+  is a placeholder; replacing it is a content change.
+- **"Priorities:" in the specification is still blank.** The order after this
+  slice is a guess: template editor, settings and export next, then the map, then
+  the backend.
+- **"Better signup than email/password ???"** — the notes' own question mark.
+  Still open, and deferred with the rest of the backend.
+- `macos/Runner/Release.entitlements` still lacks
+  `com.apple.security.network.client`. Harmless while nothing touches the
+  network, but map tiles will be the first thing that does — and it fails
+  silently, not loudly.
+- The app has still never run on a physical Android device.
+
+---
+
 ## 2026-08-19 — Display name across all six targets
 
 Closes the loose end from the deployment review below: every target except iOS

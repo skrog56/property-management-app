@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../data/livestock_repository.dart';
+import '../../data/repository_scope.dart';
+import '../../data/connection/connection.dart';
 import '../../shell/breakpoints.dart';
 import 'platform_facts.dart';
 
@@ -99,6 +102,7 @@ class _FactsView extends StatelessWidget {
             icon: Icons.aspect_ratio,
             facts: _displayFacts(context, sizeClass),
           ),
+          const _StorageCard(),
           const _InputModalityCard(),
         ];
 
@@ -267,6 +271,36 @@ class _FactRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Same schema, same queries, a different SQLite build per target — so this
+/// card is the evidence that persistence reaches everywhere the UI does.
+class _StorageCard extends StatelessWidget {
+  const _StorageCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final repository = RepositoryScope.of(context);
+
+    return FutureBuilder<List<Fact>>(
+      future: _gather(repository),
+      builder: (context, snapshot) => _FactCard(
+        title: 'Storage',
+        icon: Icons.save_outlined,
+        facts:
+            snapshot.data ?? const [Fact('Database', 'reading…')],
+      ),
+    );
+  }
+
+  Future<List<Fact>> _gather(LivestockRepository repository) async {
+    return [
+      Fact('Engine', storageBackend),
+      Fact('SQLite version', await repository.sqliteVersion()),
+      Fact('Location', await storageLocation()),
+      Fact('Movements recorded', '${await repository.movementCount()}'),
+    ];
   }
 }
 

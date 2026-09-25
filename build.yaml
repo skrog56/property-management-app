@@ -1,0 +1,10 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Drift's default stores DateTime as whole unix seconds, which loses
+          # sub-second precision and the UTC flag. The ledger orders by time, so
+          # two movements recorded in the same second would sort arbitrarily.
+          # Changing this after data exists needs a migration; schema is still 1.
+          store_date_time_values_as_text: true

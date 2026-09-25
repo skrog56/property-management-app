@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Beef",
+    "classes": [
+      { "kind": "Calves", "ageBand": "under 6 months", "agesInto": 1 },
+      { "kind": "Weaners", "ageBand": "6–12 months", "agesInto": 2 },
+      { "kind": "Yearlings", "ageBand": "1–2 years", "agesInto": 3 },
+      { "kind": "Steers", "ageBand": "2 years and over" },
+      { "kind": "Heifers", "ageBand": "1–2 years", "agesInto": 5 },
+      { "kind": "Breeders", "ageBand": "2 years and over" },
+      { "kind": "Bulls", "ageBand": "2 years and over" }
+    ]
+  },
+  {
+    "name": "Dairy",
+    "classes": [
+      { "kind": "Calves", "ageBand": "under 6 months", "agesInto": 1 },
+      { "kind": "Heifers", "ageBand": "6–24 months", "agesInto": 2 },
+      { "kind": "Milkers", "ageBand": "2 years and over" },
+      { "kind": "Dry cows", "ageBand": "2 years and over" }
+    ]
+  }
+]

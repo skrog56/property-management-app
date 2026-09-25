@@ -1,14 +1,36 @@
-# Skrog Property Management — Platform Pilot
+# Skrog Property Management
 
-A Flutter pilot proving that **one codebase reaches all six platforms** Skrog
-needs, ahead of building livestock transfer tracking on top of it.
+A Flutter app for livestock transfers, running from **one codebase on all six
+platforms** Skrog needs: web, Android, iOS, Linux, macOS and Windows.
 
-This is deliberately a _shell_. It has no livestock functionality and no
-persistence. Its job is to answer one question — "can we actually ship this
-everywhere?" — with evidence rather than a vendor claim.
+It began as a pilot answering one question — "can we actually ship this
+everywhere?" — with evidence rather than a vendor claim. That question is
+settled, and the app now has a real local domain: properties, paddocks,
+livestock templates and a movement ledger, stored in SQLite on every target.
+
+There is **no backend yet**. No accounts, no roles, no sync, no admin approvals
+— everything is single-user and local to the device. That is a staging decision
+rather than an oversight; see [`JOURNAL.md`](JOURNAL.md).
+
+## What it does
+
+- **Paddocks** — properties and their paddocks, with head counts broken down by
+  livestock class.
+- **Movements** — one form records all four kinds of event: intake, a move
+  between paddocks, ageing into the next class, and an end state such as
+  meatworks or sold. Counts are **derived** from an append-only ledger rather
+  than stored, so history is never lost and totals cannot disagree with it. A
+  movement that would drive a count negative is refused.
+- **Activity** — every movement, newest first. It is the ledger rendered, so it
+  needed no separate audit log.
+- **Templates** — livestock classes and their ageing chains. The seeded Beef and
+  Dairy lists are provisional, pending the real ones.
 
 ## What it demonstrates
 
+- **Real persistence everywhere** — SQLite via `drift`: a native library on
+  desktop and mobile, WebAssembly in the browser. The storage card on the
+  platform-proof screen reports which engine a given target actually got.
 - **Platform proof screen** — each target reports its own OS, version, device,
   renderer and build mode. Screenshot it on six platforms and the set of
   screenshots is the deliverable.
@@ -155,6 +177,16 @@ flutter build ios --release --no-codesign
 flutter analyze
 flutter test
 ```
+
+After editing the schema in `lib/data/tables.dart`, regenerate the drift code:
+
+```bash
+dart run build_runner build
+```
+
+`flutter build web` is worth running before trusting any change under
+`lib/data/` — it is the only check that catches a `dart:io` import leaking into
+shared code, which breaks the web target at compile time.
 
 ## Versioning and history
 
@@ -321,27 +353,44 @@ None of that is worth building until there is something to ship.
 lib/
   app/          MaterialApp, theme, shell wiring
   shell/        Adaptive scaffold and Material 3 breakpoints
+  data/         Drift schema, repository, platform-specific connection
   features/
+    paddocks/         Paddock list with derived head counts
+    transfers/        The movement form — one sheet, four kinds
+    activity/         The ledger, rendered
+    templates/        Livestock classes (read-only for now)
     platform_proof/   The evidence screen and fact gathering
-    paddocks/         Placeholder domain screen (static data)
-    about/            What the pilot covers and what it does not
+    about/            What the app covers and what it does not
 ```
 
-### One rule worth knowing
+### Two rules worth knowing
 
-`lib/features/platform_proof/platform_facts.dart` contains **no `dart:io`
-import**, by design. `dart:io` does not exist in a browser and its absence is a
-_compile-time_ failure on web — so a runtime `if (!kIsWeb)` guard around
-`Platform.operatingSystem` does not help; the build never gets that far.
-Reaching for `dart:io` is the most common way a Flutter app quietly stops being
-cross-platform. Use `defaultTargetPlatform` and `device_info_plus` instead.
+**`dart:io` only behind a conditional import.** It does not exist in a browser,
+and its absence is a _compile-time_ failure on web — so a runtime
+`if (!kIsWeb)` guard does not help; the build never gets that far. Reaching for
+it is the most common way a Flutter app quietly stops being cross-platform. It
+may appear only in a branch the web build cannot reach, as in
+`lib/data/connection/`. `path_provider` falls under the same rule, since its API
+returns `dart:io` `Directory` objects.
 
 Related: on web, `defaultTargetPlatform` reports the _host_ OS — it returns
 `TargetPlatform.linux` for Chrome on Linux. Always test `kIsWeb` first.
 
+**Head counts are derived, never stored.** `movements` is append-only, and a
+paddock's count is a fold over it. Never add a `head` column to `paddocks`, and
+never update a movement in place — the ledger is what will make offline sync
+tractable when it lands.
+
+### Web needs two extra files
+
+`web/sqlite3.wasm` and `web/drift_worker.js` come from the
+[drift release](https://github.com/simolus3/drift/releases) matching the pinned
+version. They are committed. Without them the web build compiles and then fails
+at runtime, so re-download both when upgrading drift.
+
 ## Not yet proven
 
-Offline-first local storage, camera and QR tag scanning, and GPS. These are the
-parts most likely to differ per platform — notably, the usual SQLite package
-does **not** work on web or Linux desktop — and should be the next things
-piloted before committing to the architecture.
+Camera and QR tag scanning, GPS, and map tile rendering. Offline-first storage
+was the big one and is now settled — `drift` gives real SQLite on all six —
+but multi-device **sync** is a different problem and remains entirely unbuilt,
+along with accounts, roles and admin approvals.
