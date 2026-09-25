@@ -61,6 +61,18 @@ class PaddockSummary {
   bool get isEmpty => head == 0;
 }
 
+class PropertySummary {
+  const PropertySummary({
+    required this.property,
+    required this.paddockCount,
+    required this.head,
+  });
+
+  final Property property;
+  final int paddockCount;
+  final int head;
+}
+
 /// Every head count in the app comes out of here, folded from [Movements].
 class LivestockRepository {
   LivestockRepository(this.db);
@@ -77,6 +89,45 @@ class LivestockRepository {
     SELECT from_paddock_id, from_class_id, -head
       FROM movements WHERE deleted_at IS NULL AND from_paddock_id IS NOT NULL
   ''';
+
+  /// The top tier: one row per property, with the paddocks under it and the
+  /// head standing across all of them.
+  Stream<List<PropertySummary>> watchPropertySummaries() {
+    return db
+        .customSelect(
+          '''
+          SELECT pr.id AS pid,
+                 COUNT(DISTINCT pa.id) AS paddocks,
+                 COALESCE(SUM(b.delta), 0) AS head
+            FROM properties pr
+            LEFT JOIN paddocks pa
+              ON pa.property_id = pr.id AND pa.deleted_at IS NULL
+            LEFT JOIN ($_balances) b ON b.paddock_id = pa.id
+           WHERE pr.deleted_at IS NULL
+           GROUP BY pr.id
+          ''',
+          readsFrom: {db.properties, db.paddocks, db.movements},
+        )
+        .watch()
+        .asyncMap((rows) async {
+          final properties = {for (final p in await this.properties()) p.id: p};
+
+          final summaries = <PropertySummary>[];
+          for (final row in rows) {
+            final property = properties[row.read<String>('pid')];
+            if (property == null) continue;
+            summaries.add(
+              PropertySummary(
+                property: property,
+                paddockCount: row.read<int>('paddocks'),
+                head: row.read<int>('head'),
+              ),
+            );
+          }
+          summaries.sort((a, b) => a.property.name.compareTo(b.property.name));
+          return summaries;
+        });
+  }
 
   Stream<List<PaddockSummary>> watchPaddockSummaries(String propertyId) {
     return db
@@ -106,9 +157,7 @@ class LivestockRepository {
           ..orderBy([(p) => OrderingTerm(expression: p.name)]))
         .get();
 
-    final classes = {
-      for (final c in await db.select(db.livestockClasses).get()) c.id: c,
-    };
+    final classes = await _classesById();
 
     final mobs = <String, List<MobLine>>{};
     for (final row in rows) {
@@ -133,6 +182,53 @@ class LivestockRepository {
     ];
   }
 
+  /// The bottom tier: one paddock and the mobs standing in it. Emits null once
+  /// the paddock is gone, so a detail view can close itself.
+  Stream<PaddockSummary?> watchPaddockSummary(String paddockId) {
+    return db
+        .customSelect(
+          '''
+          SELECT class_id AS cid, SUM(delta) AS head FROM ($_balances)
+           WHERE paddock_id = ?1
+           GROUP BY class_id HAVING SUM(delta) <> 0
+          ''',
+          variables: [Variable<String>(paddockId)],
+          readsFrom: {db.paddocks, db.movements},
+        )
+        .watch()
+        .asyncMap((rows) async {
+          final paddock =
+              await (db.select(db.paddocks)
+                    ..where((p) => p.id.equals(paddockId))
+                    ..where((p) => p.deletedAt.isNull()))
+                  .getSingleOrNull();
+          if (paddock == null) return null;
+
+          final classes = await _classesById();
+          final mobs = <MobLine>[];
+          for (final row in rows) {
+            final livestockClass = classes[row.read<String>('cid')];
+            if (livestockClass == null) continue;
+            mobs.add(
+              MobLine(
+                livestockClass: livestockClass,
+                head: row.read<int>('head'),
+              ),
+            );
+          }
+          mobs.sort(
+            (a, b) =>
+                a.livestockClass.sortOrder.compareTo(b.livestockClass.sortOrder),
+          );
+
+          return PaddockSummary(paddock: paddock, mobs: mobs);
+        });
+  }
+
+  Future<Map<String, LivestockClass>> _classesById() async => {
+    for (final c in await db.select(db.livestockClasses).get()) c.id: c,
+  };
+
   Future<int> headIn(String paddockId, String classId) async {
     final row = await db
         .customSelect(
@@ -147,9 +243,15 @@ class LivestockRepository {
     return row.read<int>('head');
   }
 
-  Stream<List<Movement>> watchActivity({int limit = 200}) {
+  Stream<List<Movement>> watchActivity({int limit = 200, String? paddockId}) {
     return (db.select(db.movements)
           ..where((m) => m.deletedAt.isNull())
+          ..where(
+            (m) => paddockId == null
+                ? const Constant(true)
+                : m.fromPaddockId.equals(paddockId) |
+                      m.toPaddockId.equals(paddockId),
+          )
           ..orderBy([
             (m) => OrderingTerm(
               expression: m.occurredAt,
@@ -162,13 +264,18 @@ class LivestockRepository {
         .watch();
   }
 
-  Stream<List<ActivityEntry>> watchActivityEntries({int limit = 200}) {
-    return watchActivity(limit: limit).asyncMap((movements) async {
+  Stream<List<ActivityEntry>> watchActivityEntries({
+    int limit = 200,
+    String? paddockId,
+  }) {
+    return watchActivity(limit: limit, paddockId: paddockId).asyncMap((
+      movements,
+    ) async {
       final paddocks = {
         for (final p in await db.select(db.paddocks).get()) p.id: p.name,
       };
       final classes = {
-        for (final c in await db.select(db.livestockClasses).get())
+        for (final c in (await _classesById()).values)
           c.id: '${c.kind} (${c.ageBand})',
       };
 
@@ -327,9 +434,7 @@ class LivestockRepository {
         )
         .get();
 
-    final classes = {
-      for (final c in await db.select(db.livestockClasses).get()) c.id: c,
-    };
+    final classes = await _classesById();
 
     final mobs = <MobLine>[];
     for (final row in rows) {

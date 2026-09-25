@@ -63,7 +63,7 @@ lib/
   shell/       AdaptiveScaffold + WindowSizeClass breakpoints
   data/        Drift schema, repository, platform-specific connection
   features/
-    paddocks/         Paddock list with derived head counts
+    properties/       Three tiers: properties → paddocks → one paddock's livestock
     transfers/        The movement form — one sheet, four kinds
     activity/         The ledger, rendered
     templates/        Livestock classes (read-only for now)
@@ -186,7 +186,10 @@ Shared helpers live in `test/support.dart`. Two gotchas are encoded there:
   the tree and pumps once more, inside the body, to drain it.
 
 Window size is set through `tester.view.physicalSize` with
-`addTearDown(tester.view.reset)`, which `pumpPage` handles.
+`addTearDown(tester.view.reset)`, which `pumpPage` handles. It also mounts
+`RepositoryScope` **above** `MaterialApp`, as `app.dart` does — a scope inside
+the home page is invisible to routes pushed by a drill-down, which build from
+the navigator.
 
 If you add a test that boots `PropertyManagementApp`, it will need
 `device_info_plus` and `package_info_plus` channel mocks — prefer testing the

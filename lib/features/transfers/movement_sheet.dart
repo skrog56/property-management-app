@@ -8,6 +8,7 @@ Future<void> showMovementSheet(
   BuildContext context, {
   required LivestockRepository repository,
   required String propertyId,
+  String? fromPaddockId,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -17,7 +18,11 @@ Future<void> showMovementSheet(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: _MovementSheet(repository: repository, propertyId: propertyId),
+      child: _MovementSheet(
+        repository: repository,
+        propertyId: propertyId,
+        fromPaddockId: fromPaddockId,
+      ),
     ),
   );
 }
@@ -42,10 +47,17 @@ extension on MovementKind {
 }
 
 class _MovementSheet extends StatefulWidget {
-  const _MovementSheet({required this.repository, required this.propertyId});
+  const _MovementSheet({
+    required this.repository,
+    required this.propertyId,
+    this.fromPaddockId,
+  });
 
   final LivestockRepository repository;
   final String propertyId;
+
+  /// Opened from a paddock, the origin is already known.
+  final String? fromPaddockId;
 
   @override
   State<_MovementSheet> createState() => _MovementSheetState();
@@ -91,6 +103,9 @@ class _MovementSheetState extends State<_MovementSheet> {
       _classes = classes;
       _loading = false;
     });
+    if (widget.fromPaddockId != null) {
+      await _selectFromPaddock(widget.fromPaddockId);
+    }
   }
 
   Future<void> _selectFromPaddock(String? id) async {

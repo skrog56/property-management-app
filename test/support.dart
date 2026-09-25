@@ -26,14 +26,14 @@ Future<void> pumpPage(
   tester.view.physicalSize = Size(width, 900);
   addTearDown(tester.view.reset);
 
+  // The scope sits above the navigator, as it does in the real app, so pages
+  // pushed by a drill-down can still reach it.
+  final app = MaterialApp(home: Scaffold(body: child));
+
   await tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: repository == null
-            ? child
-            : RepositoryScope(repository: repository, child: child),
-      ),
-    ),
+    repository == null
+        ? app
+        : RepositoryScope(repository: repository, child: app),
   );
 
   // Not pumpAndSettle: these pages show a CircularProgressIndicator while their

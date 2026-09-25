@@ -4,8 +4,8 @@ import '../data/livestock_repository.dart';
 import '../data/repository_scope.dart';
 import '../features/about/about_page.dart';
 import '../features/activity/activity_page.dart';
-import '../features/paddocks/paddocks_page.dart';
 import '../features/platform_proof/platform_proof_page.dart';
+import '../features/properties/properties_page.dart';
 import '../features/templates/templates_page.dart';
 import '../shell/adaptive_scaffold.dart';
 import 'theme.dart';
@@ -45,9 +45,9 @@ class _HomeShellState extends State<_HomeShell> {
 
   static const _destinations = [
     AppDestination(
-      label: 'Paddocks',
-      icon: Icons.grass_outlined,
-      selectedIcon: Icons.grass,
+      label: 'Properties',
+      icon: Icons.home_work_outlined,
+      selectedIcon: Icons.home_work,
     ),
     AppDestination(
       label: 'Activity',
@@ -79,7 +79,7 @@ class _HomeShellState extends State<_HomeShell> {
       onDestinationSelected: (index) =>
           setState(() => _selectedIndex = index),
       body: switch (_selectedIndex) {
-        0 => const PaddocksPage(),
+        0 => const PropertiesPage(),
         1 => const ActivityPage(),
         2 => const TemplatesPage(),
         3 => const PlatformProofPage(),

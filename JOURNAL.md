@@ -7,6 +7,52 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-09-25 — Properties become the top tier
+
+The paddock screen was built as though there were one property. The dropdown in
+its header admitted otherwise but buried it: a second property was reachable
+only by noticing that the title had become a menu, and nothing above paddock
+level had a place to live.
+
+The screen is now three tiers, each drilling into the next — properties, the
+paddocks of one property, then one paddock's livestock. The navigation
+destination is renamed to match, since the top tier is what it lands on.
+
+Each tier answers a different question, which is what makes the split worth the
+extra screens rather than merely tidier:
+
+- **Properties** — where is the herd, across the business. Paddock count and
+  total head per property.
+- **Property** — how is one place stocked. The paddock cards that used to be
+  the whole screen, unchanged.
+- **Paddock** — what is actually standing here, mob by mob with its age band,
+  and how it got here. The last part is the ledger filtered to one paddock,
+  which cost one `where` clause: the same table that serves the Activity view
+  serves a paddock's own history.
+
+Two consequences worth recording:
+
+- Drilling down pushes full-screen routes on the root navigator, so the
+  navigation rail is not visible inside a property or paddock. That is the
+  conventional pattern and back works everywhere, but on a wide desktop window
+  a list-detail pane would use the space better. Deferred — it is a layout
+  change against the same three widgets, and the width-based breakpoints are
+  already there to drive it.
+- `pumpPage` in `test/support.dart` now puts `RepositoryScope` **above**
+  `MaterialApp`, as the real app does. Pushed routes build from the navigator,
+  so a scope inside the home page's body is invisible to them, and every
+  drill-down test would have failed on a missing repository rather than on
+  anything real.
+
+The movement sheet gained an optional origin paddock, so recording from inside
+a paddock starts with that paddock already chosen. Properties gained an
+optional PIC field at creation, which the schema already had a column for.
+
+Still open: the specification's "Priorities:" heading remains blank, so what
+follows this — template editor, settings, export, the map — is still a guess.
+
+---
+
 ## 2026-09-25 — The pilot becomes an application: persistence and the movement ledger
 
 ### What prompted it

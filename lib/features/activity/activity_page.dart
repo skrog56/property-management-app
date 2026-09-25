@@ -40,15 +40,15 @@ class ActivityPage extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           itemCount: entries.length,
           separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, index) => _ActivityTile(entry: entries[index]),
+          itemBuilder: (context, index) => ActivityTile(entry: entries[index]),
         );
       },
     );
   }
 }
 
-class _ActivityTile extends StatelessWidget {
-  const _ActivityTile({required this.entry});
+class ActivityTile extends StatelessWidget {
+  const ActivityTile({super.key, required this.entry});
 
   final ActivityEntry entry;
 

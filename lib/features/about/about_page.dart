@@ -36,8 +36,8 @@ class AboutPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Livestock transfers, from one codebase on every device '
-                  'Skrog needs. Paddocks, movements and templates are stored '
-                  'on this device.',
+                  'Skrog needs. Properties, paddocks, movements and templates '
+                  'are stored on this device.',
                   style: theme.textTheme.bodyMedium,
                 ),
               ],

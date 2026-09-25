@@ -14,8 +14,10 @@ rather than an oversight; see [`JOURNAL.md`](JOURNAL.md).
 
 ## What it does
 
-- **Paddocks** — properties and their paddocks, with head counts broken down by
-  livestock class.
+- **Properties** — three tiers, each drilling into the next: properties, the
+  paddocks under one property, then the livestock standing in one paddock with
+  that paddock's own movement history. Head counts at every tier are derived
+  from the ledger.
 - **Movements** — one form records all four kinds of event: intake, a move
   between paddocks, ageing into the next class, and an end state such as
   meatworks or sold. Counts are **derived** from an append-only ledger rather
@@ -355,7 +357,7 @@ lib/
   shell/        Adaptive scaffold and Material 3 breakpoints
   data/         Drift schema, repository, platform-specific connection
   features/
-    paddocks/         Paddock list with derived head counts
+    properties/       Three tiers: properties → paddocks → one paddock's livestock
     transfers/        The movement form — one sheet, four kinds
     activity/         The ledger, rendered
     templates/        Livestock classes (read-only for now)
