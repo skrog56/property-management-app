@@ -407,6 +407,30 @@ class LivestockRepository {
     return row.read<int>('c');
   }
 
+  /// Every (paddock, class) the ledger has driven below zero. `record` refuses
+  /// to create one locally, so a non-empty result means a merge or a bug.
+  Future<List<({String paddockId, String? classId, int head})>>
+  negativeBalances() async {
+    final rows = await db
+        .customSelect(
+          '''
+          SELECT paddock_id AS pid, class_id AS cid, SUM(delta) AS head
+            FROM ($_balances)
+           GROUP BY paddock_id, class_id HAVING SUM(delta) < 0
+          ''',
+          readsFrom: {db.movements},
+        )
+        .get();
+    return [
+      for (final row in rows)
+        (
+          paddockId: row.read<String>('pid'),
+          classId: row.read<String?>('cid'),
+          head: row.read<int>('head'),
+        ),
+    ];
+  }
+
   Future<List<Paddock>> paddocksIn(String propertyId) =>
       (db.select(db.paddocks)
             ..where((p) => p.propertyId.equals(propertyId))

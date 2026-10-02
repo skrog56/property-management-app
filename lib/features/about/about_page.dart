@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../platform_proof/platform_facts.dart';
 
@@ -40,6 +41,8 @@ class AboutPage extends StatelessWidget {
                   'on this device.',
                   style: theme.textTheme.bodyMedium,
                 ),
+                const SizedBox(height: 12),
+                const _BuildIdentity(),
               ],
             ),
           ),
@@ -93,6 +96,32 @@ class AboutPage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Lets any build, release included, be identified from a screenshot.
+class _BuildIdentity extends StatelessWidget {
+  const _BuildIdentity();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        return SelectableText(
+          [
+            PlatformFacts.platformName,
+            if (info != null) 'v${info.version}+${info.buildNumber}',
+            PlatformFacts.buildMode,
+          ].join(' · '),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        );
+      },
     );
   }
 }

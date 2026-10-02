@@ -67,9 +67,15 @@ lib/
     transfers/        The movement form — one sheet, four kinds
     activity/         The ledger, rendered
     templates/        Livestock classes (read-only for now)
+    developer/        Debug-only tools; hosts platform_proof as a tab
     platform_proof/   The evidence screen and fact gathering
-    about/            Target checklist
+    about/            Target checklist and build identity
 ```
+
+Developer tooling is reachable **only** through the const `devMode`
+(`lib/features/developer/dev_mode.dart`, i.e. `kDebugMode`), so release and
+profile builds tree-shake it out. Don't import `features/developer/` from
+anywhere that isn't itself behind that gate, beyond `app.dart` and `main.dart`.
 
 Three invariants carry the project. Each is easy to break without noticing, and
 breaking any of them costs either a platform or the data model.

@@ -7,6 +7,51 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-10-02 — Developer mode
+
+Platform was a developer's screen sitting in every user's navigation, and there
+was no way to reset data, populate a realistic farm or see an error without a
+debugger attached. Added a **Developer** destination that exists only in debug
+builds, with Platform folded in as its first tab.
+
+Decisions:
+
+- **The gate is `kDebugMode`, behind one const (`devMode`).** "Only me, in
+  development" maps exactly onto `flutter run`; release builds go to everyone
+  else. Because it is const, the compiler drops every developer widget from
+  release and profile output — checked by grepping the Linux `libapp.so` and the
+  web `main.dart.js` for Developer strings after a release build. A
+  `--dart-define` opt-in was considered and left out until there is a need to
+  inspect a release build on a device.
+- **Platform moves rather than gets duplicated.** Release navigation is now
+  Properties, Activity, Templates, About. The changelog's versioning policy
+  relied on Platform showing the version in a screenshot, so About now carries a
+  one-line build identity (platform · version+build · mode) instead.
+- **Wipe hard-deletes.** It is a developer reset of local data, not a domain
+  operation, so it does not contradict soft deletes or the append-only ledger.
+  It reseeds the built-in templates afterwards.
+- **Seed goes through `record`.** The sample farm obeys the same ledger rules as
+  real use, so it cannot produce a state the app could not reach itself.
+- **The ledger check lives in the repository** (`negativeBalances`), not in dev
+  code: it is the same conflict an admin will have to arbitrate after sync.
+- **Simulated width narrows the real constraints** in `MaterialApp.builder`
+  rather than faking a device, so layout still keys off width alone. Presets
+  wider than the actual window are disabled.
+
+Open:
+
+- Removed `docs/proof/`. Its screenshots came from release builds, which no
+  longer have the platform screen, and the set was only ever two of six
+  targets. Proof now means running a debug build and opening Developer →
+  Platform; if release captures are ever wanted again, that is the case for a
+  `--dart-define` opt-in.
+- The performance overlay draws nothing on web — a Flutter limitation, noted in
+  the UI.
+- The Display and Log tabs were exercised by tests and analysis, not yet driven
+  by hand on each target.
+
+---
+
 ## 2026-10-02 — Skrog marks authorship only
 
 Swept the project for mentions of Skrog and settled a rule: the name stays

@@ -35,7 +35,8 @@ rather than an oversight; see [`JOURNAL.md`](JOURNAL.md).
   platform-proof screen reports which engine a given target actually got.
 - **Platform proof screen** — each target reports its own OS, version, device,
   renderer and build mode. Screenshot it on six platforms and the set of
-  screenshots is the deliverable.
+  screenshots is the deliverable. It lives under **Developer**, which exists
+  only in debug builds (`flutter run`) and is compiled out of release.
 - **One responsive layout** — navigation switches between a bottom bar, a
   collapsed rail and an extended rail purely on window width, so a phone, a
   tablet, a desktop window and a browser tab are all served by the same code.
@@ -361,6 +362,7 @@ lib/
     transfers/        The movement form — one sheet, four kinds
     activity/         The ledger, rendered
     templates/        Livestock classes (read-only for now)
+    developer/        Debug-only tools: data, overlays, overrides, log
     platform_proof/   The evidence screen and fact gathering
     about/            What the app covers and what it does not
 ```

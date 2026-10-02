@@ -8,8 +8,8 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## Versioning policy
 
 The version lives in `pubspec.yaml` as `version: <major>.<minor>.<patch>+<build>`
-and is surfaced in the running app on the platform-proof screen, so any build can
-be identified from a screenshot.
+and is surfaced in the running app on the About screen, so any build can be
+identified from a screenshot.
 
 The project is on **0.x** — pre-alpha, nothing is stable, and anything may
 change without ceremony. Under semver, 0.x explicitly carries no compatibility
@@ -34,6 +34,16 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- **Developer screen, in debug builds only.** A fifth destination that never
+  reaches a release or profile build, with four tabs: **Platform** (the former
+  platform-proof screen), **Data** (seed a sample farm, wipe the database,
+  check the ledger for negative balances, browse raw table rows including
+  soft-deleted ones), **Display** (layout-bounds, repaint-rainbow, performance
+  and semantics overlays; theme, text-scale and simulated window-width
+  overrides) and **Log** (recent errors, uncaught exceptions and `debugPrint`
+  output with stack traces, copyable).
+- About shows the platform, version, build number and build mode, so any build
+  remains identifiable from a screenshot.
 - **Local persistence on all six targets**, via `drift`. The database is real
   SQLite everywhere: a native library on desktop and mobile, WebAssembly in the
   browser. Data survives restarts; nothing is in memory only. This closes the
@@ -72,14 +82,11 @@ same commit — a deliberate act, never a side effect of another change.
   notarization, store accounts, packaging, and what CI would need to become a
   release pipeline. Documents the gap rather than closing it: nothing about
   deployment is configured.
-- `docs/proof/` — platform proof screenshots for Linux desktop and web, each
-  captured wide and narrow to show the layout re-flowing across the 600 dp
-  breakpoint, with an index explaining what each image demonstrates and how to
-  reproduce it. Windows, macOS, iOS and Android remain outstanding; each must be
-  captured on its own hardware.
 
 ### Changed
 
+- The Platform destination is gone from navigation. Its screen now lives under
+  Developer, so release builds show Properties, Activity, Templates and About.
 - The About screen, web manifest and package description no longer carry the
   Skrog name. It remains only where it marks authorship: the `com.skrog`
   application ID, copyright and company fields.
