@@ -30,14 +30,14 @@ class AboutPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Skrog Property Management',
+                  'Property Management App',
                   style: theme.textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Livestock transfers, from one codebase on every device '
-                  'Skrog needs. Properties, paddocks, movements and templates '
-                  'are stored on this device.',
+                  'Livestock transfers, from one codebase on every device. '
+                  'Properties, paddocks, movements and templates are stored '
+                  'on this device.',
                   style: theme.textTheme.bodyMedium,
                 ),
               ],

@@ -8,7 +8,7 @@ const storageBackend = 'sqlite3 — native library, file on disk';
 /// directory, which is user-visible clutter and on many machines is cloud
 /// synced — and a sync client copying a live SQLite file can corrupt it.
 QueryExecutor openConnection() => driftDatabase(
-  name: 'skrog_livestock',
+  name: 'livestock',
   native: DriftNativeOptions(databaseDirectory: getApplicationSupportDirectory),
 );
 

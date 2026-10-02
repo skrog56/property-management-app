@@ -30,7 +30,7 @@ void main() {
     testPage('describes each kind of movement in its own terms', (
       tester,
     ) async {
-      final property = await repo.createProperty('Skrog Downs');
+      final property = await repo.createProperty('Riverbend Downs');
       final north = await repo.createPaddock(property, 'North Ridge');
       final creek = await repo.createPaddock(property, 'Creek Flat');
 

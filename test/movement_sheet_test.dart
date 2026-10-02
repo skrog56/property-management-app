@@ -19,7 +19,7 @@ void main() {
     db = AppDatabase(NativeDatabase.memory());
     repo = LivestockRepository(db);
     await seedBeefTemplate(db);
-    property = await repo.createProperty('Skrog Downs');
+    property = await repo.createProperty('Riverbend Downs');
     north = await repo.createPaddock(property, 'North Ridge');
     creek = await repo.createPaddock(property, 'Creek Flat');
   });

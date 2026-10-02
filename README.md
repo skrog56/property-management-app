@@ -1,7 +1,7 @@
-# Skrog Property Management
+# Property Management App
 
 A Flutter app for livestock transfers, running from **one codebase on all six
-platforms** Skrog needs: web, Android, iOS, Linux, macOS and Windows.
+platforms**: web, Android, iOS, Linux, macOS and Windows.
 
 It began as a pilot answering one question — "can we actually ship this
 everywhere?" — with evidence rather than a vendor claim. That question is

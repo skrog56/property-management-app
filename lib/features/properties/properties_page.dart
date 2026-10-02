@@ -63,7 +63,7 @@ Future<void> addProperty(
   final name = await promptForName(
     context,
     title: 'New property',
-    hint: 'Skrog Downs',
+    hint: 'Riverbend Downs',
     askForPic: true,
   );
   if (name != null) await repository.createProperty(name.value, pic: name.pic);

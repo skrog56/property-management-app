@@ -7,7 +7,7 @@ const storageBackend = 'sqlite3 — WebAssembly, in the browser';
 /// matching the pinned version; without them this compiles and then fails at
 /// runtime.
 QueryExecutor openConnection() => driftDatabase(
-  name: 'skrog_livestock',
+  name: 'livestock',
   web: DriftWebOptions(
     sqlite3Wasm: Uri.parse('sqlite3.wasm'),
     driftWorker: Uri.parse('drift_worker.js'),

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A Flutter app for Skrog's livestock transfers, reaching **web, Android, iOS,
+A Flutter app for livestock transfers, reaching **web, Android, iOS,
 Linux, macOS and Windows** from one codebase.
 
 It began as a platform-reach pilot — a shell with no persistence and no domain

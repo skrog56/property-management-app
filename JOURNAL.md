@@ -7,6 +7,24 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-10-02 — Skrog marks authorship only
+
+Swept the project for mentions of Skrog and settled a rule: the name stays
+where it identifies who made the app, and nowhere else. That keeps the
+`com.skrog` application ID on all six targets, the copyright and company fields,
+and the `skrog56` repository links. Everything else lost it — the database name
+(`skrog_livestock` → `livestock`), the About title and README heading (now the
+display name, Property Management App), the package and web descriptions, and
+the sample property used as a hint and test fixture (now Riverbend Downs).
+
+The database could be renamed without a migration because persistence has not
+yet shipped in a release; no installed build holds a `skrog_livestock` file.
+
+Left alone: the 0.1.0 changelog entry, which is a released record, and earlier
+journal entries, which describe work as it happened.
+
+---
+
 ## 2026-09-25 — Properties become the top tier
 
 The paddock screen was built as though there were one property. The dropdown in

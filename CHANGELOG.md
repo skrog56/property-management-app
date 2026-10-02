@@ -80,6 +80,9 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Changed
 
+- The About screen, web manifest and package description no longer carry the
+  Skrog name. It remains only where it marks authorship: the `com.skrog`
+  application ID, copyright and company fields.
 - Navigation now leads with the domain: Properties, Activity, Templates, then
   Platform and About. The platform-proof screen remains, demoted from the
   landing screen but still carrying evidence.

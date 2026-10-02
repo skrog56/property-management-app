@@ -21,7 +21,7 @@ void main() {
 
   /// One property, one stocked paddock and one empty one.
   Future<String> seedStock() async {
-    final property = await repo.createProperty('Skrog Downs');
+    final property = await repo.createProperty('Riverbend Downs');
     final north = await repo.createPaddock(
       property,
       'North Ridge',
@@ -53,7 +53,7 @@ void main() {
 
       await pumpPage(tester, const PropertiesPage(), repository: repo);
 
-      expect(find.text('Skrog Downs'), findsOneWidget);
+      expect(find.text('Riverbend Downs'), findsOneWidget);
       expect(find.text('2 paddocks · 128 head'), findsOneWidget);
       expect(find.text('River Block'), findsOneWidget);
       expect(find.text('0 paddocks · 0 head'), findsOneWidget);
@@ -81,7 +81,7 @@ void main() {
       await seedStock();
       await pumpPage(tester, const PropertiesPage(), repository: repo);
 
-      await tester.tap(find.text('Skrog Downs'));
+      await tester.tap(find.text('Riverbend Downs'));
       await drain(tester);
 
       expect(find.text('North Ridge'), findsOneWidget);
@@ -94,7 +94,7 @@ void main() {
       await seedStock();
       await pumpPage(tester, const PropertiesPage(), repository: repo);
 
-      await tester.tap(find.text('Skrog Downs'));
+      await tester.tap(find.text('Riverbend Downs'));
       await drain(tester);
       await tester.tap(find.text('North Ridge'));
       await drain(tester);
@@ -115,7 +115,7 @@ void main() {
       await seedStock();
       await pumpPage(tester, const PropertiesPage(), repository: repo);
 
-      await tester.tap(find.text('Skrog Downs'));
+      await tester.tap(find.text('Riverbend Downs'));
       await drain(tester);
       await tester.tap(find.text('Woolshed'));
       await drain(tester);
@@ -149,7 +149,7 @@ void main() {
       );
 
       await pumpPage(tester, const PropertiesPage(), repository: repo);
-      await tester.tap(find.text('Skrog Downs'));
+      await tester.tap(find.text('Riverbend Downs'));
       await drain(tester);
       await tester.tap(find.text('Woolshed'));
       await drain(tester);
