@@ -112,3 +112,29 @@ Future<void> seedBeefTemplate(AppDatabase db) async {
         );
   }
 }
+
+/// Like `find.textContaining`, but reads inline widgets such as links back
+/// into the line, where it would only see a placeholder.
+Finder findRichText(String pattern) => find.byElementPredicate((element) {
+  final widget = element.widget;
+  if (widget is! Text || widget.textSpan == null) return false;
+
+  final inline = <String>[];
+  void collect(Element e) {
+    if (e.widget case Text(:final data?)) inline.add(data);
+    e.visitChildElements(collect);
+  }
+
+  element.visitChildElements(collect);
+
+  final buffer = StringBuffer();
+  var next = 0;
+  widget.textSpan!.visitChildren((span) {
+    if (span is TextSpan) buffer.write(span.text ?? '');
+    if (span is WidgetSpan && next < inline.length) {
+      buffer.write(inline[next++]);
+    }
+    return true;
+  });
+  return buffer.toString().contains(pattern);
+});

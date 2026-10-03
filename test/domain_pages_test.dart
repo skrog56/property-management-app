@@ -66,13 +66,13 @@ void main() {
 
       await pumpPage(tester, const ActivityPage(), width: 900, repository: repo);
 
-      expect(find.textContaining('40 head · intake to North Ridge'), findsOneWidget);
+      expect(findRichText('40 head · intake to North Ridge'), findsOneWidget);
       expect(
-        find.textContaining('10 head · North Ridge → Creek Flat'),
+        findRichText('10 head · North Ridge → Creek Flat'),
         findsOneWidget,
       );
-      expect(find.textContaining('30 head · Calves'), findsOneWidget);
-      expect(find.textContaining('5 head · Creek Flat → meatworks'), findsOneWidget);
+      expect(findRichText('30 head · Calves'), findsOneWidget);
+      expect(findRichText('5 head · Creek Flat → meatworks'), findsOneWidget);
     });
   });
 

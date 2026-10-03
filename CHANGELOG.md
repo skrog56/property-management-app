@@ -39,6 +39,9 @@ same commit — a deliberate act, never a side effect of another change.
   through the tiers, refreshing keeps your place, and a link opens straight to
   a paddock. Hosting now needs unknown paths rewritten to `index.html`; see the
   README.
+- **Activity links to paddocks.** Each paddock named in an Activity entry
+  opens that paddock, including from a paddock's own recent activity, where a
+  move links to the other end. Removed paddocks are named but not linked.
 
 - **Developer screen, in debug builds only.** A fifth destination that never
   reaches a release or profile build, with four tabs: **Platform** (the former

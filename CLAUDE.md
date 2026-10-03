@@ -209,6 +209,10 @@ given location. After navigating, use `settle(tester)` rather than `drain`: a
 page transition outlasts `drain`, and the page beneath stays onstage until it
 ends.
 
+Text with inline links is `Text.rich` with `WidgetSpan`s, which
+`find.textContaining` reads as a placeholder. Use `findRichText`, which puts
+the link text back.
+
 If you add a test that boots `PropertyManagementApp`, it will need
 `device_info_plus` and `package_info_plus` channel mocks — prefer testing the
 widget under it instead.

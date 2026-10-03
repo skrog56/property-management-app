@@ -172,7 +172,8 @@ class _PaddockDetail extends StatelessWidget {
             }
             return Column(
               children: [
-                for (final entry in entries) ActivityTile(entry: entry),
+                for (final entry in entries)
+                  ActivityTile(entry: entry, currentPaddockId: paddock.id),
               ],
             );
           },

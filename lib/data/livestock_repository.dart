@@ -46,8 +46,8 @@ class ActivityEntry {
   });
 
   final Movement movement;
-  final String? fromPaddock;
-  final String? toPaddock;
+  final Paddock? fromPaddock;
+  final Paddock? toPaddock;
   final String? fromClass;
   final String? toClass;
 }
@@ -319,7 +319,7 @@ class LivestockRepository {
       movements,
     ) async {
       final paddocks = {
-        for (final p in await db.select(db.paddocks).get()) p.id: p.name,
+        for (final p in await db.select(db.paddocks).get()) p.id: p,
       };
       final classes = {
         for (final c in (await _classesById()).values)

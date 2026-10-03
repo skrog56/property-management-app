@@ -4,6 +4,8 @@ import '../../data/app_database.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../data/tables.dart';
+import '../properties/paddock_page.dart';
+import '../properties/paths.dart';
 
 class ActivityPage extends StatelessWidget {
   const ActivityPage({super.key});
@@ -48,9 +50,12 @@ class ActivityPage extends StatelessWidget {
 }
 
 class ActivityTile extends StatelessWidget {
-  const ActivityTile({super.key, required this.entry});
+  const ActivityTile({super.key, required this.entry, this.currentPaddockId});
 
   final ActivityEntry entry;
+
+  /// The paddock this tile is shown on, which it names without linking.
+  final String? currentPaddockId;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +77,14 @@ class ActivityTile extends StatelessWidget {
           color: theme.colorScheme.onSecondaryContainer,
         ),
       ),
-      title: Text('${movement.head} head · ${_summary(movement)}'),
+      title: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: '${movement.head} head · '),
+            ..._summary(movement),
+          ],
+        ),
+      ),
       subtitle: Text(
         [
           _timestamp(movement.occurredAt),
@@ -85,16 +97,40 @@ class ActivityTile extends StatelessWidget {
     );
   }
 
-  String _summary(Movement movement) => switch (movement.kind) {
-    MovementKind.intake =>
-      'intake to ${entry.toPaddock} as ${entry.toClass}',
-    MovementKind.move =>
-      '${entry.fromPaddock} → ${entry.toPaddock} (${entry.fromClass})',
-    MovementKind.age =>
-      '${entry.fromClass} → ${entry.toClass} in ${entry.fromPaddock}',
-    MovementKind.endState =>
-      '${entry.fromPaddock} → ${movement.endState?.name ?? 'removed'}',
+  List<InlineSpan> _summary(Movement movement) => switch (movement.kind) {
+    MovementKind.intake => [
+      const TextSpan(text: 'intake to '),
+      _paddock(entry.toPaddock),
+      TextSpan(text: ' as ${entry.toClass}'),
+    ],
+    MovementKind.move => [
+      _paddock(entry.fromPaddock),
+      const TextSpan(text: ' → '),
+      _paddock(entry.toPaddock),
+      TextSpan(text: ' (${entry.fromClass})'),
+    ],
+    MovementKind.age => [
+      TextSpan(text: '${entry.fromClass} → ${entry.toClass} in '),
+      _paddock(entry.fromPaddock),
+    ],
+    MovementKind.endState => [
+      _paddock(entry.fromPaddock),
+      TextSpan(text: ' → ${movement.endState?.name ?? 'removed'}'),
+    ],
   };
+
+  InlineSpan _paddock(Paddock? paddock) {
+    if (paddock == null ||
+        paddock.deletedAt != null ||
+        paddock.id == currentPaddockId) {
+      return TextSpan(text: paddock?.name ?? 'a removed paddock');
+    }
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: _PaddockLink(paddock),
+    );
+  }
 
   String _timestamp(DateTime at) {
     final local = at.toLocal();
@@ -103,5 +139,34 @@ class ActivityTile extends StatelessWidget {
     final h = local.hour.toString().padLeft(2, '0');
     final min = local.minute.toString().padLeft(2, '0');
     return '$d/$m/${local.year} $h:$min';
+  }
+}
+
+class _PaddockLink extends StatelessWidget {
+  const _PaddockLink(this.paddock);
+
+  final Paddock paddock;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      link: true,
+      child: InkWell(
+        onTap: () => openTier(
+          context,
+          paddockPath(paddock.propertyId, paddock.id),
+          preload: preloadPaddock(RepositoryScope.of(context), paddock.id),
+        ),
+        child: Text(
+          paddock.name,
+          style: TextStyle(
+            color: colors.primary,
+            decoration: TextDecoration.underline,
+            decorationColor: colors.primary,
+          ),
+        ),
+      ),
+    );
   }
 }

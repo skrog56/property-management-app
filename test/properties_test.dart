@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -156,11 +157,78 @@ void main() {
       await tester.tap(find.text('Woolshed'));
       await settle(tester);
 
-      expect(
-        find.textContaining('8 head · North Ridge → Woolshed'),
-        findsOneWidget,
-      );
+      expect(findRichText('8 head · North Ridge → Woolshed'), findsOneWidget);
       expect(find.textContaining('3 head'), findsNothing);
+    });
+  });
+
+  group('Activity links', () {
+    Finder link(String name) => find.ancestor(
+      of: find.text(name),
+      matching: find.byWidgetPredicate(
+        (w) => w is Semantics && (w.properties.link ?? false),
+      ),
+    );
+
+    testPage('a paddock named in Activity opens that paddock', (tester) async {
+      await seedStock();
+      await pumpRouted(tester, repository: repo, location: '/activity');
+
+      await tester.tap(link('North Ridge'));
+      await settle(tester);
+
+      expect(find.text('42.4 ha · 1 mob'), findsOneWidget);
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        0,
+      );
+    });
+
+    testPage('a paddock does not link to itself, but links where stock went', (
+      tester,
+    ) async {
+      final property = await seedStock();
+      final paddocks = await repo.paddocksIn(property);
+      final north = paddocks.firstWhere((p) => p.name == 'North Ridge');
+      final woolshed = paddocks.firstWhere((p) => p.name == 'Woolshed');
+      await repo.record(
+        kind: MovementKind.move,
+        head: 8,
+        fromPaddockId: north.id,
+        fromClassId: 'calves',
+        toPaddockId: woolshed.id,
+        toClassId: 'calves',
+      );
+
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/properties/$property/paddocks/${north.id}',
+      );
+
+      expect(findRichText('8 head · North Ridge → Woolshed'), findsOneWidget);
+      expect(link('North Ridge'), findsNothing);
+
+      await tester.tap(link('Woolshed'));
+      await settle(tester);
+      expect(findRichText('8 head · North Ridge → Woolshed'), findsOneWidget);
+      expect(link('Woolshed'), findsNothing);
+      expect(link('North Ridge'), findsOneWidget);
+    });
+
+    testPage('a removed paddock is named but not linked', (tester) async {
+      final property = await seedStock();
+      final north = (await repo.paddocksIn(
+        property,
+      )).firstWhere((p) => p.name == 'North Ridge');
+      await (db.update(db.paddocks)..where((p) => p.id.equals(north.id))).write(
+        PaddocksCompanion(deletedAt: Value(DateTime.now())),
+      );
+
+      await pumpRouted(tester, repository: repo, location: '/activity');
+
+      expect(findRichText('128 head · intake to North Ridge'), findsOneWidget);
+      expect(link('North Ridge'), findsNothing);
     });
   });
 
