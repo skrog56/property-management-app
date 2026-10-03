@@ -7,22 +7,40 @@ import '../transfers/movement_sheet.dart';
 
 /// The bottom tier: everything standing in one paddock, and how it got there.
 class PaddockPage extends StatelessWidget {
-  const PaddockPage({super.key, required this.paddockId});
+  const PaddockPage({
+    super.key,
+    required this.paddockId,
+    this.propertyId,
+    this.primary = true,
+  });
 
   final String paddockId;
+
+  /// When given, a paddock belonging to another property counts as gone, so a
+  /// hand-edited URL cannot show it under the wrong parent.
+  final String? propertyId;
+
+  /// Whether this is the deepest tier on screen, and so owns the action button.
+  final bool primary;
 
   @override
   Widget build(BuildContext context) {
     final repository = RepositoryScope.of(context);
 
     return StreamBuilder<PaddockSummary?>(
+      initialData: repository.latestPaddockSummary(paddockId),
       stream: repository.watchPaddockSummary(paddockId),
       builder: (context, snapshot) {
-        final summary = snapshot.data;
+        final summary = switch (snapshot.data) {
+          final s?
+              when propertyId == null || s.paddock.propertyId == propertyId =>
+            s,
+          _ => null,
+        };
 
         return Scaffold(
-          appBar: AppBar(title: Text(summary?.paddock.name ?? 'Paddock')),
-          floatingActionButton: summary == null
+          backgroundColor: Colors.transparent,
+          floatingActionButton: summary == null || !primary
               ? null
               : FloatingActionButton.extended(
                   icon: const Icon(Icons.swap_horiz),
@@ -49,6 +67,14 @@ class PaddockPage extends StatelessWidget {
     );
   }
 }
+
+const _recentActivity = 25;
+
+Future<void> preloadPaddock(LivestockRepository repository, String id) =>
+    repository.warm([
+      repository.watchPaddockSummary(id),
+      repository.watchActivityEntries(paddockId: id, limit: _recentActivity),
+    ]);
 
 class _PaddockDetail extends StatelessWidget {
   const _PaddockDetail({required this.summary, required this.repository});
@@ -121,9 +147,13 @@ class _PaddockDetail extends StatelessWidget {
         Text('Recent activity', style: theme.textTheme.titleMedium),
         const Divider(),
         StreamBuilder<List<ActivityEntry>>(
+          initialData: repository.latestActivityEntries(
+            paddockId: paddock.id,
+            limit: _recentActivity,
+          ),
           stream: repository.watchActivityEntries(
             paddockId: paddock.id,
-            limit: 25,
+            limit: _recentActivity,
           ),
           builder: (context, snapshot) {
             final entries = snapshot.data;

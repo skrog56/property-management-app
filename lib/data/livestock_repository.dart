@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
@@ -79,6 +80,50 @@ class LivestockRepository {
 
   final AppDatabase db;
 
+  /// What each drill-down watch last emitted, so a page can open already drawn.
+  final _latest = <String, Object?>{};
+
+  Stream<T> _remembered<T>(String key, Stream<T> source) => source.map((value) {
+    _latest[key] = value;
+    return value;
+  });
+
+  /// Completes once every watch has emitted, so [_latest] holds it. Unlike
+  /// `Stream.first`, it does not also wait for the subscription to cancel.
+  Future<void> warm(Iterable<Stream<Object?>> watches) {
+    return Future.wait([
+      for (final watch in watches)
+        () {
+          final first = Completer<void>();
+          late final StreamSubscription<Object?> subscription;
+          subscription = watch.listen(
+            (_) {
+              if (first.isCompleted) return;
+              first.complete();
+              subscription.cancel();
+            },
+            onError: (Object error, StackTrace stack) {
+              if (!first.isCompleted) first.completeError(error, stack);
+            },
+          );
+          return first.future;
+        }(),
+    ]);
+  }
+
+  Property? latestProperty(String id) => _latest['property:$id'] as Property?;
+
+  List<PaddockSummary>? latestPaddockSummaries(String propertyId) =>
+      _latest['paddocks:$propertyId'] as List<PaddockSummary>?;
+
+  PaddockSummary? latestPaddockSummary(String paddockId) =>
+      _latest['paddock:$paddockId'] as PaddockSummary?;
+
+  List<ActivityEntry>? latestActivityEntries({
+    int limit = 200,
+    String? paddockId,
+  }) => _latest['activity:$paddockId:$limit'] as List<ActivityEntry>?;
+
   /// Signed deltas per (paddock, class). Each movement contributes at most one
   /// row to each half: intake has no `from`, endState has no `to`, and an age
   /// contributes to both halves of the same paddock under different classes.
@@ -130,7 +175,7 @@ class LivestockRepository {
   }
 
   Stream<List<PaddockSummary>> watchPaddockSummaries(String propertyId) {
-    return db
+    final summaries = db
         .customSelect(
           '''
           SELECT p.id AS pid, b.class_id AS cid, SUM(b.delta) AS head
@@ -145,6 +190,7 @@ class LivestockRepository {
         )
         .watch()
         .asyncMap((rows) => _assemble(propertyId, rows));
+    return _remembered('paddocks:$propertyId', summaries);
   }
 
   Future<List<PaddockSummary>> _assemble(
@@ -185,7 +231,7 @@ class LivestockRepository {
   /// The bottom tier: one paddock and the mobs standing in it. Emits null once
   /// the paddock is gone, so a detail view can close itself.
   Stream<PaddockSummary?> watchPaddockSummary(String paddockId) {
-    return db
+    final summary = db
         .customSelect(
           '''
           SELECT class_id AS cid, SUM(delta) AS head FROM ($_balances)
@@ -223,6 +269,7 @@ class LivestockRepository {
 
           return PaddockSummary(paddock: paddock, mobs: mobs);
         });
+    return _remembered('paddock:$paddockId', summary);
   }
 
   Future<Map<String, LivestockClass>> _classesById() async => {
@@ -268,7 +315,7 @@ class LivestockRepository {
     int limit = 200,
     String? paddockId,
   }) {
-    return watchActivity(limit: limit, paddockId: paddockId).asyncMap((
+    final entries = watchActivity(limit: limit, paddockId: paddockId).asyncMap((
       movements,
     ) async {
       final paddocks = {
@@ -290,6 +337,7 @@ class LivestockRepository {
           ),
       ];
     });
+    return _remembered('activity:$paddockId:$limit', entries);
   }
 
   /// Rejects anything that would drive a paddock's count negative. That check
@@ -389,6 +437,15 @@ class LivestockRepository {
   Stream<List<Property>> watchProperties() => (db.select(
     db.properties,
   )..where((p) => p.deletedAt.isNull())).watch();
+
+  /// Emits null for an unknown or deleted property, which a deep link can name.
+  Stream<Property?> watchProperty(String id) => _remembered(
+    'property:$id',
+    (db.select(db.properties)
+          ..where((p) => p.id.equals(id))
+          ..where((p) => p.deletedAt.isNull()))
+        .watchSingleOrNull(),
+  );
 
   Future<String> sqliteVersion() async {
     final row = await db

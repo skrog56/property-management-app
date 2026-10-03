@@ -59,11 +59,12 @@ justifies a design belongs in `JOURNAL.md`, not in a header comment.
 
 ```
 lib/
-  app/         MaterialApp, seeded M3 theme, shell wiring
+  app/         MaterialApp, seeded M3 theme, go_router routes and shell
   shell/       AdaptiveScaffold + WindowSizeClass breakpoints
   data/        Drift schema, repository, platform-specific connection
   features/
-    properties/       Three tiers: properties → paddocks → one paddock's livestock
+    properties/       Three tiers: properties → paddocks → one paddock's livestock,
+                      laid out as list-detail panes by PropertiesBrowser
     transfers/        The movement form — one sheet, four kinds
     activity/         The ledger, rendered
     templates/        Livestock classes (read-only for now)
@@ -75,7 +76,8 @@ lib/
 Developer tooling is reachable **only** through the const `devMode`
 (`lib/features/developer/dev_mode.dart`, i.e. `kDebugMode`), so release and
 profile builds tree-shake it out. Don't import `features/developer/` from
-anywhere that isn't itself behind that gate, beyond `app.dart` and `main.dart`.
+anywhere that isn't itself behind that gate, beyond `app/router.dart` and
+`main.dart`.
 
 Three invariants carry the project. Each is easy to break without noticing, and
 breaking any of them costs either a platform or the data model.
@@ -89,6 +91,11 @@ treatment, and they only do if width is the sole input.
 
 Never branch layout on `defaultTargetPlatform`. If you find yourself wanting to,
 the breakpoint model is the thing to extend.
+
+The same goes for drill-downs: how many tiers sit side by side is
+`WindowSizeClass.panes`, measured on the content area beside the rail, not the
+whole window. Every tier is a route (`lib/app/router.dart`), so the narrow
+layout gets a back stack and the browser gets URLs from the same definition.
 
 ### 2. `dart:io` only behind a conditional import
 
@@ -164,7 +171,7 @@ and a sync client copying a live SQLite file can corrupt it.
 ### Dependencies
 
 `device_info_plus`, `package_info_plus`, `drift` + `drift_flutter`,
-`path_provider`, `uuid`. Before adding any dependency, verify on pub.dev that it
+`path_provider`, `uuid`, `go_router`. Before adding any dependency, verify on pub.dev that it
 supports all six targets — a plugin that misses one silently removes a target
 from the matrix.
 
@@ -196,6 +203,11 @@ Window size is set through `tester.view.physicalSize` with
 `RepositoryScope` **above** `MaterialApp`, as `app.dart` does — a scope inside
 the home page is invisible to routes pushed by a drill-down, which build from
 the navigator.
+
+Anything that navigates uses `pumpRouted`, which mounts the real routes at a
+given location. After navigating, use `settle(tester)` rather than `drain`: a
+page transition outlasts `drain`, and the page beneath stays onstage until it
+ends.
 
 If you add a test that boots `PropertyManagementApp`, it will need
 `device_info_plus` and `package_info_plus` channel mocks — prefer testing the

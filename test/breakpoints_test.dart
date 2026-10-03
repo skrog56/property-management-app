@@ -42,6 +42,14 @@ void main() {
       expect(WindowSizeClass.extraLarge.contentColumns, 3);
     });
 
+    test('drill-down panes grow with available width', () {
+      expect(WindowSizeClass.compact.panes, 1);
+      expect(WindowSizeClass.medium.panes, 1);
+      expect(WindowSizeClass.expanded.panes, 2);
+      expect(WindowSizeClass.large.panes, 2);
+      expect(WindowSizeClass.extraLarge.panes, 3);
+    });
+
     test('every size class has a label', () {
       for (final sizeClass in WindowSizeClass.values) {
         expect(sizeClass.label, isNotEmpty);

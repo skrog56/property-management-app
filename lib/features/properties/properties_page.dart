@@ -4,12 +4,18 @@ import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../shell/breakpoints.dart';
 import 'name_dialog.dart';
+import 'paths.dart';
 import 'property_page.dart';
 
 /// The top of the three tiers: properties, then their paddocks, then the
 /// livestock standing in one paddock.
 class PropertiesPage extends StatelessWidget {
-  const PropertiesPage({super.key});
+  const PropertiesPage({super.key, this.selectedId, this.primary = true});
+
+  final String? selectedId;
+
+  /// Whether this is the deepest tier on screen, and so owns the action button.
+  final bool primary;
 
   @override
   Widget build(BuildContext context) {
@@ -27,11 +33,13 @@ class PropertiesPage extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: Colors.transparent,
-          floatingActionButton: FloatingActionButton.extended(
-            icon: const Icon(Icons.add),
-            label: const Text('Add property'),
-            onPressed: () => addProperty(context, repository),
-          ),
+          floatingActionButton: primary
+              ? FloatingActionButton.extended(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add property'),
+                  onPressed: () => addProperty(context, repository),
+                )
+              : null,
           body: LayoutBuilder(
             builder: (context, constraints) {
               final sizeClass = WindowSizeClass.fromWidth(constraints.maxWidth);
@@ -45,8 +53,10 @@ class PropertiesPage extends StatelessWidget {
                   mainAxisExtent: 112,
                 ),
                 itemCount: summaries.length,
-                itemBuilder: (context, index) =>
-                    _PropertyCard(summary: summaries[index]),
+                itemBuilder: (context, index) => _PropertyCard(
+                  summary: summaries[index],
+                  selected: summaries[index].property.id == selectedId,
+                ),
               );
             },
           ),
@@ -70,9 +80,10 @@ Future<void> addProperty(
 }
 
 class _PropertyCard extends StatelessWidget {
-  const _PropertyCard({required this.summary});
+  const _PropertyCard({required this.summary, required this.selected});
 
   final PropertySummary summary;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -81,11 +92,12 @@ class _PropertyCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      color: selected ? theme.colorScheme.secondaryContainer : null,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => PropertyPage(property: property),
-          ),
+        onTap: () => openTier(
+          context,
+          propertyPath(property.id),
+          preload: preloadProperty(RepositoryScope.of(context), property.id),
         ),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -104,7 +116,12 @@ class _PropertyCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(property.name, style: theme.textTheme.titleMedium),
+                    Text(
+                      property.name,
+                      style: theme.textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       '${summary.paddockCount} '
@@ -113,6 +130,8 @@ class _PropertyCard extends StatelessWidget {
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     if (property.pic != null)
                       Text(

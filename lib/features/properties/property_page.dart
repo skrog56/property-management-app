@@ -7,83 +7,115 @@ import '../../shell/breakpoints.dart';
 import '../transfers/movement_sheet.dart';
 import 'name_dialog.dart';
 import 'paddock_page.dart';
+import 'paths.dart';
 
 /// The middle tier: the paddocks of one property, with head counts derived
 /// from the ledger.
 class PropertyPage extends StatelessWidget {
-  const PropertyPage({super.key, required this.property});
+  const PropertyPage({
+    super.key,
+    required this.propertyId,
+    this.selectedPaddockId,
+    this.primary = true,
+  });
 
-  final Property property;
+  final String propertyId;
+  final String? selectedPaddockId;
+
+  /// Whether this is the deepest tier on screen, and so owns the action button.
+  final bool primary;
 
   @override
   Widget build(BuildContext context) {
     final repository = RepositoryScope.of(context);
 
-    return StreamBuilder<List<PaddockSummary>>(
-      stream: repository.watchPaddockSummaries(property.id),
-      builder: (context, snapshot) {
-        final summaries = snapshot.data;
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(property.name),
-            actions: [
-              IconButton(
-                onPressed: () => _addPaddock(context, repository),
-                icon: const Icon(Icons.add),
-                tooltip: 'Add paddock',
-              ),
-            ],
-          ),
-          floatingActionButton: switch (summaries) {
-            null => null,
-            [] => FloatingActionButton.extended(
-              icon: const Icon(Icons.add),
-              label: const Text('Add paddock'),
-              onPressed: () => _addPaddock(context, repository),
-            ),
-            _ => FloatingActionButton.extended(
-              icon: const Icon(Icons.swap_horiz),
-              label: const Text('Record movement'),
-              onPressed: () => showMovementSheet(
-                context,
-                repository: repository,
-                propertyId: property.id,
-              ),
-            ),
-          },
-          body: summaries == null
+    return StreamBuilder<Property?>(
+      initialData: repository.latestProperty(propertyId),
+      stream: repository.watchProperty(propertyId),
+      builder: (context, propertySnapshot) {
+        final property = propertySnapshot.data;
+        if (property == null) {
+          return propertySnapshot.connectionState == ConnectionState.waiting
               ? const Center(child: CircularProgressIndicator())
-              : _PaddockGrid(property: property, summaries: summaries),
+              : const Center(child: Text('This property is gone.'));
+        }
+
+        return StreamBuilder<List<PaddockSummary>>(
+          initialData: repository.latestPaddockSummaries(propertyId),
+          stream: repository.watchPaddockSummaries(propertyId),
+          builder: (context, snapshot) {
+            final summaries = snapshot.data;
+
+            return Scaffold(
+              backgroundColor: Colors.transparent,
+              floatingActionButton: switch (summaries) {
+                _ when !primary => null,
+                null => null,
+                [] => FloatingActionButton.extended(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add paddock'),
+                  onPressed: () => addPaddock(context, repository, propertyId),
+                ),
+                _ => FloatingActionButton.extended(
+                  icon: const Icon(Icons.swap_horiz),
+                  label: const Text('Record movement'),
+                  onPressed: () => showMovementSheet(
+                    context,
+                    repository: repository,
+                    propertyId: propertyId,
+                  ),
+                ),
+              },
+              body: summaries == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : _PaddockGrid(
+                      property: property,
+                      summaries: summaries,
+                      selectedId: selectedPaddockId,
+                    ),
+            );
+          },
         );
       },
     );
   }
+}
 
-  Future<void> _addPaddock(
-    BuildContext context,
-    LivestockRepository repository,
-  ) async {
-    final name = await promptForName(
-      context,
-      title: 'New paddock',
-      hint: 'North Ridge',
-      askForHectares: true,
-    );
-    if (name == null) return;
-    await repository.createPaddock(
-      property.id,
-      name.value,
-      hectares: name.hectares ?? 0,
-    );
-  }
+Future<void> preloadProperty(LivestockRepository repository, String id) =>
+    repository.warm([
+      repository.watchProperty(id),
+      repository.watchPaddockSummaries(id),
+    ]);
+
+Future<void> addPaddock(
+  BuildContext context,
+  LivestockRepository repository,
+  String propertyId,
+) async {
+  final name = await promptForName(
+    context,
+    title: 'New paddock',
+    hint: 'North Ridge',
+    askForHectares: true,
+  );
+  if (name == null) return;
+  await repository.createPaddock(
+    propertyId,
+    name.value,
+    hectares: name.hectares ?? 0,
+  );
 }
 
 class _PaddockGrid extends StatelessWidget {
-  const _PaddockGrid({required this.property, required this.summaries});
+  const _PaddockGrid({
+    required this.property,
+    required this.summaries,
+    required this.selectedId,
+  });
 
   final Property property;
   final List<PaddockSummary> summaries;
+  final String? selectedId;
 
   @override
   Widget build(BuildContext context) {
@@ -141,8 +173,10 @@ class _PaddockGrid extends StatelessWidget {
                   mainAxisExtent: 132,
                 ),
                 itemCount: summaries.length,
-                itemBuilder: (context, index) =>
-                    _PaddockCard(summary: summaries[index]),
+                itemBuilder: (context, index) => _PaddockCard(
+                  summary: summaries[index],
+                  selected: summaries[index].paddock.id == selectedId,
+                ),
               ),
           ],
         );
@@ -152,9 +186,10 @@ class _PaddockGrid extends StatelessWidget {
 }
 
 class _PaddockCard extends StatelessWidget {
-  const _PaddockCard({required this.summary});
+  const _PaddockCard({required this.summary, required this.selected});
 
   final PaddockSummary summary;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -163,10 +198,14 @@ class _PaddockCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      color: selected ? theme.colorScheme.secondaryContainer : null,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => PaddockPage(paddockId: summary.paddock.id),
+        onTap: () => openTier(
+          context,
+          paddockPath(summary.paddock.propertyId, summary.paddock.id),
+          preload: preloadPaddock(
+            RepositoryScope.of(context),
+            summary.paddock.id,
           ),
         ),
         child: Padding(
@@ -196,6 +235,8 @@ class _PaddockCard extends StatelessWidget {
                     Text(
                       summary.paddock.name,
                       style: theme.textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     if (empty)

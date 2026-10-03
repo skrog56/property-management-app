@@ -38,6 +38,7 @@ Future<void> _pumpAtWidth(
         selectedIndex: 0,
         onDestinationSelected: onDestinationSelected ?? (_) {},
         body: const Center(child: Text('body')),
+        title: 'App',
       ),
     ),
   );
@@ -88,6 +89,30 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+
+    testWidgets('keeps the page bar beside the rail, under the app header', (
+      tester,
+    ) async {
+      await _pumpAtWidth(tester, 1000);
+
+      Rect barWith(String text) => tester.getRect(
+        find.ancestor(of: find.text(text), matching: find.byType(AppBar)),
+      );
+      final header = barWith('App');
+      final page = barWith('Platform');
+      final rail = tester.getRect(find.byType(NavigationRail));
+
+      expect(header.left, 0);
+      expect(header.right, 1000);
+      expect(rail.top, header.bottom);
+      expect(page.left, greaterThanOrEqualTo(rail.right));
+    });
+
+    testWidgets('leaves the app header off a phone', (tester) async {
+      await _pumpAtWidth(tester, 420);
+
+      expect(find.text('App'), findsNothing);
     });
 
     testWidgets('reports destination taps to the caller', (tester) async {

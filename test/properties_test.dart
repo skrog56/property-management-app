@@ -1,4 +1,6 @@
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
@@ -79,10 +81,10 @@ void main() {
       tester,
     ) async {
       await seedStock();
-      await pumpPage(tester, const PropertiesPage(), repository: repo);
+      await pumpRouted(tester, repository: repo);
 
       await tester.tap(find.text('Riverbend Downs'));
-      await drain(tester);
+      await settle(tester);
 
       expect(find.text('North Ridge'), findsOneWidget);
       expect(find.textContaining('128 × Calves'), findsOneWidget);
@@ -92,12 +94,12 @@ void main() {
 
     testPage('a paddock opens its mobs and its own history', (tester) async {
       await seedStock();
-      await pumpPage(tester, const PropertiesPage(), repository: repo);
+      await pumpRouted(tester, repository: repo);
 
       await tester.tap(find.text('Riverbend Downs'));
-      await drain(tester);
+      await settle(tester);
       await tester.tap(find.text('North Ridge'));
-      await drain(tester);
+      await settle(tester);
 
       expect(find.text('128 head'), findsOneWidget);
       expect(find.text('42.4 ha · 1 mob'), findsOneWidget);
@@ -113,12 +115,12 @@ void main() {
       tester,
     ) async {
       await seedStock();
-      await pumpPage(tester, const PropertiesPage(), repository: repo);
+      await pumpRouted(tester, repository: repo);
 
       await tester.tap(find.text('Riverbend Downs'));
-      await drain(tester);
+      await settle(tester);
       await tester.tap(find.text('Woolshed'));
-      await drain(tester);
+      await settle(tester);
 
       expect(find.text('This paddock is empty.'), findsOneWidget);
       expect(
@@ -148,17 +150,209 @@ void main() {
         toClassId: 'weaners',
       );
 
-      await pumpPage(tester, const PropertiesPage(), repository: repo);
+      await pumpRouted(tester, repository: repo);
       await tester.tap(find.text('Riverbend Downs'));
-      await drain(tester);
+      await settle(tester);
       await tester.tap(find.text('Woolshed'));
-      await drain(tester);
+      await settle(tester);
 
       expect(
         find.textContaining('8 head · North Ridge → Woolshed'),
         findsOneWidget,
       );
       expect(find.textContaining('3 head'), findsNothing);
+    });
+  });
+
+  group('Panes and URLs', () {
+    Future<({String property, String north})> ids() async {
+      final property = await seedStock();
+      final paddocks = await repo.paddocksIn(property);
+      return (
+        property: property,
+        north: paddocks.firstWhere((p) => p.name == 'North Ridge').id,
+      );
+    }
+
+    testPage('a compact window shows one tier and keeps the bottom bar', (
+      tester,
+    ) async {
+      await ids();
+      await pumpRouted(tester, repository: repo);
+
+      await tester.tap(find.text('Riverbend Downs'));
+      await settle(tester);
+      await tester.tap(find.text('North Ridge'));
+      await settle(tester);
+
+      expect(find.text('42.4 ha · 1 mob'), findsOneWidget);
+      expect(find.text('Woolshed'), findsNothing);
+      expect(find.byType(NavigationBar), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await settle(tester);
+      expect(find.text('Woolshed'), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await settle(tester);
+      expect(find.text('2 paddocks · 128 head'), findsOneWidget);
+    });
+
+    testPage('drilling in never shows a spinner', (tester) async {
+      await ids();
+      await pumpRouted(tester, repository: repo);
+
+      Future<void> tapAndWatch(String name) async {
+        await tester.tap(find.text(name));
+        for (var frame = 0; frame < 50; frame++) {
+          await tester.pump(const Duration(milliseconds: 16));
+          expect(
+            find.byType(CircularProgressIndicator),
+            findsNothing,
+            reason: 'opening $name, frame $frame',
+          );
+        }
+      }
+
+      await tapAndWatch('Riverbend Downs');
+      expect(find.text('Woolshed'), findsOneWidget);
+      await tapAndWatch('North Ridge');
+      expect(find.text('42.4 ha · 1 mob'), findsOneWidget);
+    });
+
+    testPage('the forward transition animates the page live, not a snapshot', (
+      tester,
+    ) async {
+      // Linux and Windows default to the zoom transition, which snapshots.
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      try {
+        await ids();
+        await pumpRouted(tester, repository: repo);
+
+        await tester.tap(find.text('Riverbend Downs'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        final snapshotting = tester
+            .widgetList<SnapshotWidget>(find.byType(SnapshotWidget))
+            .where((w) => w.controller.allowSnapshotting);
+        expect(snapshotting, isEmpty);
+        await settle(tester);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testPage('a wide window puts the parent beside the current tier', (
+      tester,
+    ) async {
+      final id = await ids();
+      await repo.createProperty('River Block');
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/properties/${id.property}',
+        width: 1200,
+      );
+
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.text('River Block'), findsOneWidget);
+      expect(find.text('Woolshed'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'Properties'), findsOneWidget);
+      expect(find.text('Riverbend Downs'), findsNWidgets(2));
+
+      await tester.tap(find.text('North Ridge'));
+      await settle(tester);
+
+      expect(find.text('River Block'), findsNothing);
+      expect(find.text('Woolshed'), findsOneWidget);
+      expect(find.text('42.4 ha · 1 mob'), findsOneWidget);
+    });
+
+    testPage('a deep link on a very wide window opens all three tiers', (
+      tester,
+    ) async {
+      final id = await ids();
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/properties/${id.property}/paddocks/${id.north}',
+        width: 1900,
+      );
+
+      // Once on the property's card, once atop its paddocks.
+      expect(find.text('2 paddocks · 128 head'), findsNWidgets(2));
+      expect(find.text('Woolshed'), findsOneWidget);
+      expect(find.text('128 head'), findsOneWidget);
+      expect(find.text('Calves'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Properties'));
+      await settle(tester);
+      expect(find.text('Select a property'), findsOneWidget);
+    });
+
+    testPage('a deep link survives having nothing to pop back to', (
+      tester,
+    ) async {
+      final id = await ids();
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/properties/${id.property}/paddocks/${id.north}',
+      );
+
+      await tester.tap(find.byType(BackButton));
+      await settle(tester);
+
+      expect(find.text('Woolshed'), findsOneWidget);
+    });
+
+    testPage('unknown or mismatched ids say what is gone', (tester) async {
+      final id = await ids();
+      final other = await repo.createProperty('River Block');
+
+      await pumpRouted(tester, repository: repo, location: '/properties/nope');
+      expect(find.text('This property is gone.'), findsOneWidget);
+
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/properties/$other/paddocks/${id.north}',
+      );
+      expect(find.text('This paddock is gone.'), findsOneWidget);
+    });
+
+    testPage('an unknown path lands on Properties', (tester) async {
+      await ids();
+      await pumpRouted(tester, repository: repo, location: '/nowhere');
+
+      expect(find.text('Riverbend Downs'), findsOneWidget);
+    });
+
+    testPage('every tier lays out without overflow at every width', (
+      tester,
+    ) async {
+      final id = await ids();
+
+      for (final location in [
+        '/properties',
+        '/properties/${id.property}',
+        '/properties/${id.property}/paddocks/${id.north}',
+      ]) {
+        for (final width in [360.0, 700.0, 1000.0, 1300.0, 1900.0]) {
+          await pumpRouted(
+            tester,
+            repository: repo,
+            location: location,
+            width: width,
+          );
+          expect(
+            tester.takeException(),
+            isNull,
+            reason: '$location at ${width}px',
+          );
+        }
+      }
     });
   });
 }

@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:property_management_app/app/router.dart';
 import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/repository_scope.dart';
@@ -41,6 +42,34 @@ Future<void> pumpPage(
   // idle. Bounded pumping lets the database queries land instead.
   await drain(tester);
 }
+
+/// The real shell and routes, starting at [location], for anything that
+/// navigates.
+Future<void> pumpRouted(
+  WidgetTester tester, {
+  required LivestockRepository repository,
+  String location = '/properties',
+  double width = 420,
+}) async {
+  tester.view.devicePixelRatio = 1.0;
+  tester.view.physicalSize = Size(width, 900);
+  addTearDown(tester.view.reset);
+
+  final router = buildRouter(initialLocation: location, developer: false);
+  addTearDown(router.dispose);
+
+  await tester.pumpWidget(
+    RepositoryScope(
+      repository: repository,
+      child: MaterialApp.router(routerConfig: router),
+    ),
+  );
+  await settle(tester);
+}
+
+/// Long enough for a page transition to finish, so the page beneath it is
+/// offstage again.
+Future<void> settle(WidgetTester tester) => drain(tester, frames: 50);
 
 Future<void> drain(WidgetTester tester, {int frames = 20}) async {
   for (var i = 0; i < frames; i++) {

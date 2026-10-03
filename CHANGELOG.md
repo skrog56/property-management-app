@@ -34,6 +34,12 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- **Shareable URLs on the web.** Each property and paddock has its own address
+  (`/properties/<id>/paddocks/<id>`), so the browser's back button steps back
+  through the tiers, refreshing keeps your place, and a link opens straight to
+  a paddock. Hosting now needs unknown paths rewritten to `index.html`; see the
+  README.
+
 - **Developer screen, in debug builds only.** A fifth destination that never
   reaches a release or profile build, with four tabs: **Platform** (the former
   platform-proof screen), **Data** (seed a sample farm, wipe the database,
@@ -84,6 +90,16 @@ same commit — a deliberate act, never a side effect of another change.
   deployment is configured.
 
 ### Changed
+
+- **Navigation stays on screen while browsing properties.** Opening a property
+  or paddock no longer covers the navigation rail or bottom bar.
+- **Wide windows show the tiers side by side.** With room for two panes, the
+  parent list stays beside what you opened; with room for three, properties,
+  paddocks and one paddock's livestock all show at once. Breadcrumbs in the
+  title bar step back up. Narrow windows still show one tier at a time.
+- On windows wide enough for the side rail, an app header now runs across the
+  top with the app's name, and each page's title bar sits beneath it, beside
+  the rail. Phones keep a single bar.
 
 - The Platform destination is gone from navigation. Its screen now lives under
   Developer, so release builds show Properties, Activity, Templates and About.

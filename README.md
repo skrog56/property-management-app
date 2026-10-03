@@ -339,6 +339,11 @@ Flutter also emits a service worker, so a stale cache is the second usual cause
 — serve `flutter_service_worker.js` and `index.html` with no-cache headers and
 let the fingerprinted assets cache normally.
 
+The app uses path URLs (`/properties/<id>`), not `#/` hash URLs, so the host
+must answer any unknown path with `index.html`; otherwise a refresh or shared
+link gets a 404. Most static hosts have a one-line rewrite rule for this. On
+GitHub Pages, which has none, copy `index.html` to `404.html` in the build.
+
 ### What CI would need
 
 `.github/workflows/ci.yml` builds and uploads artifacts on push to `main`. It

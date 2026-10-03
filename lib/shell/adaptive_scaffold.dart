@@ -30,6 +30,8 @@ class AdaptiveScaffold extends StatelessWidget {
     required this.onDestinationSelected,
     required this.body,
     this.actions = const <Widget>[],
+    this.showAppBar = true,
+    this.title,
   });
 
   final List<AppDestination> destinations;
@@ -38,16 +40,25 @@ class AdaptiveScaffold extends StatelessWidget {
   final Widget body;
   final List<Widget> actions;
 
+  /// Off for a destination whose body draws its own bar.
+  final bool showAppBar;
+
+  /// The app's name, in a header across the rail layouts. Phones go without:
+  /// the page's own bar already holds the top of a small screen.
+  final String? title;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final sizeClass = WindowSizeClass.fromWidth(constraints.maxWidth);
 
-        final appBar = AppBar(
-          title: Text(destinations[selectedIndex].label),
-          actions: actions,
-        );
+        final appBar = showAppBar
+            ? AppBar(
+                title: Text(destinations[selectedIndex].label),
+                actions: actions,
+              )
+            : null;
 
         if (sizeClass.usesBottomBar) {
           return Scaffold(
@@ -68,8 +79,9 @@ class AdaptiveScaffold extends StatelessWidget {
           );
         }
 
+        final appTitle = title;
         return Scaffold(
-          appBar: appBar,
+          appBar: appTitle == null ? null : _Header(appTitle),
           body: Row(
             children: [
               NavigationRail(
@@ -89,11 +101,42 @@ class AdaptiveScaffold extends StatelessWidget {
                 ],
               ),
               const VerticalDivider(width: 1, thickness: 1),
-              Expanded(child: body),
+              // The bar sits beside the rail, over the content only, matching
+              // pages that draw their own.
+              Expanded(
+                child: appBar == null
+                    ? body
+                    : Scaffold(appBar: appBar, body: body),
+              ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _Header extends StatelessWidget implements PreferredSizeWidget {
+  const _Header(this.title);
+
+  final String title;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 1);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AppBar(
+      automaticallyImplyLeading: false,
+      backgroundColor: theme.colorScheme.surfaceContainer,
+      scrolledUnderElevation: 0,
+      title: Text(title),
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(1),
+        child: Divider(height: 1, thickness: 1),
+      ),
     );
   }
 }

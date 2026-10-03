@@ -42,4 +42,11 @@ enum WindowSizeClass {
     WindowSizeClass.expanded || WindowSizeClass.large => 2,
     WindowSizeClass.extraLarge => 3,
   };
+
+  /// How many tiers of a drill-down sit side by side, list-detail style.
+  int get panes => switch (this) {
+    WindowSizeClass.compact || WindowSizeClass.medium => 1,
+    WindowSizeClass.expanded || WindowSizeClass.large => 2,
+    WindowSizeClass.extraLarge => 3,
+  };
 }

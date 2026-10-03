@@ -7,6 +7,62 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-10-03 — Persistent shell, list-detail panes and URLs
+
+On a PC, opening a property and then a paddock felt nothing like a website.
+Each tier was a full-screen `MaterialPageRoute` on the root navigator, so the
+rail disappeared, there was no sense of where you were, the URL never changed,
+and a short list stretched across a wide window. The width-only layout rule held
+for the shell but the drill-down ignored it, because a push is the phone idiom
+at every width. Fixed all three together, since they share one change: making
+each tier a route.
+
+Decisions:
+
+- **`go_router` with `StatefulShellRoute.indexedStack`.** The shell keeps the
+  rail or bottom bar, each destination keeps its own history, and the nested
+  `/properties/:propertyId/paddocks/:paddockId` routes give the narrow layout its
+  back stack and the browser its URLs from one definition. It is pure Dart and
+  maintained by the Flutter team, so it costs no target.
+- **Panes are drawn by the top page, not a nested shell.** Every tier route
+  builds the same `PropertiesBrowser`, which shows the last one, two or three
+  tiers by `WindowSizeClass.panes`. A nested shell that ignored its child
+  navigator at wide widths was the alternative; it would have been two layout
+  systems arguing. The cost is that the pages below stay mounted, which is cheap
+  at three tiers. The custom route skips its transition when panes are showing,
+  because the new page already draws its parents.
+- **Panes key off the content area, not the window.** The extended rail takes
+  256 dp, so a 1000 px window leaves about 740 dp: one pane, not a cramped two.
+  Two panes therefore start at roughly 1100 px and three at roughly 1860 px of
+  window. Using the window's class instead would put a 360 dp list beside a
+  sub-250 dp detail at the low end of expanded.
+- **Path URLs, not hash URLs.** Cleaner and more website-like. The cost is a
+  host-side rewrite to `index.html`, now documented in the README.
+- **Tiers open already drawn.** At first the forward transition looked like
+  it wasn't playing. The zoom transition on Linux and Windows snapshots the
+  incoming page's first frame, which was blank while its query ran. The tier
+  route now opts out of snapshotting. On top of that, a tap waits for the next
+  tier's first query results (capped at 300 ms), and the repository remembers
+  each watch's last value so pages can start from it. go_router's `extra` was
+  rejected: on the web it drops non-JSON values from history and logs a
+  warning, and it attaches to the whole location rather than to one tier.
+  Preloading uses `warm()` rather than `Stream.first`, which also waits for
+  drift to cancel the subscription.
+- **Deep links get a "gone" state at each tier.** An unknown property, or a
+  paddock under the wrong property in a hand-edited URL, says so rather than
+  crashing or showing it under the wrong parent. Unknown paths land on
+  Properties.
+
+Open:
+
+- Only Properties drills down so far. Activity entries could link to their
+  paddocks now that paddocks have addresses.
+- Not yet checked by hand in a running build: window resizing across the
+  breakpoints, browser back, and refresh on a deep link. The widget tests cover
+  the same paths at fixed widths.
+
+---
+
 ## 2026-10-02 — Developer mode
 
 Platform was a developer's screen sitting in every user's navigation, and there
