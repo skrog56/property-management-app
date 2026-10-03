@@ -163,4 +163,22 @@ void main() {
     expect(find.text('livestock_classes'), findsOneWidget);
     expect(find.text('2 live · 0 deleted'), findsOneWidget);
   });
+
+  testPage('tabs stay mounted when switched away from', (tester) async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repo = LivestockRepository(db);
+    await seedBeefTemplate(db);
+
+    await pumpPage(
+      tester,
+      const DeveloperPage(initialTab: 1),
+      repository: repo,
+    );
+    await tester.tap(find.text('Log'));
+    await drain(tester);
+
+    expect(find.text('Nothing logged'), findsOneWidget);
+    expect(find.text('templates', skipOffstage: false), findsOneWidget);
+  });
 }

@@ -55,10 +55,7 @@ class _PlatformProofPageState extends State<PlatformProofPage> {
                 return const Center(child: CircularProgressIndicator());
               }
               if (snapshot.hasError) {
-                return _ErrorView(
-                  error: snapshot.error!,
-                  onRetry: _refresh,
-                );
+                return _ErrorView(error: snapshot.error!, onRetry: _refresh);
               }
               return _FactsView(facts: snapshot.data!);
             },
@@ -117,7 +114,10 @@ class _FactsView extends StatelessWidget {
               runSpacing: gap,
               children: [
                 for (final card in cards)
-                  SizedBox(width: columns == 1 ? available : cardWidth, child: card),
+                  SizedBox(
+                    width: columns == 1 ? available : cardWidth,
+                    child: card,
+                  ),
               ],
             ),
           ],
@@ -276,20 +276,35 @@ class _FactRow extends StatelessWidget {
 
 /// Same schema, same queries, a different SQLite build per target — so this
 /// card is the evidence that persistence reaches everywhere the UI does.
-class _StorageCard extends StatelessWidget {
+class _StorageCard extends StatefulWidget {
   const _StorageCard();
 
   @override
-  Widget build(BuildContext context) {
-    final repository = RepositoryScope.of(context);
+  State<_StorageCard> createState() => _StorageCardState();
+}
 
+class _StorageCardState extends State<_StorageCard> {
+  LivestockRepository? _repository;
+  late Future<List<Fact>> _facts;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final repository = RepositoryScope.of(context);
+    if (repository != _repository) {
+      _repository = repository;
+      _facts = _gather(repository);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder<List<Fact>>(
-      future: _gather(repository),
+      future: _facts,
       builder: (context, snapshot) => _FactCard(
         title: 'Storage',
         icon: Icons.save_outlined,
-        facts:
-            snapshot.data ?? const [Fact('Database', 'reading…')],
+        facts: snapshot.data ?? const [Fact('Database', 'reading…')],
       ),
     );
   }
@@ -434,11 +449,7 @@ class _ErrorView extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
-        Icon(
-          Icons.error_outline,
-          size: 48,
-          color: theme.colorScheme.error,
-        ),
+        Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
         const SizedBox(height: 16),
         Text(
           'Could not read platform facts',

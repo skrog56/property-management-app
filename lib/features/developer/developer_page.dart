@@ -36,16 +36,39 @@ class DeveloperPage extends StatelessWidget {
           Expanded(
             child: TabBarView(
               children: [
-                const PlatformProofPage(),
-                const _DataTab(),
-                const _DisplayTab(),
-                _LogTab(log: log ?? DevLog.instance),
+                const _KeepAlive(child: PlatformProofPage()),
+                const _KeepAlive(child: _DataTab()),
+                const _KeepAlive(child: _DisplayTab()),
+                _KeepAlive(child: _LogTab(log: log ?? DevLog.instance)),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+/// `TabBarView` disposes a tab on leaving it, so without this every switch
+/// re-runs the tab's queries — each a worker round trip on web.
+class _KeepAlive extends StatefulWidget {
+  const _KeepAlive({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_KeepAlive> createState() => _KeepAliveState();
+}
+
+class _KeepAliveState extends State<_KeepAlive>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 
@@ -74,12 +97,30 @@ class _Section extends StatelessWidget {
   }
 }
 
-class _DataTab extends StatelessWidget {
+class _DataTab extends StatefulWidget {
   const _DataTab();
 
   @override
-  Widget build(BuildContext context) {
+  State<_DataTab> createState() => _DataTabState();
+}
+
+class _DataTabState extends State<_DataTab> {
+  LivestockRepository? _repository;
+  late Stream<List<TableCount>> _tableCounts;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     final repository = RepositoryScope.of(context);
+    if (repository != _repository) {
+      _repository = repository;
+      _tableCounts = repository.watchTableCounts();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final repository = _repository!;
     final theme = Theme.of(context);
 
     return ListView(
@@ -123,7 +164,7 @@ class _DataTab extends StatelessWidget {
           title: 'Tables',
           children: [
             StreamBuilder<List<TableCount>>(
-              stream: repository.watchTableCounts(),
+              stream: _tableCounts,
               builder: (context, snapshot) {
                 final counts = snapshot.data;
                 if (counts == null) return const Text('reading…');
