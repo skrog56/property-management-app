@@ -94,6 +94,9 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Changed
 
+- **Wider sidebar highlights.** When the sidebar shows labels, hovering a
+  destination, and the marker on the current one, now covers the label as well
+  as the icon, so the whole row is one target.
 - **Navigation stays on screen while browsing properties.** Opening a property
   or paddock no longer covers the navigation rail or bottom bar.
 - **Wide windows show the tiers side by side.** With room for two panes, the

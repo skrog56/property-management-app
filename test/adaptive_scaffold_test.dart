@@ -64,17 +64,46 @@ void main() {
       expect(find.byType(NavigationBar), findsNothing);
       expect(find.byType(NavigationRail), findsOneWidget);
 
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      expect(rail.extended, isFalse);
+      expect(find.byType(ExtendedRail), findsNothing);
     });
 
     testWidgets('extends the rail once the window is expanded', (tester) async {
       await _pumpAtWidth(tester, 1000);
 
       expect(find.byType(NavigationBar), findsNothing);
+      expect(find.byType(NavigationRail), findsNothing);
+      expect(find.byType(ExtendedRail), findsOneWidget);
+    });
 
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      expect(rail.extended, isTrue);
+    testWidgets('spans icon and label with one hover target when extended', (
+      tester,
+    ) async {
+      await _pumpAtWidth(tester, 1000);
+
+      final target = find.ancestor(
+        of: find.text('Paddocks'),
+        matching: find.byType(InkWell),
+      );
+      final ink = tester.getRect(target);
+
+      expect(
+        ink.contains(tester.getCenter(find.byIcon(Icons.grass_outlined))),
+        isTrue,
+      );
+      expect(
+        ink.right,
+        greaterThan(tester.getRect(find.text('Paddocks')).right),
+      );
+    });
+
+    testWidgets('reports extended rail taps to the caller', (tester) async {
+      final tapped = <int>[];
+      await _pumpAtWidth(tester, 1000, onDestinationSelected: tapped.add);
+
+      await tester.tap(find.byIcon(Icons.info_outline));
+      await tester.pumpAndSettle();
+
+      expect(tapped, [2]);
     });
 
     testWidgets('titles the app bar with the selected destination', (
@@ -101,7 +130,7 @@ void main() {
       );
       final header = barWith('App');
       final page = barWith('Platform');
-      final rail = tester.getRect(find.byType(NavigationRail));
+      final rail = tester.getRect(find.byType(ExtendedRail));
 
       expect(header.left, 0);
       expect(header.right, 1000);

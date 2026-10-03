@@ -7,6 +7,7 @@ import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/tables.dart';
 import 'package:property_management_app/features/properties/properties_page.dart';
+import 'package:property_management_app/shell/adaptive_scaffold.dart';
 
 import 'support.dart';
 
@@ -323,7 +324,7 @@ void main() {
         width: 1200,
       );
 
-      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byType(ExtendedRail), findsOneWidget);
       expect(find.text('River Block'), findsOneWidget);
       expect(find.text('Woolshed'), findsOneWidget);
       expect(find.widgetWithText(TextButton, 'Properties'), findsOneWidget);
