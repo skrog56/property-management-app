@@ -341,8 +341,10 @@ let the fingerprinted assets cache normally.
 
 The app uses path URLs (`/properties/<id>`), not `#/` hash URLs, so the host
 must answer any unknown path with `index.html`; otherwise a refresh or shared
-link gets a 404. Most static hosts have a one-line rewrite rule for this. On
-GitHub Pages, which has none, copy `index.html` to `404.html` in the build.
+link gets a 404. Most static hosts have a one-line rewrite rule for this. For
+Vercel, which builds this repo from `main`, it is `vercel.json` at the repo
+root. On GitHub Pages, which has none, copy `index.html` to `404.html` in the
+build.
 
 ### What CI would need
 

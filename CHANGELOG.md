@@ -38,7 +38,8 @@ same commit — a deliberate act, never a side effect of another change.
   (`/properties/<id>/paddocks/<id>`), so the browser's back button steps back
   through the tiers, refreshing keeps your place, and a link opens straight to
   a paddock. Hosting now needs unknown paths rewritten to `index.html`; see the
-  README.
+  README. The web build now carries that rule for Vercel (`vercel.json`), so a
+  refresh on a deep link there no longer returns 404.
 - **Activity links to paddocks.** Each paddock named in an Activity entry
   opens that paddock, including from a paddock's own recent activity, where a
   move links to the other end. Removed paddocks are named but not linked.
