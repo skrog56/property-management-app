@@ -76,8 +76,13 @@ void main() {
       await repo.seedSampleFarm();
 
       expect(await repo.properties(), hasLength(2));
-      expect(await repo.movementCount(), 7);
+      expect(await repo.movementCount(), 8);
       expect(await repo.negativeBalances(), isEmpty);
+      expect(await repo.overTaggedMobs(), isEmpty);
+
+      final tags = await repo.watchTags().first;
+      expect(tags, hasLength(4));
+      expect(tags.where((t) => t.isActive), hasLength(2));
     });
 
     test('negativeBalances flags a count driven below zero', () async {
@@ -115,6 +120,8 @@ void main() {
 
       expect(await repo.properties(), isEmpty);
       expect(await repo.movementCount(), 0);
+      expect(await db.select(db.livestockTags).get(), isEmpty);
+      expect(await db.select(db.movementTags).get(), isEmpty);
       expect(await repo.templates(), isNotEmpty);
     });
   });

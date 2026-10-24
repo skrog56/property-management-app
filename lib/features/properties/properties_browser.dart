@@ -7,6 +7,7 @@ import '../../data/app_database.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../shell/breakpoints.dart';
+import '../../shell/tier_route.dart';
 import 'paddock_page.dart';
 import 'paths.dart';
 import 'properties_page.dart';
@@ -51,7 +52,9 @@ class PropertiesBrowser extends StatelessWidget {
         final visible = tiers.sublist(max(0, tiers.length - panes));
         if (visible.length < panes) {
           visible.add(
-            _Placeholder(depth == 0 ? 'Select a property' : 'Select a paddock'),
+            TierPlaceholder(
+              depth == 0 ? 'Select a property' : 'Select a paddock',
+            ),
           );
         }
 
@@ -108,59 +111,6 @@ class PropertiesBrowser extends StatelessWidget {
         paddockId == null ? propertiesPath : propertyPath(propertyId!),
       );
     }
-  }
-}
-
-/// Slides only when one pane is showing. Side by side, the incoming page
-/// already draws its parents, so a transition would just move them about.
-class PropertiesBrowserPage extends Page<void> {
-  const PropertiesBrowserPage({super.key, this.propertyId, this.paddockId});
-
-  final String? propertyId;
-  final String? paddockId;
-
-  @override
-  Route<void> createRoute(BuildContext context) => _BrowserRoute(this);
-}
-
-class _BrowserRoute extends PageRoute<void>
-    with MaterialRouteTransitionMixin<void> {
-  _BrowserRoute(PropertiesBrowserPage page) : super(settings: page);
-
-  PropertiesBrowserPage get _page => settings as PropertiesBrowserPage;
-
-  @override
-  Widget buildContent(BuildContext context) => PropertiesBrowser(
-    propertyId: _page.propertyId,
-    paddockId: _page.paddockId,
-  );
-
-  @override
-  bool get maintainState => true;
-
-  // A tier's first frame is blank while its query is in flight, and a snapshot
-  // would freeze the forward transition on it.
-  @override
-  bool get allowSnapshotting => false;
-
-  @override
-  Widget buildTransitions(
-    BuildContext context,
-    Animation<double> animation,
-    Animation<double> secondaryAnimation,
-    Widget child,
-  ) {
-    return LayoutBuilder(
-      builder: (context, constraints) =>
-          WindowSizeClass.fromWidth(constraints.maxWidth).panes > 1
-          ? child
-          : super.buildTransitions(
-              context,
-              animation,
-              secondaryAnimation,
-              child,
-            ),
-    );
   }
 }
 
@@ -244,25 +194,6 @@ class _PaddockName extends StatelessWidget {
       builder: (context, snapshot) => Text(
         snapshot.data?.paddock.name ?? 'Paddock',
         overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder(this.message);
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Text(
-        message,
-        style: theme.textTheme.bodyLarge?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/app_database.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/tables.dart';
+import '../tags/tag_field.dart';
 
 Future<void> showMovementSheet(
   BuildContext context, {
@@ -28,12 +29,21 @@ Future<void> showMovementSheet(
   );
 }
 
+/// Tag events start from a mob or a tag instead.
+const _recordable = [
+  MovementKind.intake,
+  MovementKind.move,
+  MovementKind.age,
+  MovementKind.endState,
+];
+
 extension on MovementKind {
   String get label => switch (this) {
     MovementKind.intake => 'Intake',
     MovementKind.move => 'Move',
     MovementKind.age => 'Age',
     MovementKind.endState => 'End',
+    MovementKind.tag => 'Tag',
   };
 
   IconData get icon => switch (this) {
@@ -41,6 +51,13 @@ extension on MovementKind {
     MovementKind.move => Icons.swap_horiz,
     MovementKind.age => Icons.cake_outlined,
     MovementKind.endState => Icons.local_shipping_outlined,
+    MovementKind.tag => Icons.sell_outlined,
+  };
+
+  String get tagsLabel => switch (this) {
+    MovementKind.move => 'Tags to move',
+    MovementKind.age => 'Tags to age',
+    _ => 'Tags to remove',
   };
 
   bool get takesFrom => this != MovementKind.intake;
@@ -67,11 +84,13 @@ class _MovementSheet extends StatefulWidget {
 class _MovementSheetState extends State<_MovementSheet> {
   final _head = TextEditingController();
   final _note = TextEditingController();
+  late final _tags = TagSelection(widget.repository)..addListener(_onTags);
 
   MovementKind _kind = MovementKind.move;
   List<Paddock> _paddocks = const [];
   List<LivestockClass> _classes = const [];
   List<MobLine> _mobs = const [];
+  List<TagStatus> _paddockTags = const [];
 
   String? _fromPaddockId;
   String? _toPaddockId;
@@ -92,7 +111,12 @@ class _MovementSheetState extends State<_MovementSheet> {
   void dispose() {
     _head.dispose();
     _note.dispose();
+    _tags.dispose();
     super.dispose();
+  }
+
+  void _onTags() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -114,11 +138,17 @@ class _MovementSheetState extends State<_MovementSheet> {
       _fromPaddockId = id;
       _fromClassId = null;
       _mobs = const [];
+      _paddockTags = const [];
     });
+    _tags.mob = const [];
     if (id == null) return;
     final mobs = await widget.repository.mobsIn(id);
+    final tags = await widget.repository.tagsIn(id);
     if (!mounted) return;
-    setState(() => _mobs = mobs);
+    setState(() {
+      _mobs = mobs;
+      _paddockTags = tags;
+    });
   }
 
   /// Aging keeps the mob where it is and follows the template's chain, so the
@@ -136,22 +166,63 @@ class _MovementSheetState extends State<_MovementSheet> {
         _toClassId = id;
       }
     });
+    _tags.mob = _mobTags;
+    _chooseWholeMobIfNeeded();
   }
 
   void _selectKind(MovementKind kind) {
+    // Intake's tags are new and the others' come from the mob, so neither
+    // carries over to the other.
+    if (kind.takesFrom != _kind.takesFrom) {
+      _tags
+        ..clear()
+        ..draft = '';
+    }
     setState(() {
       _kind = kind;
       _toClassId = kind == MovementKind.move ? _fromClassId : null;
       _toPaddockId = kind == MovementKind.age ? _fromPaddockId : null;
     });
+    _tags.mob = kind.takesFrom ? _mobTags : const [];
+    _chooseWholeMobIfNeeded();
+  }
+
+  List<TagStatus> get _mobTags => [
+    for (final status in _paddockTags)
+      if (status.livestockClass?.id == _fromClassId) status,
+  ];
+
+  /// Moving more head than the mob has untagged takes some of its tags along.
+  /// When that is all of them, there is nothing to choose.
+  void _chooseWholeMobIfNeeded() {
+    final head = int.tryParse(_head.text.trim());
+    if (!_kind.takesFrom || head == null || _tags.mob.isEmpty) return;
+    if (head - _untagged >= _tags.mob.length) _tags.chooseWholeMob();
   }
 
   int get _available =>
       _mobs.where((m) => m.livestockClass.id == _fromClassId).firstOrNull?.head ??
       0;
 
+  int get _untagged => _available - _tags.mob.length;
+
+  /// Left blank, the head is one per tag.
+  int? get _headValue =>
+      int.tryParse(_head.text.trim()) ??
+      (_tags.chosen.isEmpty ? null : _tags.chosen.length);
+
+  String? get _headHelper {
+    final parts = [
+      if (_kind.takesFrom && _fromClassId != null) '$_available available',
+      if (_kind.takesFrom && _tags.mob.isNotEmpty) '${_tags.mob.length} tagged',
+      if (_head.text.trim().isEmpty && _tags.chosen.isNotEmpty)
+        'blank means ${_tags.chosen.length}, one per tag',
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
   String? get _blocker {
-    final head = int.tryParse(_head.text.trim());
+    final head = _headValue;
     if (head == null || head <= 0) return 'Enter a head count';
     if (_kind.takesFrom && _fromPaddockId == null) return 'Choose a paddock';
     if (_kind.takesFrom && _fromClassId == null) return 'Choose a mob';
@@ -166,6 +237,14 @@ class _MovementSheetState extends State<_MovementSheet> {
     if (_kind == MovementKind.age && _fromClassId == _toClassId) {
       return 'Pick a different class to age into';
     }
+    if (_tags.draft.trim().isNotEmpty) return 'Finish the typed tag';
+    if (_tags.pending) return 'Checking tags…';
+    if (_tags.hasElsewhere) return 'Remove tags recorded elsewhere';
+    if (_tags.chosen.length > head) return 'More tags than head';
+    if (_kind.takesFrom) {
+      final short = head - _tags.carried - _untagged;
+      if (short > 0) return 'Select $short more ${short == 1 ? 'tag' : 'tags'}';
+    }
     return null;
   }
 
@@ -174,16 +253,17 @@ class _MovementSheetState extends State<_MovementSheet> {
     try {
       await widget.repository.record(
         kind: _kind,
-        head: int.parse(_head.text.trim()),
+        head: _headValue!,
         fromPaddockId: _kind.takesFrom ? _fromPaddockId : null,
         fromClassId: _kind.takesFrom ? _fromClassId : null,
         toPaddockId: _kind.takesTo ? _toPaddockId : null,
         toClassId: _kind.takesTo ? _toClassId : null,
         endState: _kind == MovementKind.endState ? _endState : null,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+        tags: _tags.chosen,
       );
       if (mounted) Navigator.of(context).pop();
-    } on InsufficientHead catch (e) {
+    } on LedgerConflict catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(
@@ -214,7 +294,7 @@ class _MovementSheetState extends State<_MovementSheet> {
           const SizedBox(height: 16),
           SegmentedButton<MovementKind>(
             segments: [
-              for (final kind in MovementKind.values)
+              for (final kind in _recordable)
                 ButtonSegment(
                   value: kind,
                   label: Text(kind.label),
@@ -301,13 +381,21 @@ class _MovementSheetState extends State<_MovementSheet> {
             decoration: InputDecoration(
               labelText: 'Head',
               border: const OutlineInputBorder(),
-              helperText: _kind.takesFrom && _fromClassId != null
-                  ? '$_available available'
-                  : null,
+              helperText: _headHelper,
             ),
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) {
+              setState(() {});
+              _chooseWholeMobIfNeeded();
+            },
           ),
           const SizedBox(height: 12),
+          if (!_kind.takesFrom) ...[
+            TagField(selection: _tags, label: 'Tags to add (optional)'),
+            const SizedBox(height: 12),
+          ] else if (_tags.mob.isNotEmpty) ...[
+            TagPicker(selection: _tags, label: _kind.tagsLabel),
+            const SizedBox(height: 12),
+          ],
           TextField(
             controller: _note,
             decoration: const InputDecoration(

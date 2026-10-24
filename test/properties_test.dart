@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/tables.dart';
+import 'package:property_management_app/data/tag_numbers.dart';
 import 'package:property_management_app/features/properties/properties_page.dart';
 import 'package:property_management_app/shell/adaptive_scaffold.dart';
 
@@ -422,6 +423,53 @@ void main() {
           );
         }
       }
+    });
+  });
+
+  group('Tags in a paddock', () {
+    final a = TagNumber.tryParse(TagScheme.nlis, '999000000000001')!;
+
+    Future<String> tagged() async {
+      final property = await repo.createProperty('Riverbend Downs');
+      final north = await repo.createPaddock(property, 'North Ridge');
+      await repo.record(
+        kind: MovementKind.intake,
+        head: 12,
+        toPaddockId: north,
+        toClassId: 'calves',
+        tags: [a],
+      );
+      return '/properties/$property/paddocks/$north';
+    }
+
+    testPage('a mob says how many are tagged, and lists the tags', (
+      tester,
+    ) async {
+      await pumpRouted(tester, repository: repo, location: await tagged());
+
+      expect(find.text('under 6 months · 1 tagged'), findsOneWidget);
+      expect(find.widgetWithText(Chip, '999 000000000001'), findsOneWidget);
+    });
+
+    testPage('Add tags on a mob tags head that is already there', (
+      tester,
+    ) async {
+      await pumpRouted(tester, repository: repo, location: await tagged());
+
+      await tester.tap(find.byTooltip('Add tags'));
+      await settle(tester);
+      expect(find.textContaining('11 of 12 head untagged'), findsOneWidget);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Tags'),
+        '999000000000002\n',
+      );
+      await drain(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'Record 1 tag'));
+      await settle(tester);
+
+      expect(find.text('under 6 months · 2 tagged'), findsOneWidget);
+      expect(findRichText('1 head · tagged in North Ridge'), findsOneWidget);
     });
   });
 }

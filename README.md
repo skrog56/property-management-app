@@ -23,8 +23,13 @@ rather than an oversight; see [`JOURNAL.md`](JOURNAL.md).
   meatworks or sold. Counts are **derived** from an append-only ledger rather
   than stored, so history is never lost and totals cannot disagree with it. A
   movement that would drive a count negative is refused.
-- **Activity** — every movement, newest first. It is the ledger rendered, so it
-  needed no separate audit log.
+- **Tags**, optional — any movement can name the tag numbers of the animals in
+  it: NLIS (the NLIS ID or the RFID) or any other identifier. Each tag is one of
+  its mob's head and goes where its animal goes; where a tag is now is derived
+  from the ledger, like the counts. Animals already in a paddock can be tagged
+  without moving a count.
+- **Activity** — every movement, newest first, naming the tags it carried. It
+  is the ledger rendered, so it needed no separate audit log.
 - **Templates** — livestock classes and their ageing chains. The seeded Beef and
   Dairy lists are provisional, pending the real ones.
 
@@ -362,11 +367,12 @@ None of that is worth building until there is something to ship.
 ```
 lib/
   app/          MaterialApp, theme, shell wiring
-  shell/        Adaptive scaffold and Material 3 breakpoints
+  shell/        Adaptive scaffold, Material 3 breakpoints, the drill-down route
   data/         Drift schema, repository, platform-specific connection
   features/
     properties/       Three tiers: properties → paddocks → one paddock's livestock
     transfers/        The movement form — one sheet, four kinds
+    tags/             Tag entry, tagging a mob
     activity/         The ledger, rendered
     templates/        Livestock classes (read-only for now)
     developer/        Debug-only tools: data, overlays, overrides, log
@@ -390,7 +396,8 @@ Related: on web, `defaultTargetPlatform` reports the _host_ OS — it returns
 **Head counts are derived, never stored.** `movements` is append-only, and a
 paddock's count is a fold over it. Never add a `head` column to `paddocks`, and
 never update a movement in place — the ledger is what will make offline sync
-tractable when it lands.
+tractable when it lands. Tag locations follow the same rule: a tag is wherever
+its latest movement left it, and nothing stores where it is.
 
 ### Web needs two extra files
 
@@ -401,7 +408,9 @@ at runtime, so re-download both when upgrading drift.
 
 ## Not yet proven
 
-Camera and QR tag scanning, GPS, and map tile rendering. Offline-first storage
+Camera and QR tag scanning, GPS, and map tile rendering. Tag numbers can be
+typed, pasted, or sent by a reader that acts as a keyboard, which needs nothing
+platform-specific; reading them by camera is still unbuilt. Offline-first storage
 was the big one and is now settled — `drift` gives real SQLite on all six —
 but multi-device **sync** is a different problem and remains entirely unbuilt,
 along with accounts, roles and admin approvals.

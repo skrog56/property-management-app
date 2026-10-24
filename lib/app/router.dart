@@ -9,6 +9,7 @@ import '../features/properties/paths.dart';
 import '../features/properties/properties_browser.dart';
 import '../features/templates/templates_page.dart';
 import '../shell/adaptive_scaffold.dart';
+import '../shell/tier_route.dart';
 
 const appTitle = 'Property Management App';
 
@@ -23,21 +24,26 @@ List<HomeDestination> homeDestinations({bool developer = devMode}) => [
     ),
     route: GoRoute(
       path: propertiesPath,
-      pageBuilder: (_, state) => PropertiesBrowserPage(key: state.pageKey),
+      pageBuilder: (_, state) =>
+          TierPage(key: state.pageKey, child: const PropertiesBrowser()),
       routes: [
         GoRoute(
           path: ':propertyId',
-          pageBuilder: (_, state) => PropertiesBrowserPage(
+          pageBuilder: (_, state) => TierPage(
             key: state.pageKey,
-            propertyId: state.pathParameters['propertyId'],
+            child: PropertiesBrowser(
+              propertyId: state.pathParameters['propertyId'],
+            ),
           ),
           routes: [
             GoRoute(
               path: 'paddocks/:paddockId',
-              pageBuilder: (_, state) => PropertiesBrowserPage(
+              pageBuilder: (_, state) => TierPage(
                 key: state.pageKey,
-                propertyId: state.pathParameters['propertyId'],
-                paddockId: state.pathParameters['paddockId'],
+                child: PropertiesBrowser(
+                  propertyId: state.pathParameters['propertyId'],
+                  paddockId: state.pathParameters['paddockId'],
+                ),
               ),
             ),
           ],

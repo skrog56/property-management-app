@@ -222,8 +222,8 @@ class _DataTabState extends State<_DataTab> {
       builder: (context) => AlertDialog(
         title: const Text('Wipe the database?'),
         content: const Text(
-          'Every property, paddock and movement on this device is deleted. '
-          'Built-in templates are reseeded.',
+          'Every property, paddock, movement and tag on this device is '
+          'deleted. Built-in templates are reseeded.',
         ),
         actions: [
           TextButton(
@@ -246,19 +246,25 @@ class _DataTabState extends State<_DataTab> {
     LivestockRepository repository,
   ) async {
     final violations = await repository.negativeBalances();
+    final overTagged = await repository.overTaggedMobs();
+    final consistent = violations.isEmpty && overTagged.isEmpty;
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          violations.isEmpty ? 'Ledger consistent' : 'Negative balances',
-        ),
-        content: violations.isEmpty
-            ? const Text('No paddock holds fewer than zero head of any class.')
+        title: Text(consistent ? 'Ledger consistent' : 'Ledger conflicts'),
+        content: consistent
+            ? const Text(
+                'No paddock holds fewer than zero head of any class, or more '
+                'tags than head.',
+              )
             : SelectableText(
                 [
                   for (final v in violations)
                     'paddock ${v.paddockId}\nclass ${v.classId}\nhead ${v.head}',
+                  for (final o in overTagged)
+                    'paddock ${o.paddockId}\nclass ${o.classId}\n'
+                        '${o.tagged} tags on ${o.head} head',
                 ].join('\n\n'),
               ),
         actions: [
@@ -278,6 +284,12 @@ class _RawRowsPage extends StatelessWidget {
   final LivestockRepository repository;
   final String table;
 
+  /// The most telling column a row has.
+  static String _title(Map<String, Object?> row) => [
+    for (final column in ['name', 'kind', 'number', 'role', 'id'])
+      if (row[column] case final value?) '$value',
+  ].first;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -296,7 +308,7 @@ class _RawRowsPage extends StatelessWidget {
               for (final row in rows)
                 ExpansionTile(
                   title: Text(
-                    '${row['name'] ?? row['kind'] ?? row['id']}',
+                    _title(row),
                     style: row['deleted_at'] == null
                         ? null
                         : TextStyle(

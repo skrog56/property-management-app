@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show immutable;
 
 import '../../data/livestock_repository.dart';
 import '../../data/tables.dart';
+import '../../data/tag_numbers.dart';
 
 @immutable
 class TableCount {
@@ -25,6 +26,8 @@ extension DevData on LivestockRepository {
   Future<void> wipe() async {
     await db.transaction(() async {
       for (final TableInfo table in [
+        db.movementTags,
+        db.livestockTags,
         db.movements,
         db.paddocks,
         db.properties,
@@ -122,12 +125,20 @@ extension DevData on LivestockRepository {
     final now = DateTime.now();
     DateTime daysAgo(int days) => now.subtract(Duration(days: days));
 
+    // ISO 11784 reserves manufacturer code 999 for test transponders, so none
+    // of these can be a real device's number.
+    final tags = [
+      for (var i = 1; i <= 4; i++)
+        TagNumber.tryParse(TagScheme.nlis, '99900000000000$i')!,
+    ];
+
     await record(
       kind: MovementKind.intake,
       head: 120,
       toPaddockId: northFlat,
       toClassId: young.id,
       occurredAt: daysAgo(42),
+      tags: tags.sublist(0, 3),
     );
     await record(
       kind: MovementKind.intake,
@@ -144,6 +155,7 @@ extension DevData on LivestockRepository {
       toPaddockId: creek,
       toClassId: young.id,
       occurredAt: daysAgo(28),
+      tags: [tags[0]],
     );
     await record(
       kind: MovementKind.age,
@@ -153,6 +165,7 @@ extension DevData on LivestockRepository {
       toPaddockId: creek,
       toClassId: older.id,
       occurredAt: daysAgo(21),
+      tags: [tags[0]],
     );
     await record(
       kind: MovementKind.move,
@@ -172,6 +185,13 @@ extension DevData on LivestockRepository {
       note: 'Sample sale',
       occurredAt: daysAgo(7),
     );
+    final lost = await tagStatusByNumber(tags[2]);
+    await replaceTag(
+      lost!.tag.id,
+      tags[3],
+      reason: TagReason.lost,
+      occurredAt: daysAgo(10),
+    );
     await record(
       kind: MovementKind.endState,
       head: 1,
@@ -179,6 +199,7 @@ extension DevData on LivestockRepository {
       fromClassId: young.id,
       endState: EndState.died,
       occurredAt: daysAgo(2),
+      tags: [tags[1]],
     );
   }
 }

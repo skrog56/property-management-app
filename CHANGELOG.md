@@ -34,6 +34,22 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- **Tag numbers on movements, for those who want them.** An intake, move, age
+  or end state can name the tags of the animals in it: NLIS, as the
+  16-character NLIS ID or the 15-digit RFID, or any other identifier. Each tag
+  is one of its mob's head and goes where its animal goes. Where a tag is now is
+  worked out from the ledger, like head counts, so it cannot drift from the
+  history. An intake only adds tags, typed, pasted as a list, or sent by a
+  reader that acts as a keyboard. A move, age or end instead lists the mob's
+  tags to choose from, with Select all, and a scan or the last few digits of a
+  number selects its tag; the list is hidden when the mob has none. Moving a
+  whole mob takes its tags with it. When some but not all of a mob's tagged
+  animals must be moving, the form asks which before it will record.
+- **Tag events.** Animals already standing in a paddock can be tagged from their
+  mob on the paddock page, without changing a head count. The event is kept in
+  the ledger like any movement.
+- Paddock pages say how many of each mob are tagged and list the tags standing
+  there.
 - **Shareable URLs on the web.** Each property and paddock has its own address
   (`/properties/<id>/paddocks/<id>`), so the browser's back button steps back
   through the tiers, refreshing keeps your place, and a link opens straight to
@@ -95,6 +111,13 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Changed
 
+- **Activity names tags.** Entries list the tags a movement carried, and tag
+  events read as what happened to the tags.
+- **The local database upgrades itself** the first time this version opens it,
+  to make room for tags. Existing properties, paddocks and movements carry over
+  untouched, in the browser as on every other target.
+- Developer → Data seeds a few tagged animals with the sample farm, and Check
+  ledger also reports any mob holding more tags than head.
 - **Wider sidebar highlights.** When the sidebar shows labels, hovering a
   destination, and the marker on the current one, now covers the label as well
   as the icon, so the whole row is one target.

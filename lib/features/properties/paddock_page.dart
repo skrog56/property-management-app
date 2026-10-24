@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
+import '../../data/tag_numbers.dart';
 import '../activity/activity_page.dart';
+import '../tags/tag_sheet.dart';
 import '../transfers/movement_sheet.dart';
 
 /// The bottom tier: everything standing in one paddock, and how it got there.
@@ -74,6 +76,7 @@ Future<void> preloadPaddock(LivestockRepository repository, String id) =>
     repository.warm([
       repository.watchPaddockSummary(id),
       repository.watchActivityEntries(paddockId: id, limit: _recentActivity),
+      repository.watchTagsIn(id),
     ]);
 
 class _PaddockDetail extends StatelessWidget {
@@ -87,106 +90,140 @@ class _PaddockDetail extends StatelessWidget {
     final theme = Theme.of(context);
     final paddock = summary.paddock;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-      children: [
-        Card(
-          color: theme.colorScheme.primaryContainer,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${summary.head} head',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
+    return StreamBuilder<List<TagStatus>>(
+      initialData: repository.latestTagsIn(paddock.id),
+      stream: repository.watchTagsIn(paddock.id),
+      builder: (context, snapshot) {
+        final tags = snapshot.data ?? const <TagStatus>[];
+        int taggedIn(MobLine mob) => tags
+            .where((t) => t.livestockClass?.id == mob.livestockClass.id)
+            .length;
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+          children: [
+            Card(
+              color: theme.colorScheme.primaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${summary.head} head',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${paddock.hectares.toStringAsFixed(1)} ha'
+                            '${summary.isEmpty ? '' : ' · ${summary.mobs.length} '
+                                      '${summary.mobs.length == 1 ? 'mob' : 'mobs'}'}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${paddock.hectares.toStringAsFixed(1)} ha'
-                        '${summary.isEmpty ? '' : ' · ${summary.mobs.length} '
-                              '${summary.mobs.length == 1 ? 'mob' : 'mobs'}'}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    Icon(
+                      Icons.grass,
+                      size: 40,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ],
                 ),
-                Icon(
-                  Icons.grass,
-                  size: 40,
-                  color: theme.colorScheme.onPrimaryContainer,
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text('Livestock', style: theme.textTheme.titleMedium),
-        const Divider(),
-        if (summary.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Text(
-              'This paddock is empty.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-          )
-        else
-          for (final mob in summary.mobs) _MobTile(mob: mob),
-        const SizedBox(height: 16),
-        Text('Recent activity', style: theme.textTheme.titleMedium),
-        const Divider(),
-        StreamBuilder<List<ActivityEntry>>(
-          initialData: repository.latestActivityEntries(
-            paddockId: paddock.id,
-            limit: _recentActivity,
-          ),
-          stream: repository.watchActivityEntries(
-            paddockId: paddock.id,
-            limit: _recentActivity,
-          ),
-          builder: (context, snapshot) {
-            final entries = snapshot.data;
-            if (entries == null) return const SizedBox(height: 48);
-            if (entries.isEmpty) {
-              return Padding(
+            const SizedBox(height: 16),
+            Text('Livestock', style: theme.textTheme.titleMedium),
+            const Divider(),
+            if (summary.isEmpty)
+              Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Text(
-                  'Nothing has moved in or out of here yet.',
+                  'This paddock is empty.',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-              );
-            }
-            return Column(
-              children: [
-                for (final entry in entries)
-                  ActivityTile(entry: entry, currentPaddockId: paddock.id),
-              ],
-            );
-          },
-        ),
-      ],
+              )
+            else
+              for (final mob in summary.mobs)
+                _MobTile(
+                  mob: mob,
+                  tagged: taggedIn(mob),
+                  onAddTags: () => showAddTagsSheet(
+                    context,
+                    repository: repository,
+                    paddock: paddock,
+                    mob: mob,
+                    tagged: taggedIn(mob),
+                  ),
+                ),
+            if (tags.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text('Tags', style: theme.textTheme.titleMedium),
+              const Divider(),
+              _TagChips(tags: tags),
+            ],
+            const SizedBox(height: 16),
+            Text('Recent activity', style: theme.textTheme.titleMedium),
+            const Divider(),
+            StreamBuilder<List<ActivityEntry>>(
+              initialData: repository.latestActivityEntries(
+                paddockId: paddock.id,
+                limit: _recentActivity,
+              ),
+              stream: repository.watchActivityEntries(
+                paddockId: paddock.id,
+                limit: _recentActivity,
+              ),
+              builder: (context, snapshot) {
+                final entries = snapshot.data;
+                if (entries == null) return const SizedBox(height: 48);
+                if (entries.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      'Nothing has moved in or out of here yet.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (final entry in entries)
+                      ActivityTile(entry: entry, currentPaddockId: paddock.id),
+                  ],
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
 class _MobTile extends StatelessWidget {
-  const _MobTile({required this.mob});
+  const _MobTile({
+    required this.mob,
+    required this.tagged,
+    required this.onAddTags,
+  });
 
   final MobLine mob;
+  final int tagged;
+  final VoidCallback onAddTags;
 
   @override
   Widget build(BuildContext context) {
@@ -204,7 +241,56 @@ class _MobTile extends StatelessWidget {
         ),
       ),
       title: Text(mob.label),
-      subtitle: Text(mob.livestockClass.ageBand),
+      subtitle: Text(
+        [
+          mob.livestockClass.ageBand,
+          if (tagged > 0) '$tagged tagged',
+        ].join(' · '),
+      ),
+      trailing: IconButton(
+        tooltip: 'Add tags',
+        icon: const Icon(Icons.new_label_outlined),
+        onPressed: tagged < mob.head ? onAddTags : null,
+      ),
+    );
+  }
+}
+
+/// Each tag standing here, linking to its own page. A big mob's are cut
+/// short until asked for.
+class _TagChips extends StatefulWidget {
+  const _TagChips({required this.tags});
+
+  final List<TagStatus> tags;
+
+  @override
+  State<_TagChips> createState() => _TagChipsState();
+}
+
+class _TagChipsState extends State<_TagChips> {
+  static const _shown = 24;
+  var _all = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final tags = widget.tags;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final status in _all ? tags : tags.take(_shown))
+          Chip(
+            avatar: const Icon(Icons.sell_outlined, size: 18),
+            label: Text(status.tag.tagNumber.display),
+          ),
+        if (!_all && tags.length > _shown)
+          TextButton(
+            onPressed: () => setState(() => _all = true),
+            child: Text('Show all ${tags.length}'),
+          ),
+      ],
     );
   }
 }

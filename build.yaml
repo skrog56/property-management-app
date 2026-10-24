@@ -6,5 +6,10 @@ targets:
           # Drift's default stores DateTime as whole unix seconds, which loses
           # sub-second precision and the UTC flag. The ledger orders by time, so
           # two movements recorded in the same second would sort arbitrarily.
-          # Changing this after data exists needs a migration; schema is still 1.
+          # Changing this after data exists needs a migration.
           store_date_time_values_as_text: true
+          # For `dart run drift_dev make-migrations`, which snapshots each
+          # schema version under drift_schemas/ and generates the step helpers
+          # and migration tests.
+          databases:
+            app_database: lib/data/app_database.dart

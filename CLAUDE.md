@@ -10,7 +10,9 @@ Linux, macOS and Windows** from one codebase.
 It began as a platform-reach pilot — a shell with no persistence and no domain
 logic — and that question is now settled and demonstrated. The app has since
 grown a real local domain: properties, paddocks, livestock templates, and a
-movement ledger stored in SQLite on all six targets.
+movement ledger stored in SQLite on all six targets. Livestock is counted by
+class, with optional tag numbers (mostly NLIS) for the animals someone wants to
+follow individually.
 
 It is still early. There is **no backend**: no accounts, no roles, no sync, no
 admin approvals. Everything is single-user and local to the device. That is a
@@ -60,12 +62,15 @@ justifies a design belongs in `JOURNAL.md`, not in a header comment.
 ```
 lib/
   app/         MaterialApp, seeded M3 theme, go_router routes and shell
-  shell/       AdaptiveScaffold + WindowSizeClass breakpoints
+  shell/       AdaptiveScaffold, WindowSizeClass breakpoints, and TierPage —
+               the route every drill-down tier is built as
   data/        Drift schema, repository, platform-specific connection
   features/
     properties/       Three tiers: properties → paddocks → one paddock's livestock,
                       laid out as list-detail panes by PropertiesBrowser
     transfers/        The movement form — one sheet, four kinds
+    tags/             TagField (new tags) and TagPicker (a mob's tags), the
+                      add-tags sheet
     activity/         The ledger, rendered
     templates/        Livestock classes (read-only for now)
     developer/        Debug-only tools; hosts platform_proof as a tab
@@ -139,15 +144,25 @@ session.
 head(paddock, class) = Σ(movements in) − Σ(movements out)
 ```
 
-All four movement kinds — intake, move, age, end state — are the same row shape,
-which is why one form and one Activity view serve all of them. Ageing is a
-movement whose paddock does not change and whose class does; a move is the
-reverse.
+All five movement kinds — intake, move, age, end state and tag — are the same
+row shape, which is why one Activity view serves all of them, and one form the
+first four. Ageing is a movement whose paddock does not change and whose class
+does; a move is the reverse. A tag event changes neither: its from and to are
+the same mob, so it nets to zero, and it exists to carry its `movement_tags`.
 
-Never add a `head` column to `paddocks` and never update a movement in place. The
-ledger is what makes the eventual offline sync tractable: append-only logs merge
-without conflict, and the only genuine conflict — a count driven negative by two
-offline edits — is the single check in `LivestockRepository.record`.
+Tags follow the same rule. A tagged animal is one of its mob's head, and a tag
+is wherever its latest `movement_tags` link left it — derived by
+`_tagLatest` in the repository, never stored. That makes tag positions depend on
+order, as head counts do not, so `record` refuses to date a movement before a
+tag's latest one.
+
+Never add a `head` column to `paddocks`, never store where a tag is, and never
+update a movement in place. The ledger is what makes the eventual offline sync
+tractable: append-only logs merge without conflict, and the only genuine
+conflicts — a count driven negative, or a tag in two places, or a mob left with
+more tags than head, by two offline edits — are the checks in
+`LivestockRepository.record` and the tag events beside it. All of them throw a
+`LedgerConflict`.
 
 For the same reason, rows use **client-generated UUIDs** and **soft deletes**.
 Neither can be retrofitted once devices are syncing.
@@ -158,6 +173,16 @@ Neither can be retrofitted once devices are syncing.
 `dart run build_runner build` after touching it. `build.yaml` stores timestamps
 as ISO-8601 text rather than drift's default unix seconds — the ledger orders by
 time and whole seconds are not precise enough.
+
+**Every schema change is a migration.** Databases already exist in the field —
+the web build on Vercel among them — so bump `schemaVersion` and run
+`dart run drift_dev make-migrations`. It snapshots each version under
+`drift_schemas/`, regenerates the `stepByStep` helper in
+`lib/data/app_database.steps.dart` and the tests under `test/drift/`. The
+snapshot of the version being left must exist before `tables.dart` changes, so
+if it is missing, run the command once first. Write the step in
+`AppDatabase.migration` (`createTable` leaves out indexes; create those too),
+then fill in the generated data-integrity test.
 
 **Web needs two files in `web/`**: `sqlite3.wasm` and `drift_worker.js`, taken
 from the [drift release](https://github.com/simolus3/drift/releases) matching

@@ -88,7 +88,7 @@ class AboutPage extends StatelessWidget {
                 Text(
                   'There is no backend: no accounts, no roles, no syncing '
                   'between devices, and no admin approvals. Paddock mapping, '
-                  'tag scanning and reporting are still to come.',
+                  'camera tag scanning and reporting are still to come.',
                   style: theme.textTheme.bodyMedium,
                 ),
               ],

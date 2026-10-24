@@ -4,8 +4,11 @@ import '../../data/app_database.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../data/tables.dart';
+import '../../data/tag_numbers.dart';
+import '../../shell/tier_route.dart';
 import '../properties/paddock_page.dart';
 import '../properties/paths.dart';
+import '../tags/tag_labels.dart';
 
 class ActivityPage extends StatelessWidget {
   const ActivityPage({super.key});
@@ -50,7 +53,11 @@ class ActivityPage extends StatelessWidget {
 }
 
 class ActivityTile extends StatelessWidget {
-  const ActivityTile({super.key, required this.entry, this.currentPaddockId});
+  const ActivityTile({
+    super.key,
+    required this.entry,
+    this.currentPaddockId,
+  });
 
   final ActivityEntry entry;
 
@@ -62,6 +69,16 @@ class ActivityTile extends StatelessWidget {
     final theme = Theme.of(context);
     final movement = entry.movement;
 
+    final when = Text(
+      [
+        _timestamp(movement.occurredAt),
+        if (movement.note != null) movement.note!,
+      ].join(' · '),
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
@@ -72,6 +89,7 @@ class ActivityTile extends StatelessWidget {
             MovementKind.move => Icons.swap_horiz,
             MovementKind.age => Icons.cake_outlined,
             MovementKind.endState => Icons.local_shipping_outlined,
+            MovementKind.tag => Icons.sell_outlined,
           },
           size: 20,
           color: theme.colorScheme.onSecondaryContainer,
@@ -85,15 +103,15 @@ class ActivityTile extends StatelessWidget {
           ],
         ),
       ),
-      subtitle: Text(
-        [
-          _timestamp(movement.occurredAt),
-          if (movement.note != null) movement.note!,
-        ].join(' · '),
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
+      subtitle: entry.tags.isEmpty
+          ? when
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _TagLine(tags: entry.tags),
+                when,
+              ],
+            ),
     );
   }
 
@@ -117,7 +135,19 @@ class ActivityTile extends StatelessWidget {
       _paddock(entry.fromPaddock),
       TextSpan(text: ' → ${movement.endState?.name ?? 'removed'}'),
     ],
+    MovementKind.tag => [
+      TextSpan(text: '${_tagEvent(movement)} in '),
+      _paddock(entry.toPaddock),
+      TextSpan(text: ' (${entry.toClass})'),
+    ],
   };
+
+  String _tagEvent(Movement movement) {
+    final removed = entry.tags.where((t) => t.role == TagRole.removed).length;
+    if (removed == 0) return 'tagged';
+    if (removed < entry.tags.length) return 'tag replaced';
+    return movement.head == 1 ? 'tag cancelled' : 'tags cancelled';
+  }
 
   InlineSpan _paddock(Paddock? paddock) {
     if (paddock == null ||
@@ -125,11 +155,7 @@ class ActivityTile extends StatelessWidget {
         paddock.id == currentPaddockId) {
       return TextSpan(text: paddock?.name ?? 'a removed paddock');
     }
-    return WidgetSpan(
-      alignment: PlaceholderAlignment.baseline,
-      baseline: TextBaseline.alphabetic,
-      child: _PaddockLink(paddock),
-    );
+    return paddockLink(paddock);
   }
 
   String _timestamp(DateTime at) {
@@ -142,10 +168,87 @@ class ActivityTile extends StatelessWidget {
   }
 }
 
-class _PaddockLink extends StatelessWidget {
-  const _PaddockLink(this.paddock);
+/// The tags a movement touched. A replacement reads old → new.
+class _TagLine extends StatefulWidget {
+  const _TagLine({required this.tags});
 
-  final Paddock paddock;
+  final List<TagRef> tags;
+
+  @override
+  State<_TagLine> createState() => _TagLineState();
+}
+
+class _TagLineState extends State<_TagLine> {
+  static const _shown = 6;
+  var _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final tags = widget.tags;
+    final replacement =
+        tags.length == 2 &&
+        tags.first.role == TagRole.removed &&
+        tags.last.role == TagRole.added;
+    final visible = _expanded ? tags : tags.take(_shown).toList();
+    final hidden = tags.length - visible.length;
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (replacement) ...[
+            _tag(tags.first.tag),
+            const TextSpan(text: ' → '),
+            _tag(tags.last.tag),
+            if (tags.first.reason case final reason?)
+              TextSpan(text: ' · ${reason.label}'),
+          ] else
+            for (final (i, ref) in visible.indexed) ...[
+              if (i > 0) const TextSpan(text: ', '),
+              _tag(ref.tag),
+              if (ref.reason case final reason?)
+                TextSpan(text: ' · ${reason.label}'),
+            ],
+          if (!replacement && hidden > 0) ...[
+            const TextSpan(text: ' '),
+            inlineLink(
+              '+$hidden more',
+              onTap: () => setState(() => _expanded = true),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  InlineSpan _tag(LivestockTag tag) => TextSpan(text: tag.tagNumber.display);
+}
+
+InlineSpan paddockLink(Paddock paddock) => WidgetSpan(
+  alignment: PlaceholderAlignment.baseline,
+  baseline: TextBaseline.alphabetic,
+  child: Builder(
+    builder: (context) => _InlineLink(
+      paddock.name,
+      onTap: () => openTier(
+        context,
+        paddockPath(paddock.propertyId, paddock.id),
+        preload: preloadPaddock(RepositoryScope.of(context), paddock.id),
+      ),
+    ),
+  ),
+);
+
+InlineSpan inlineLink(String text, {required VoidCallback onTap}) => WidgetSpan(
+  alignment: PlaceholderAlignment.baseline,
+  baseline: TextBaseline.alphabetic,
+  child: _InlineLink(text, onTap: onTap),
+);
+
+class _InlineLink extends StatelessWidget {
+  const _InlineLink(this.text, {required this.onTap});
+
+  final String text;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -153,13 +256,9 @@ class _PaddockLink extends StatelessWidget {
     return Semantics(
       link: true,
       child: InkWell(
-        onTap: () => openTier(
-          context,
-          paddockPath(paddock.propertyId, paddock.id),
-          preload: preloadPaddock(RepositoryScope.of(context), paddock.id),
-        ),
+        onTap: onTap,
         child: Text(
-          paddock.name,
+          text,
           style: TextStyle(
             color: colors.primary,
             decoration: TextDecoration.underline,

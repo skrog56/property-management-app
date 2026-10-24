@@ -2805,6 +2805,955 @@ class MovementsCompanion extends UpdateCompanion<Movement> {
   }
 }
 
+class $LivestockTagsTable extends LivestockTags
+    with TableInfo<$LivestockTagsTable, LivestockTag> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LivestockTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<TagScheme, String> scheme =
+      GeneratedColumn<String>(
+        'scheme',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<TagScheme>($LivestockTagsTable.$converterscheme);
+  static const VerificationMeta _numberMeta = const VerificationMeta('number');
+  @override
+  late final GeneratedColumn<String> number = GeneratedColumn<String>(
+    'number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    scheme,
+    number,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'livestock_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LivestockTag> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('number')) {
+      context.handle(
+        _numberMeta,
+        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_numberMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LivestockTag map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LivestockTag(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      scheme: $LivestockTagsTable.$converterscheme.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}scheme'],
+        )!,
+      ),
+      number: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}number'],
+      )!,
+    );
+  }
+
+  @override
+  $LivestockTagsTable createAlias(String alias) {
+    return $LivestockTagsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<TagScheme, String, String> $converterscheme =
+      const EnumNameConverter<TagScheme>(TagScheme.values);
+}
+
+class LivestockTag extends DataClass implements Insertable<LivestockTag> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final TagScheme scheme;
+
+  /// Normalised by `TagNumber`: uppercase, no whitespace.
+  final String number;
+  const LivestockTag({
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.scheme,
+    required this.number,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    {
+      map['scheme'] = Variable<String>(
+        $LivestockTagsTable.$converterscheme.toSql(scheme),
+      );
+    }
+    map['number'] = Variable<String>(number);
+    return map;
+  }
+
+  LivestockTagsCompanion toCompanion(bool nullToAbsent) {
+    return LivestockTagsCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      scheme: Value(scheme),
+      number: Value(number),
+    );
+  }
+
+  factory LivestockTag.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LivestockTag(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      scheme: $LivestockTagsTable.$converterscheme.fromJson(
+        serializer.fromJson<String>(json['scheme']),
+      ),
+      number: serializer.fromJson<String>(json['number']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'scheme': serializer.toJson<String>(
+        $LivestockTagsTable.$converterscheme.toJson(scheme),
+      ),
+      'number': serializer.toJson<String>(number),
+    };
+  }
+
+  LivestockTag copyWith({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    TagScheme? scheme,
+    String? number,
+  }) => LivestockTag(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    scheme: scheme ?? this.scheme,
+    number: number ?? this.number,
+  );
+  LivestockTag copyWithCompanion(LivestockTagsCompanion data) {
+    return LivestockTag(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      scheme: data.scheme.present ? data.scheme.value : this.scheme,
+      number: data.number.present ? data.number.value : this.number,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LivestockTag(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('scheme: $scheme, ')
+          ..write('number: $number')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, createdAt, updatedAt, deletedAt, scheme, number);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LivestockTag &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.scheme == this.scheme &&
+          other.number == this.number);
+}
+
+class LivestockTagsCompanion extends UpdateCompanion<LivestockTag> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<TagScheme> scheme;
+  final Value<String> number;
+  final Value<int> rowid;
+  const LivestockTagsCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.scheme = const Value.absent(),
+    this.number = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LivestockTagsCompanion.insert({
+    required String id,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    required TagScheme scheme,
+    required String number,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       scheme = Value(scheme),
+       number = Value(number);
+  static Insertable<LivestockTag> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? scheme,
+    Expression<String>? number,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (scheme != null) 'scheme': scheme,
+      if (number != null) 'number': number,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LivestockTagsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<TagScheme>? scheme,
+    Value<String>? number,
+    Value<int>? rowid,
+  }) {
+    return LivestockTagsCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      scheme: scheme ?? this.scheme,
+      number: number ?? this.number,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (scheme.present) {
+      map['scheme'] = Variable<String>(
+        $LivestockTagsTable.$converterscheme.toSql(scheme.value),
+      );
+    }
+    if (number.present) {
+      map['number'] = Variable<String>(number.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LivestockTagsCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('scheme: $scheme, ')
+          ..write('number: $number, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MovementTagsTable extends MovementTags
+    with TableInfo<$MovementTagsTable, MovementTag> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MovementTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _movementIdMeta = const VerificationMeta(
+    'movementId',
+  );
+  @override
+  late final GeneratedColumn<String> movementId = GeneratedColumn<String>(
+    'movement_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES movements (id)',
+    ),
+  );
+  static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
+  @override
+  late final GeneratedColumn<String> tagId = GeneratedColumn<String>(
+    'tag_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES livestock_tags (id)',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<TagRole, String> role =
+      GeneratedColumn<String>(
+        'role',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<TagRole>($MovementTagsTable.$converterrole);
+  @override
+  late final GeneratedColumnWithTypeConverter<TagReason?, String> reason =
+      GeneratedColumn<String>(
+        'reason',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<TagReason?>($MovementTagsTable.$converterreasonn);
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    movementId,
+    tagId,
+    role,
+    reason,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'movement_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MovementTag> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('movement_id')) {
+      context.handle(
+        _movementIdMeta,
+        movementId.isAcceptableOrUnknown(data['movement_id']!, _movementIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_movementIdMeta);
+    }
+    if (data.containsKey('tag_id')) {
+      context.handle(
+        _tagIdMeta,
+        tagId.isAcceptableOrUnknown(data['tag_id']!, _tagIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MovementTag map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MovementTag(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      movementId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}movement_id'],
+      )!,
+      tagId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tag_id'],
+      )!,
+      role: $MovementTagsTable.$converterrole.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}role'],
+        )!,
+      ),
+      reason: $MovementTagsTable.$converterreasonn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}reason'],
+        ),
+      ),
+    );
+  }
+
+  @override
+  $MovementTagsTable createAlias(String alias) {
+    return $MovementTagsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<TagRole, String, String> $converterrole =
+      const EnumNameConverter<TagRole>(TagRole.values);
+  static JsonTypeConverter2<TagReason, String, String> $converterreason =
+      const EnumNameConverter<TagReason>(TagReason.values);
+  static JsonTypeConverter2<TagReason?, String?, String?> $converterreasonn =
+      JsonTypeConverter2.asNullable($converterreason);
+}
+
+class MovementTag extends DataClass implements Insertable<MovementTag> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String movementId;
+  final String tagId;
+  final TagRole role;
+
+  /// Set only when [role] is removed.
+  final TagReason? reason;
+  const MovementTag({
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.movementId,
+    required this.tagId,
+    required this.role,
+    this.reason,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['movement_id'] = Variable<String>(movementId);
+    map['tag_id'] = Variable<String>(tagId);
+    {
+      map['role'] = Variable<String>(
+        $MovementTagsTable.$converterrole.toSql(role),
+      );
+    }
+    if (!nullToAbsent || reason != null) {
+      map['reason'] = Variable<String>(
+        $MovementTagsTable.$converterreasonn.toSql(reason),
+      );
+    }
+    return map;
+  }
+
+  MovementTagsCompanion toCompanion(bool nullToAbsent) {
+    return MovementTagsCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      movementId: Value(movementId),
+      tagId: Value(tagId),
+      role: Value(role),
+      reason: reason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reason),
+    );
+  }
+
+  factory MovementTag.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MovementTag(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      movementId: serializer.fromJson<String>(json['movementId']),
+      tagId: serializer.fromJson<String>(json['tagId']),
+      role: $MovementTagsTable.$converterrole.fromJson(
+        serializer.fromJson<String>(json['role']),
+      ),
+      reason: $MovementTagsTable.$converterreasonn.fromJson(
+        serializer.fromJson<String?>(json['reason']),
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'movementId': serializer.toJson<String>(movementId),
+      'tagId': serializer.toJson<String>(tagId),
+      'role': serializer.toJson<String>(
+        $MovementTagsTable.$converterrole.toJson(role),
+      ),
+      'reason': serializer.toJson<String?>(
+        $MovementTagsTable.$converterreasonn.toJson(reason),
+      ),
+    };
+  }
+
+  MovementTag copyWith({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? movementId,
+    String? tagId,
+    TagRole? role,
+    Value<TagReason?> reason = const Value.absent(),
+  }) => MovementTag(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    movementId: movementId ?? this.movementId,
+    tagId: tagId ?? this.tagId,
+    role: role ?? this.role,
+    reason: reason.present ? reason.value : this.reason,
+  );
+  MovementTag copyWithCompanion(MovementTagsCompanion data) {
+    return MovementTag(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      movementId: data.movementId.present
+          ? data.movementId.value
+          : this.movementId,
+      tagId: data.tagId.present ? data.tagId.value : this.tagId,
+      role: data.role.present ? data.role.value : this.role,
+      reason: data.reason.present ? data.reason.value : this.reason,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MovementTag(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('movementId: $movementId, ')
+          ..write('tagId: $tagId, ')
+          ..write('role: $role, ')
+          ..write('reason: $reason')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    movementId,
+    tagId,
+    role,
+    reason,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MovementTag &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.movementId == this.movementId &&
+          other.tagId == this.tagId &&
+          other.role == this.role &&
+          other.reason == this.reason);
+}
+
+class MovementTagsCompanion extends UpdateCompanion<MovementTag> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> movementId;
+  final Value<String> tagId;
+  final Value<TagRole> role;
+  final Value<TagReason?> reason;
+  final Value<int> rowid;
+  const MovementTagsCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.movementId = const Value.absent(),
+    this.tagId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MovementTagsCompanion.insert({
+    required String id,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    required String movementId,
+    required String tagId,
+    required TagRole role,
+    this.reason = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       movementId = Value(movementId),
+       tagId = Value(tagId),
+       role = Value(role);
+  static Insertable<MovementTag> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? movementId,
+    Expression<String>? tagId,
+    Expression<String>? role,
+    Expression<String>? reason,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (movementId != null) 'movement_id': movementId,
+      if (tagId != null) 'tag_id': tagId,
+      if (role != null) 'role': role,
+      if (reason != null) 'reason': reason,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MovementTagsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? movementId,
+    Value<String>? tagId,
+    Value<TagRole>? role,
+    Value<TagReason?>? reason,
+    Value<int>? rowid,
+  }) {
+    return MovementTagsCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      movementId: movementId ?? this.movementId,
+      tagId: tagId ?? this.tagId,
+      role: role ?? this.role,
+      reason: reason ?? this.reason,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (movementId.present) {
+      map['movement_id'] = Variable<String>(movementId.value);
+    }
+    if (tagId.present) {
+      map['tag_id'] = Variable<String>(tagId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(
+        $MovementTagsTable.$converterrole.toSql(role.value),
+      );
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(
+        $MovementTagsTable.$converterreasonn.toSql(reason.value),
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MovementTagsCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('movementId: $movementId, ')
+          ..write('tagId: $tagId, ')
+          ..write('role: $role, ')
+          ..write('reason: $reason, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2815,6 +3764,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $MovementsTable movements = $MovementsTable(this);
+  late final $LivestockTagsTable livestockTags = $LivestockTagsTable(this);
+  late final $MovementTagsTable movementTags = $MovementTagsTable(this);
+  late final Index livestockTagsNumber = Index(
+    'livestock_tags_number',
+    'CREATE UNIQUE INDEX livestock_tags_number ON livestock_tags (scheme, number)',
+  );
+  late final Index movementTagsTag = Index(
+    'movement_tags_tag',
+    'CREATE INDEX movement_tags_tag ON movement_tags (tag_id)',
+  );
+  late final Index movementTagsMovement = Index(
+    'movement_tags_movement',
+    'CREATE INDEX movement_tags_movement ON movement_tags (movement_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2825,6 +3788,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     templates,
     livestockClasses,
     movements,
+    livestockTags,
+    movementTags,
+    livestockTagsNumber,
+    movementTagsTag,
+    movementTagsMovement,
   ];
   @override
   DriftDatabaseOptions get options =>
@@ -4775,6 +5743,24 @@ final class $$MovementsTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static MultiTypedResultKey<$MovementTagsTable, List<MovementTag>>
+  _movementTagsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.movementTags,
+    aliasName: 'movements__id__movement_tags__movement_id',
+  );
+
+  $$MovementTagsTableProcessedTableManager get movementTagsRefs {
+    final manager = $$MovementTagsTableTableManager(
+      $_db,
+      $_db.movementTags,
+    ).filter((f) => f.movementId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_movementTagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$MovementsTableFilterComposer
@@ -4928,6 +5914,31 @@ class $$MovementsTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> movementTagsRefs(
+    Expression<bool> Function($$MovementTagsTableFilterComposer f) f,
+  ) {
+    final $$MovementTagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.movementTags,
+      getReferencedColumn: (t) => t.movementId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MovementTagsTableFilterComposer(
+            $db: $db,
+            $table: $db.movementTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -5215,6 +6226,31 @@ class $$MovementsTableAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> movementTagsRefs<T extends Object>(
+    Expression<T> Function($$MovementTagsTableAnnotationComposer a) f,
+  ) {
+    final $$MovementTagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.movementTags,
+      getReferencedColumn: (t) => t.movementId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MovementTagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.movementTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$MovementsTableTableManager
@@ -5235,6 +6271,7 @@ class $$MovementsTableTableManager
             bool fromClassId,
             bool toPaddockId,
             bool toClassId,
+            bool movementTagsRefs,
           })
         > {
   $$MovementsTableTableManager(_$AppDatabase db, $MovementsTable table)
@@ -5330,10 +6367,13 @@ class $$MovementsTableTableManager
                 fromClassId = false,
                 toPaddockId = false,
                 toClassId = false,
+                movementTagsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
-                  explicitlyWatchedTables: [],
+                  explicitlyWatchedTables: [
+                    if (movementTagsRefs) db.movementTags,
+                  ],
                   addJoins:
                       <
                         T extends TableManagerState<
@@ -5406,7 +6446,29 @@ class $$MovementsTableTableManager
                         return state;
                       },
                   getPrefetchedDataCallback: (items) async {
-                    return [];
+                    return [
+                      if (movementTagsRefs)
+                        await $_getPrefetchedData<
+                          Movement,
+                          $MovementsTable,
+                          MovementTag
+                        >(
+                          currentTable: table,
+                          referencedTable: $$MovementsTableReferences
+                              ._movementTagsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$MovementsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).movementTagsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.movementId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
                 );
               },
@@ -5431,7 +6493,795 @@ typedef $$MovementsTableProcessedTableManager =
         bool fromClassId,
         bool toPaddockId,
         bool toClassId,
+        bool movementTagsRefs,
       })
+    >;
+typedef $$LivestockTagsTableCreateCompanionBuilder =
+    LivestockTagsCompanion Function({
+      required String id,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      required TagScheme scheme,
+      required String number,
+      Value<int> rowid,
+    });
+typedef $$LivestockTagsTableUpdateCompanionBuilder =
+    LivestockTagsCompanion Function({
+      Value<String> id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<TagScheme> scheme,
+      Value<String> number,
+      Value<int> rowid,
+    });
+
+final class $$LivestockTagsTableReferences
+    extends BaseReferences<_$AppDatabase, $LivestockTagsTable, LivestockTag> {
+  $$LivestockTagsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$MovementTagsTable, List<MovementTag>>
+  _movementTagsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.movementTags,
+    aliasName: 'livestock_tags__id__movement_tags__tag_id',
+  );
+
+  $$MovementTagsTableProcessedTableManager get movementTagsRefs {
+    final manager = $$MovementTagsTableTableManager(
+      $_db,
+      $_db.movementTags,
+    ).filter((f) => f.tagId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_movementTagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$LivestockTagsTableFilterComposer
+    extends Composer<_$AppDatabase, $LivestockTagsTable> {
+  $$LivestockTagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TagScheme, TagScheme, String> get scheme =>
+      $composableBuilder(
+        column: $table.scheme,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> movementTagsRefs(
+    Expression<bool> Function($$MovementTagsTableFilterComposer f) f,
+  ) {
+    final $$MovementTagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.movementTags,
+      getReferencedColumn: (t) => t.tagId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MovementTagsTableFilterComposer(
+            $db: $db,
+            $table: $db.movementTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$LivestockTagsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LivestockTagsTable> {
+  $$LivestockTagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scheme => $composableBuilder(
+    column: $table.scheme,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LivestockTagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LivestockTagsTable> {
+  $$LivestockTagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TagScheme, String> get scheme =>
+      $composableBuilder(column: $table.scheme, builder: (column) => column);
+
+  GeneratedColumn<String> get number =>
+      $composableBuilder(column: $table.number, builder: (column) => column);
+
+  Expression<T> movementTagsRefs<T extends Object>(
+    Expression<T> Function($$MovementTagsTableAnnotationComposer a) f,
+  ) {
+    final $$MovementTagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.movementTags,
+      getReferencedColumn: (t) => t.tagId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MovementTagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.movementTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$LivestockTagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LivestockTagsTable,
+          LivestockTag,
+          $$LivestockTagsTableFilterComposer,
+          $$LivestockTagsTableOrderingComposer,
+          $$LivestockTagsTableAnnotationComposer,
+          $$LivestockTagsTableCreateCompanionBuilder,
+          $$LivestockTagsTableUpdateCompanionBuilder,
+          (LivestockTag, $$LivestockTagsTableReferences),
+          LivestockTag,
+          PrefetchHooks Function({bool movementTagsRefs})
+        > {
+  $$LivestockTagsTableTableManager(_$AppDatabase db, $LivestockTagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LivestockTagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LivestockTagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LivestockTagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<TagScheme> scheme = const Value.absent(),
+                Value<String> number = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LivestockTagsCompanion(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                scheme: scheme,
+                number: number,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                required TagScheme scheme,
+                required String number,
+                Value<int> rowid = const Value.absent(),
+              }) => LivestockTagsCompanion.insert(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                scheme: scheme,
+                number: number,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$LivestockTagsTable, LivestockTag>(table),
+                  $$LivestockTagsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({movementTagsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (movementTagsRefs) db.movementTags],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (movementTagsRefs)
+                    await $_getPrefetchedData<
+                      LivestockTag,
+                      $LivestockTagsTable,
+                      MovementTag
+                    >(
+                      currentTable: table,
+                      referencedTable: $$LivestockTagsTableReferences
+                          ._movementTagsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$LivestockTagsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).movementTagsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.tagId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$LivestockTagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LivestockTagsTable,
+      LivestockTag,
+      $$LivestockTagsTableFilterComposer,
+      $$LivestockTagsTableOrderingComposer,
+      $$LivestockTagsTableAnnotationComposer,
+      $$LivestockTagsTableCreateCompanionBuilder,
+      $$LivestockTagsTableUpdateCompanionBuilder,
+      (LivestockTag, $$LivestockTagsTableReferences),
+      LivestockTag,
+      PrefetchHooks Function({bool movementTagsRefs})
+    >;
+typedef $$MovementTagsTableCreateCompanionBuilder =
+    MovementTagsCompanion Function({
+      required String id,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      required String movementId,
+      required String tagId,
+      required TagRole role,
+      Value<TagReason?> reason,
+      Value<int> rowid,
+    });
+typedef $$MovementTagsTableUpdateCompanionBuilder =
+    MovementTagsCompanion Function({
+      Value<String> id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String> movementId,
+      Value<String> tagId,
+      Value<TagRole> role,
+      Value<TagReason?> reason,
+      Value<int> rowid,
+    });
+
+final class $$MovementTagsTableReferences
+    extends BaseReferences<_$AppDatabase, $MovementTagsTable, MovementTag> {
+  $$MovementTagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $MovementsTable _movementIdTable(_$AppDatabase db) =>
+      db.movements.createAlias('movement_tags__movement_id__movements__id');
+
+  $$MovementsTableProcessedTableManager get movementId {
+    final $_column = $_itemColumn<String>('movement_id')!;
+
+    final manager = $$MovementsTableTableManager(
+      $_db,
+      $_db.movements,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_movementIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $LivestockTagsTable _tagIdTable(_$AppDatabase db) =>
+      db.livestockTags.createAlias('movement_tags__tag_id__livestock_tags__id');
+
+  $$LivestockTagsTableProcessedTableManager get tagId {
+    final $_column = $_itemColumn<String>('tag_id')!;
+
+    final manager = $$LivestockTagsTableTableManager(
+      $_db,
+      $_db.livestockTags,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_tagIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$MovementTagsTableFilterComposer
+    extends Composer<_$AppDatabase, $MovementTagsTable> {
+  $$MovementTagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TagRole, TagRole, String> get role =>
+      $composableBuilder(
+        column: $table.role,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<TagReason?, TagReason, String> get reason =>
+      $composableBuilder(
+        column: $table.reason,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  $$MovementsTableFilterComposer get movementId {
+    final $$MovementsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.movementId,
+      referencedTable: $db.movements,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MovementsTableFilterComposer(
+            $db: $db,
+            $table: $db.movements,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LivestockTagsTableFilterComposer get tagId {
+    final $$LivestockTagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.livestockTags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LivestockTagsTableFilterComposer(
+            $db: $db,
+            $table: $db.livestockTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MovementTagsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MovementTagsTable> {
+  $$MovementTagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$MovementsTableOrderingComposer get movementId {
+    final $$MovementsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.movementId,
+      referencedTable: $db.movements,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MovementsTableOrderingComposer(
+            $db: $db,
+            $table: $db.movements,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LivestockTagsTableOrderingComposer get tagId {
+    final $$LivestockTagsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.livestockTags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LivestockTagsTableOrderingComposer(
+            $db: $db,
+            $table: $db.livestockTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MovementTagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MovementTagsTable> {
+  $$MovementTagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TagRole, String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TagReason?, String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  $$MovementsTableAnnotationComposer get movementId {
+    final $$MovementsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.movementId,
+      referencedTable: $db.movements,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MovementsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.movements,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LivestockTagsTableAnnotationComposer get tagId {
+    final $$LivestockTagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.livestockTags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LivestockTagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.livestockTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MovementTagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MovementTagsTable,
+          MovementTag,
+          $$MovementTagsTableFilterComposer,
+          $$MovementTagsTableOrderingComposer,
+          $$MovementTagsTableAnnotationComposer,
+          $$MovementTagsTableCreateCompanionBuilder,
+          $$MovementTagsTableUpdateCompanionBuilder,
+          (MovementTag, $$MovementTagsTableReferences),
+          MovementTag,
+          PrefetchHooks Function({bool movementId, bool tagId})
+        > {
+  $$MovementTagsTableTableManager(_$AppDatabase db, $MovementTagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MovementTagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MovementTagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MovementTagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> movementId = const Value.absent(),
+                Value<String> tagId = const Value.absent(),
+                Value<TagRole> role = const Value.absent(),
+                Value<TagReason?> reason = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MovementTagsCompanion(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                movementId: movementId,
+                tagId: tagId,
+                role: role,
+                reason: reason,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                required String movementId,
+                required String tagId,
+                required TagRole role,
+                Value<TagReason?> reason = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MovementTagsCompanion.insert(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                movementId: movementId,
+                tagId: tagId,
+                role: role,
+                reason: reason,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$MovementTagsTable, MovementTag>(table),
+                  $$MovementTagsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({movementId = false, tagId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (movementId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.movementId,
+                                referencedTable: $$MovementTagsTableReferences
+                                    ._movementIdTable(db),
+                                referencedColumn: $$MovementTagsTableReferences
+                                    ._movementIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (tagId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.tagId,
+                                referencedTable: $$MovementTagsTableReferences
+                                    ._tagIdTable(db),
+                                referencedColumn: $$MovementTagsTableReferences
+                                    ._tagIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$MovementTagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MovementTagsTable,
+      MovementTag,
+      $$MovementTagsTableFilterComposer,
+      $$MovementTagsTableOrderingComposer,
+      $$MovementTagsTableAnnotationComposer,
+      $$MovementTagsTableCreateCompanionBuilder,
+      $$MovementTagsTableUpdateCompanionBuilder,
+      (MovementTag, $$MovementTagsTableReferences),
+      MovementTag,
+      PrefetchHooks Function({bool movementId, bool tagId})
     >;
 
 class $AppDatabaseManager {
@@ -5447,4 +7297,8 @@ class $AppDatabaseManager {
       $$LivestockClassesTableTableManager(_db, _db.livestockClasses);
   $$MovementsTableTableManager get movements =>
       $$MovementsTableTableManager(_db, _db.movements);
+  $$LivestockTagsTableTableManager get livestockTags =>
+      $$LivestockTagsTableTableManager(_db, _db.livestockTags);
+  $$MovementTagsTableTableManager get movementTags =>
+      $$MovementTagsTableTableManager(_db, _db.movementTags);
 }

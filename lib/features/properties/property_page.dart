@@ -4,6 +4,7 @@ import '../../data/app_database.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../shell/breakpoints.dart';
+import '../../shell/tier_route.dart';
 import '../transfers/movement_sheet.dart';
 import 'name_dialog.dart';
 import 'paddock_page.dart';
