@@ -7,6 +7,148 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-10-24 — Optional tag tracking
+
+### What prompted it
+
+A request to record tag numbers on movements — mostly NLIS, sometimes another
+identifier — for high-value animals, or for anyone who wants that much detail:
+adding tags, moving them, cancelling them.
+
+That reopens, partway, the first decision of 2026-09-25: livestock is tracked as
+head counts by class, not as individual animals. It still is. Tags are an
+overlay on the counts — a tagged animal is one of its mob's head — so a mob can
+be untagged, partly tagged or fully tagged, and no count depends on a tag. A
+farm that never records one sees no difference beyond an optional field.
+
+### Decisions
+
+Four were put to the user, and all went the recommended way:
+
+- **One identifier per animal.** Each recorded tag stands for one animal, NLIS
+  or otherwise. Recording an NLIS tag and a management tag for the same beast
+  would leave tag counts uncheckable against head counts.
+- **Strict.** A movement out of a mob must name enough of its tagged animals
+  that the untagged head can cover the rest, or tag locations would go stale.
+  Moving a whole mob takes every tag without asking. It is the tag version of
+  refusing a negative count.
+- **A Tags destination**, with search and a page per tag, rather than reaching
+  tags only through their paddock.
+- **Tag-only events start from what they concern**: Add tags on a mob, Replace
+  and Cancel on the tag. The movement form keeps its four kinds and gains an
+  optional Tags field.
+
+The rest followed from the ledger:
+
+- **Where a tag is, is derived.** `movement_tags` links each movement to the
+  tags it touched, with a role — added, carried or removed — and a tag is
+  wherever its latest link left it, found with `ROW_NUMBER()` over the links.
+  Nothing stores a tag's paddock. Unlike a head count this depends on order, so
+  `record` refuses to date a movement before a tag's latest event.
+- **Tag events are movements.** Tagging animals in place, replacing a tag and
+  cancelling one are a fifth `MovementKind`, `tag`, whose from and to are the
+  same mob. It nets to zero in the balance fold, as ageing does on a paddock's
+  total, and Activity and paddock histories show it with no extra plumbing. A
+  replacement is one tag removed and one added in the same event, which is all
+  that links old to new.
+- **The repository decides roles from numbers**: a tag standing in the source
+  mob is carried, one standing nowhere is added, one standing elsewhere is
+  refused. The three refusals now share a sealed `LedgerConflict`, naming them
+  as what an admin will arbitrate once sync exists.
+- **`LivestockTags`, not `Tags`.** `flutter_test` exports a `Tags` class — the
+  test annotation — so a table of that name would be ambiguous in any test
+  that used it. Same precedent as `LivestockClasses`.
+- **NLIS numbers are checked**: a 16-character NLIS ID or a 15-digit RFID, with
+  whitespace removed. Anything else is refused under NLIS and can be recorded
+  as Other ID.
+- **Readers in keyboard mode already work**, on every target and with no plugin:
+  they type the number and press Enter. The tag field is multi-line for that
+  reason — a single-line `TextField` strips the newlines from a pasted column of
+  numbers before any formatter sees them, gluing them into one bad number.
+- **The sample farm's tags use ISO 11784's test-transponder code**, 999, so they
+  cannot be a real device's number.
+
+### One tag control per kind
+
+The first version gave all four kinds the same field: type or scan a number,
+with the source mob's tags as chips beside it. After trying it, the user asked
+for each kind to get the control that suits it, since each does one thing
+with tags:
+
+- **Intake only adds.** It keeps the typed field, now with a count of the tags
+  to add and a Clear, for checking a run of scans against the head.
+- **Move and age only select** from the mob. A scan, or the last few digits of
+  a number, selects its tag and never deselects it, so a beast scanned twice
+  stays chosen. Part of a number narrows the list; a number that matches no
+  tag, or more than one, is reported and cleared so the next scan starts
+  clean. There is a Select all, and when the mob has no tags the form shows
+  nothing for them.
+- **End only removes**, which is the same selection under "Tags to remove". The
+  data does not change: the tag is carried to the end state, as before, and its
+  page says "Sold" or "Died", not "Cancelled".
+
+The form therefore no longer adds a tag on a move. To tag animals as they
+move, add the tags on the mob first. `record` still accepts that case.
+Switching between intake and the other kinds clears the chosen tags, since an
+intake's typed numbers would otherwise ride along invisibly on a move.
+
+### The first migration
+
+The schema went from 1 to 2. Databases exist in the field now — the web build
+on Vercel among them — so this was the first migration that mattered, and it is
+set up with drift's `make-migrations`: a snapshot per version in
+`drift_schemas/`, a generated `stepByStep` helper, and generated tests that an
+upgraded database matches a fresh one and that v1 rows survive. The v1 snapshot
+had to be taken before `tables.dart` changed, which CLAUDE.md now says.
+`createTable` leaves out indexes; the generated schema test would have caught
+that.
+
+### Verification
+
+Analyze clean, 124 tests passing, up from 66. `flutter build web` succeeded.
+
+The local Linux database, still at v1 with a property, a paddock and the seeded
+templates, was backed up and then opened by the release build. It came up at
+v2 with both tables and their indexes, integrity and foreign-key checks clean,
+and all fifteen v1 rows byte-identical. The backup sits beside it as
+`livestock.v1-backup.sqlite`.
+
+On the web, the release build's Tags screen rendered its empty state, which runs
+the window-function query, so the WASM SQLite has window functions. A debug
+build in headless Chrome was then seeded and driven through the Tags list, two
+tag pages, Activity and a paddock: tags where they should be, a replacement
+linked both ways, Check ledger consistent. One fix came of it: links in the tag
+page's header were drawn smaller than the words around them, because a
+`WidgetSpan` takes the ambient `DefaultTextStyle`, not the `Text.rich` style.
+
+The August capture recipe no longer works as written: `--virtual-time-budget`
+leaves the page blank now that `main` awaits the database before `runApp`.
+Driving Chrome over its DevTools protocol, with a real-time wait, does.
+
+### Open
+
+- **Nothing reports to the NLIS database.** Moves between PICs, deaths and
+  replacements are what it wants, and the ledger now holds them; reporting is
+  not built.
+- An NLIS ID and the RFID of the same device are two different tags here.
+  Matching them needs the NLIS database.
+- Camera scanning, and Bluetooth readers that are not in keyboard mode.
+- Two devices recording the same new number offline will each create a tag row.
+  The unique index will refuse the second at merge, which is where sync will
+  have to reconcile them.
+- No bulk cancel, no "move this animal" from its tag page, and nothing yet about
+  the animal itself — name, sire, date of birth — for the high-value ones.
+- On a wide window, opening a tag draws the list again beside it. The search
+  carries over in the address (`?q=`); the scroll position does not.
+- In the movement form, the Mob and To paddock dropdowns show their empty-state
+  hint ("This paddock is empty", "No paddocks yet") whenever nothing is
+  selected, even when there are options. It predates this change and was
+  noticed while checking it on the web.
+- Several existing files differ from what the current `dart format` produces.
+  This change left those lines alone rather than mixing a reformat into it.
+
+---
+
 ## 2026-10-03 — Persistent shell, list-detail panes and URLs
 
 On a PC, opening a property and then a paddock felt nothing like a website.

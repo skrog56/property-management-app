@@ -27,6 +27,7 @@ void main() {
       expect(labels(developer: false), [
         'Properties',
         'Activity',
+        'Tags',
         'Templates',
         'About',
       ]);
@@ -36,10 +37,26 @@ void main() {
       expect(labels(developer: true), [
         'Properties',
         'Activity',
+        'Tags',
         'Templates',
         'Developer',
         'About',
       ]);
+    });
+
+    testPage('six destinations fit a phone in debug builds', (tester) async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+
+      await pumpRouted(
+        tester,
+        repository: LivestockRepository(db),
+        width: 360,
+        developer: true,
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(NavigationDestination), findsNWidgets(6));
     });
   });
 

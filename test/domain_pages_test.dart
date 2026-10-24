@@ -145,17 +145,11 @@ void main() {
         width: 900,
         repository: repo,
       );
-      expect(
-        find.textContaining('999 000000000008', findRichText: true),
-        findsNothing,
-      );
+      expect(find.text('999 000000000008'), findsNothing);
 
       await tester.tap(find.text('+2 more'));
       await drain(tester);
-      expect(
-        find.textContaining('999 000000000008', findRichText: true),
-        findsOneWidget,
-      );
+      expect(find.text('999 000000000008'), findsOneWidget);
     });
   });
 

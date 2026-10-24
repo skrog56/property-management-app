@@ -7,11 +7,16 @@ import '../features/developer/dev_mode.dart';
 import '../features/developer/developer_page.dart';
 import '../features/properties/paths.dart';
 import '../features/properties/properties_browser.dart';
+import '../features/tags/paths.dart';
+import '../features/tags/tags_browser.dart';
 import '../features/templates/templates_page.dart';
 import '../shell/adaptive_scaffold.dart';
 import '../shell/tier_route.dart';
 
 const appTitle = 'Property Management App';
+
+/// Destinations whose browser puts its own title, and back button, in a bar.
+const _drawOwnBar = {propertiesPath, tagsPath};
 
 typedef HomeDestination = ({AppDestination destination, GoRoute route});
 
@@ -58,6 +63,32 @@ List<HomeDestination> homeDestinations({bool developer = devMode}) => [
       selectedIcon: Icons.history,
     ),
     route: GoRoute(path: '/activity', builder: (_, _) => const ActivityPage()),
+  ),
+  (
+    destination: const AppDestination(
+      label: 'Tags',
+      icon: Icons.sell_outlined,
+      selectedIcon: Icons.sell,
+    ),
+    route: GoRoute(
+      path: tagsPath,
+      pageBuilder: (_, state) => TierPage(
+        key: state.pageKey,
+        child: TagsBrowser(query: state.uri.queryParameters['q'] ?? ''),
+      ),
+      routes: [
+        GoRoute(
+          path: ':tagId',
+          pageBuilder: (_, state) => TierPage(
+            key: state.pageKey,
+            child: TagsBrowser(
+              tagId: state.pathParameters['tagId'],
+              query: state.uri.queryParameters['q'] ?? '',
+            ),
+          ),
+        ),
+      ],
+    ),
   ),
   (
     destination: const AppDestination(
@@ -112,7 +143,9 @@ GoRouter buildRouter({
             index,
             initialLocation: index == shell.currentIndex,
           ),
-          showAppBar: entries[shell.currentIndex].route.path != propertiesPath,
+          showAppBar: !_drawOwnBar.contains(
+            entries[shell.currentIndex].route.path,
+          ),
           title: appTitle,
           body: shell,
         ),

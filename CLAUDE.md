@@ -69,7 +69,8 @@ lib/
     properties/       Three tiers: properties → paddocks → one paddock's livestock,
                       laid out as list-detail panes by PropertiesBrowser
     transfers/        The movement form — one sheet, four kinds
-    tags/             TagField (new tags) and TagPicker (a mob's tags), the
+    tags/             Tag list and pages (list-detail panes by TagsBrowser),
+                      TagField (new tags) and TagPicker (a mob's tags), the
                       add-tags sheet
     activity/         The ledger, rendered
     templates/        Livestock classes (read-only for now)

@@ -8,7 +8,9 @@ import '../../data/tag_numbers.dart';
 import '../../shell/tier_route.dart';
 import '../properties/paddock_page.dart';
 import '../properties/paths.dart';
+import '../tags/paths.dart';
 import '../tags/tag_labels.dart';
+import '../tags/tag_page.dart';
 
 class ActivityPage extends StatelessWidget {
   const ActivityPage({super.key});
@@ -57,12 +59,16 @@ class ActivityTile extends StatelessWidget {
     super.key,
     required this.entry,
     this.currentPaddockId,
+    this.currentTagId,
   });
 
   final ActivityEntry entry;
 
   /// The paddock this tile is shown on, which it names without linking.
   final String? currentPaddockId;
+
+  /// Likewise for the tag whose history this is.
+  final String? currentTagId;
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +114,7 @@ class ActivityTile extends StatelessWidget {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _TagLine(tags: entry.tags),
+                _TagLine(tags: entry.tags, currentTagId: currentTagId),
                 when,
               ],
             ),
@@ -170,9 +176,10 @@ class ActivityTile extends StatelessWidget {
 
 /// The tags a movement touched. A replacement reads old → new.
 class _TagLine extends StatefulWidget {
-  const _TagLine({required this.tags});
+  const _TagLine({required this.tags, this.currentTagId});
 
   final List<TagRef> tags;
+  final String? currentTagId;
 
   @override
   State<_TagLine> createState() => _TagLineState();
@@ -220,7 +227,9 @@ class _TagLineState extends State<_TagLine> {
     );
   }
 
-  InlineSpan _tag(LivestockTag tag) => TextSpan(text: tag.tagNumber.display);
+  InlineSpan _tag(LivestockTag tag) => tag.id == widget.currentTagId
+      ? TextSpan(text: tag.tagNumber.display)
+      : tagLink(tag);
 }
 
 InlineSpan paddockLink(Paddock paddock) => WidgetSpan(
@@ -233,6 +242,21 @@ InlineSpan paddockLink(Paddock paddock) => WidgetSpan(
         context,
         paddockPath(paddock.propertyId, paddock.id),
         preload: preloadPaddock(RepositoryScope.of(context), paddock.id),
+      ),
+    ),
+  ),
+);
+
+InlineSpan tagLink(LivestockTag tag) => WidgetSpan(
+  alignment: PlaceholderAlignment.baseline,
+  baseline: TextBaseline.alphabetic,
+  child: Builder(
+    builder: (context) => _InlineLink(
+      tag.tagNumber.display,
+      onTap: () => openTier(
+        context,
+        tagPath(tag.id),
+        preload: preloadTag(RepositoryScope.of(context), tag.id),
       ),
     ),
   ),

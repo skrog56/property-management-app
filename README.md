@@ -26,8 +26,9 @@ rather than an oversight; see [`JOURNAL.md`](JOURNAL.md).
 - **Tags**, optional — any movement can name the tag numbers of the animals in
   it: NLIS (the NLIS ID or the RFID) or any other identifier. Each tag is one of
   its mob's head and goes where its animal goes; where a tag is now is derived
-  from the ledger, like the counts. Animals already in a paddock can be tagged
-  without moving a count.
+  from the ledger, like the counts. Animals already in a paddock can be tagged,
+  and a tag replaced or cancelled, without moving a count. Every tag has its
+  own page with its whole history, and the Tags screen searches them by number.
 - **Activity** — every movement, newest first, naming the tags it carried. It
   is the ledger rendered, so it needed no separate audit log.
 - **Templates** — livestock classes and their ageing chains. The seeded Beef and
@@ -372,7 +373,7 @@ lib/
   features/
     properties/       Three tiers: properties → paddocks → one paddock's livestock
     transfers/        The movement form — one sheet, four kinds
-    tags/             Tag entry, tagging a mob
+    tags/             Tag search and pages, tag entry, tagging a mob
     activity/         The ledger, rendered
     templates/        Livestock classes (read-only for now)
     developer/        Debug-only tools: data, overlays, overrides, log

@@ -46,8 +46,13 @@ same commit — a deliberate act, never a side effect of another change.
   whole mob takes its tags with it. When some but not all of a mob's tagged
   animals must be moving, the form asks which before it will record.
 - **Tag events.** Animals already standing in a paddock can be tagged from their
-  mob on the paddock page, without changing a head count. The event is kept in
-  the ledger like any movement.
+  mob on the paddock page. A tag can be replaced (lost, damaged, or recorded in
+  error) or cancelled from its own page. None of these changes a head count, and
+  each is kept in the ledger like any movement.
+- **Tags screen.** Every tag recorded, searchable by number, with those still on
+  the property first. Each tag has its own page and address, showing where it
+  is now and everything that has happened to it. Wide windows show the list
+  beside the tag.
 - Paddock pages say how many of each mob are tagged and list the tags standing
   there.
 - **Shareable URLs on the web.** Each property and paddock has its own address
@@ -111,8 +116,9 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Changed
 
-- **Activity names tags.** Entries list the tags a movement carried, and tag
-  events read as what happened to the tags.
+- Navigation is now Properties, Activity, Tags, Templates, About.
+- **Activity names tags.** Entries list the tags a movement carried, each
+  linking to its page, and tag events read as what happened to the tags.
 - **The local database upgrades itself** the first time this version opens it,
   to make room for tags. Existing properties, paddocks and movements carry over
   untouched, in the browser as on every other target.

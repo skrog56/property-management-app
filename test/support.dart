@@ -50,12 +50,13 @@ Future<void> pumpRouted(
   required LivestockRepository repository,
   String location = '/properties',
   double width = 420,
+  bool developer = false,
 }) async {
   tester.view.devicePixelRatio = 1.0;
   tester.view.physicalSize = Size(width, 900);
   addTearDown(tester.view.reset);
 
-  final router = buildRouter(initialLocation: location, developer: false);
+  final router = buildRouter(initialLocation: location, developer: developer);
   addTearDown(router.dispose);
 
   await tester.pumpWidget(

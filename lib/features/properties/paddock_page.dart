@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../data/tag_numbers.dart';
+import '../../shell/tier_route.dart';
 import '../activity/activity_page.dart';
+import '../tags/paths.dart';
+import '../tags/tag_page.dart';
 import '../tags/tag_sheet.dart';
 import '../transfers/movement_sheet.dart';
 
@@ -281,9 +284,15 @@ class _TagChipsState extends State<_TagChips> {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         for (final status in _all ? tags : tags.take(_shown))
-          Chip(
+          ActionChip(
             avatar: const Icon(Icons.sell_outlined, size: 18),
             label: Text(status.tag.tagNumber.display),
+            tooltip: status.livestockClass?.kind,
+            onPressed: () => openTier(
+              context,
+              tagPath(status.tag.id),
+              preload: preloadTag(RepositoryScope.of(context), status.tag.id),
+            ),
           ),
         if (!_all && tags.length > _shown)
           TextButton(

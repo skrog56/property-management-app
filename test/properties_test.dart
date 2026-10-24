@@ -442,13 +442,21 @@ void main() {
       return '/properties/$property/paddocks/$north';
     }
 
-    testPage('a mob says how many are tagged, and lists the tags', (
+    testPage('a mob says how many are tagged, and each tag opens', (
       tester,
     ) async {
       await pumpRouted(tester, repository: repo, location: await tagged());
 
       expect(find.text('under 6 months · 1 tagged'), findsOneWidget);
-      expect(find.widgetWithText(Chip, '999 000000000001'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(ActionChip, '999 000000000001'));
+      await settle(tester);
+
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        2,
+      );
+      expect(findRichText('In North Ridge, Riverbend Downs'), findsOneWidget);
     });
 
     testPage('Add tags on a mob tags head that is already there', (
