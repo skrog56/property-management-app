@@ -8,7 +8,7 @@ import '../tags/tag_field.dart';
 Future<void> showMovementSheet(
   BuildContext context, {
   required LivestockRepository repository,
-  required String propertyId,
+  String? propertyId,
   String? fromPaddockId,
 }) {
   return showModalBottomSheet<void>(
@@ -67,12 +67,14 @@ extension on MovementKind {
 class _MovementSheet extends StatefulWidget {
   const _MovementSheet({
     required this.repository,
-    required this.propertyId,
+    this.propertyId,
     this.fromPaddockId,
   });
 
   final LivestockRepository repository;
-  final String propertyId;
+
+  /// Left out, as from Activity, the sheet asks which property first.
+  final String? propertyId;
 
   /// Opened from a paddock, the origin is already known.
   final String? fromPaddockId;
@@ -87,6 +89,8 @@ class _MovementSheetState extends State<_MovementSheet> {
   late final _tags = TagSelection(widget.repository)..addListener(_onTags);
 
   MovementKind _kind = MovementKind.move;
+  List<Property> _properties = const [];
+  String? _propertyId;
   List<Paddock> _paddocks = const [];
   List<LivestockClass> _classes = const [];
   List<MobLine> _mobs = const [];
@@ -120,10 +124,26 @@ class _MovementSheetState extends State<_MovementSheet> {
   }
 
   Future<void> _load() async {
-    final paddocks = await widget.repository.paddocksIn(widget.propertyId);
     final classes = await widget.repository.allClasses();
+    // A property without paddocks has nothing to record against.
+    final properties = widget.propertyId == null
+        ? [
+            for (final s in await widget.repository
+                .watchPropertySummaries()
+                .first)
+              if (s.paddockCount > 0) s.property,
+          ]
+        : const <Property>[];
+    final propertyId =
+        widget.propertyId ??
+        (properties.length == 1 ? properties.single.id : null);
+    final paddocks = propertyId == null
+        ? const <Paddock>[]
+        : await widget.repository.paddocksIn(propertyId);
     if (!mounted) return;
     setState(() {
+      _properties = properties;
+      _propertyId = propertyId;
       _paddocks = paddocks;
       _classes = classes;
       _loading = false;
@@ -131,6 +151,19 @@ class _MovementSheetState extends State<_MovementSheet> {
     if (widget.fromPaddockId != null) {
       await _selectFromPaddock(widget.fromPaddockId);
     }
+  }
+
+  Future<void> _selectProperty(String? id) async {
+    if (id == null || id == _propertyId) return;
+    setState(() {
+      _propertyId = id;
+      _paddocks = const [];
+      _toPaddockId = null;
+    });
+    await _selectFromPaddock(null);
+    final paddocks = await widget.repository.paddocksIn(id);
+    if (!mounted || _propertyId != id) return;
+    setState(() => _paddocks = paddocks);
   }
 
   Future<void> _selectFromPaddock(String? id) async {
@@ -222,6 +255,7 @@ class _MovementSheetState extends State<_MovementSheet> {
   }
 
   String? get _blocker {
+    if (_propertyId == null) return 'Choose a property';
     final head = _headValue;
     if (head == null || head <= 0) return 'Enter a head count';
     if (_kind.takesFrom && _fromPaddockId == null) return 'Choose a paddock';
@@ -292,6 +326,19 @@ class _MovementSheetState extends State<_MovementSheet> {
         children: [
           Text('Record movement', style: theme.textTheme.titleLarge),
           const SizedBox(height: 16),
+          if (widget.propertyId == null) ...[
+            _Dropdown<String>(
+              label: 'Property',
+              value: _propertyId,
+              onChanged: _selectProperty,
+              items: [
+                for (final p in _properties)
+                  DropdownMenuItem(value: p.id, child: Text(p.name)),
+              ],
+              emptyHint: 'No paddocks yet',
+            ),
+            const SizedBox(height: 16),
+          ],
           SegmentedButton<MovementKind>(
             segments: [
               for (final kind in _recordable)

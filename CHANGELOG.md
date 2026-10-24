@@ -34,6 +34,11 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- **Record movement from Activity.** Activity has the same *Record movement*
+  button as an open paddock, shown once some property has a paddock. Opened
+  from there, the form asks which property first, and chooses it already when
+  only one has paddocks.
+
 - **Tag numbers on movements, for those who want them.** An intake, move, age
   or end state can name the tags of the animals in it: NLIS, as the
   16-character NLIS ID or the 15-digit RFID, or any other identifier. Each tag

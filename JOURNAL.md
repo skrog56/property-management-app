@@ -7,6 +7,39 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-10-25 — Record movement from Activity
+
+### What prompted it
+
+The entry below left one thing open. Once *Add paddock* took over the property
+page's button, the only way to record a movement was to open a paddock first.
+The user asked for *Record movement* on Activity too.
+
+### Decisions
+
+- **The form asks for the property itself.** The movement form was always
+  opened with a property, because a movement stays inside one property. Its
+  paddocks are the only ones it offers. Activity covers every property, so
+  opened without one, the form now begins with a *Property* list. The other
+  choice was asking for the property in a separate dialog first, which adds a
+  step and is no clearer.
+- **Only properties with paddocks are offered.** One with none has nothing to
+  record against. When only one property has paddocks it is chosen already,
+  which is the usual case on a single farm.
+- **Activity shows the button only once there is a paddock.** It reads the
+  property summaries, which already give each property's paddock count.
+- **Changing property clears the paddocks chosen.** A paddock from the old
+  property would otherwise stay selected, and the movement would land in the
+  property the user had just moved away from. A test switches property
+  mid-form to hold this.
+
+### Open
+
+Nothing new. The form still has no way to move livestock between properties,
+and nobody has asked for one yet.
+
+---
+
 ## 2026-10-25 — Add paddock is the property page's button
 
 ### What prompted it

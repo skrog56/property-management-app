@@ -28,6 +28,22 @@ void main() {
       expect(find.textContaining('Nothing recorded yet'), findsOneWidget);
     });
 
+    testPage('offers to record a movement once there is a paddock', (
+      tester,
+    ) async {
+      final property = await repo.createProperty('Riverbend Downs');
+      await pumpPage(tester, const ActivityPage(), repository: repo);
+      expect(find.text('Record movement'), findsNothing);
+
+      await repo.createPaddock(property, 'North Ridge');
+      await drain(tester);
+      await tester.tap(find.text('Record movement'));
+      await drain(tester);
+
+      expect(find.text('Property'), findsOneWidget);
+      expect(find.text('Riverbend Downs'), findsOneWidget);
+    });
+
     testPage('describes each kind of movement in its own terms', (
       tester,
     ) async {
@@ -65,7 +81,12 @@ void main() {
         endState: EndState.meatworks,
       );
 
-      await pumpPage(tester, const ActivityPage(), width: 900, repository: repo);
+      await pumpPage(
+        tester,
+        const ActivityPage(),
+        width: 900,
+        repository: repo,
+      );
 
       expect(findRichText('40 head · intake to North Ridge'), findsOneWidget);
       expect(
@@ -155,7 +176,12 @@ void main() {
 
   group('TemplatesPage', () {
     testPage('lists seeded classes and shows the ageing chain', (tester) async {
-      await pumpPage(tester, const TemplatesPage(), width: 900, repository: repo);
+      await pumpPage(
+        tester,
+        const TemplatesPage(),
+        width: 900,
+        repository: repo,
+      );
 
       expect(find.text('Beef'), findsOneWidget);
       expect(find.text('Calves — under 6 months'), findsOneWidget);

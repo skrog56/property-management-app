@@ -11,6 +11,7 @@ import '../properties/paths.dart';
 import '../tags/paths.dart';
 import '../tags/tag_labels.dart';
 import '../tags/tag_page.dart';
+import '../transfers/movement_sheet.dart';
 
 class ActivityPage extends StatelessWidget {
   const ActivityPage({super.key});
@@ -20,36 +21,52 @@ class ActivityPage extends StatelessWidget {
     final repository = RepositoryScope.of(context);
     final theme = Theme.of(context);
 
-    return StreamBuilder<List<ActivityEntry>>(
-      stream: repository.watchActivityEntries(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: StreamBuilder<List<PropertySummary>>(
+        stream: repository.watchPropertySummaries(),
+        builder: (context, snapshot) {
+          final paddocks = snapshot.data?.any((s) => s.paddockCount > 0);
+          if (paddocks != true) return const SizedBox.shrink();
+          return FloatingActionButton.extended(
+            icon: const Icon(Icons.swap_horiz),
+            label: const Text('Record movement'),
+            onPressed: () => showMovementSheet(context, repository: repository),
+          );
+        },
+      ),
+      body: StreamBuilder<List<ActivityEntry>>(
+        stream: repository.watchActivityEntries(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        final entries = snapshot.data!;
-        if (entries.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                'Nothing recorded yet. Every movement you record appears here.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+          final entries = snapshot.data!;
+          if (entries.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(
+                  'Nothing recorded yet. Every movement you record appears here.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
-            ),
-          );
-        }
+            );
+          }
 
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: entries.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, index) => ActivityTile(entry: entries[index]),
-        );
-      },
+          return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            itemCount: entries.length,
+            separatorBuilder: (_, _) => const Divider(height: 1),
+            itemBuilder: (context, index) =>
+                ActivityTile(entry: entries[index]),
+          );
+        },
+      ),
     );
   }
 }

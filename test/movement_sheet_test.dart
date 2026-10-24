@@ -27,7 +27,12 @@ void main() {
 
   tearDown(() => db.close());
 
-  Future<void> openSheet(WidgetTester tester, {double width = 800}) async {
+  /// [anyProperty] opens it as Activity does, without a property in hand.
+  Future<void> openSheet(
+    WidgetTester tester, {
+    double width = 800,
+    bool anyProperty = false,
+  }) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = Size(width, 1400);
     addTearDown(tester.view.reset);
@@ -40,7 +45,7 @@ void main() {
               onPressed: () => showMovementSheet(
                 context,
                 repository: repo,
-                propertyId: property,
+                propertyId: anyProperty ? null : property,
               ),
               child: const Text('open'),
             ),
@@ -128,6 +133,58 @@ void main() {
 
     expect(await repo.headIn(north, 'calves'), 40);
     expect(find.text('Record movement'), findsNothing);
+  });
+
+  testPage('without a property, asks which one and offers its paddocks', (
+    tester,
+  ) async {
+    final block = await repo.createProperty('River Block');
+    final back = await repo.createPaddock(block, 'Back Paddock');
+    await repo.createProperty('Bare Hill');
+
+    await openSheet(tester, anyProperty: true);
+    expect(record(), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Choose a property'), findsOne);
+
+    await tester.tap(find.text('Intake'));
+    await drain(tester);
+    await pick(tester, 'Property', 'Riverbend Downs');
+    await pick(tester, 'Into', 'North Ridge');
+
+    // Switching property clears the paddock chosen in the old one.
+    await pick(tester, 'Property', 'River Block');
+    expect(find.text('North Ridge'), findsNothing);
+    await pick(tester, 'Class', 'Calves (under 6 months)');
+    await pick(tester, 'Into', 'Back Paddock');
+    await tester.enterText(find.widgetWithText(TextField, 'Head'), '12');
+    await drain(tester);
+
+    await tester.tap(record());
+    await drain(tester);
+
+    expect(await repo.headIn(back, 'calves'), 12);
+    expect(await repo.headIn(north, 'calves'), 0);
+  });
+
+  testPage('a property without paddocks is not offered', (tester) async {
+    await repo.createProperty('Bare Hill');
+
+    await openSheet(tester, anyProperty: true);
+    await tester.tap(
+      find.ancestor(
+        of: find.text('Property'),
+        matching: find.byType(DropdownButtonFormField<String>),
+      ),
+    );
+    await drain(tester);
+
+    expect(find.text('Bare Hill'), findsNothing);
+    // The only property left is chosen already.
+    expect(find.text('Riverbend Downs'), findsWidgets);
+    expect(
+      find.widgetWithText(FilledButton, 'Choose a property'),
+      findsNothing,
+    );
   });
 
   testPage('blocks a move of more head than the paddock holds', (tester) async {
