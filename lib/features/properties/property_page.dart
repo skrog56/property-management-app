@@ -5,7 +5,6 @@ import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../shell/breakpoints.dart';
 import '../../shell/tier_route.dart';
-import '../transfers/movement_sheet.dart';
 import 'name_dialog.dart';
 import 'paddock_page.dart';
 import 'paths.dart';
@@ -49,24 +48,14 @@ class PropertyPage extends StatelessWidget {
 
             return Scaffold(
               backgroundColor: Colors.transparent,
-              floatingActionButton: switch (summaries) {
-                _ when !primary => null,
-                null => null,
-                [] => FloatingActionButton.extended(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add paddock'),
-                  onPressed: () => addPaddock(context, repository, propertyId),
-                ),
-                _ => FloatingActionButton.extended(
-                  icon: const Icon(Icons.swap_horiz),
-                  label: const Text('Record movement'),
-                  onPressed: () => showMovementSheet(
-                    context,
-                    repository: repository,
-                    propertyId: propertyId,
-                  ),
-                ),
-              },
+              floatingActionButton: summaries == null || !primary
+                  ? null
+                  : FloatingActionButton.extended(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add paddock'),
+                      onPressed: () =>
+                          addPaddock(context, repository, propertyId),
+                    ),
               body: summaries == null
                   ? const Center(child: CircularProgressIndicator())
                   : _PaddockGrid(

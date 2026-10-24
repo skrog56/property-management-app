@@ -339,6 +339,48 @@ void main() {
       expect(find.text('42.4 ha · 1 mob'), findsOneWidget);
     });
 
+    testPage('a property with paddocks still offers to add another', (
+      tester,
+    ) async {
+      final id = await ids();
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/properties/${id.property}',
+        width: 1900,
+      );
+
+      await tester.tap(
+        find.widgetWithText(FloatingActionButton, 'Add paddock'),
+      );
+      await settle(tester);
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Name'),
+        'Creek Flat',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await settle(tester);
+
+      expect(find.text('Creek Flat'), findsOneWidget);
+      expect(await repo.paddocksIn(id.property), hasLength(3));
+    });
+
+    testPage('an open paddock owns the action button', (tester) async {
+      final id = await ids();
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/properties/${id.property}/paddocks/${id.north}',
+        width: 1900,
+      );
+
+      expect(
+        find.widgetWithText(FloatingActionButton, 'Record movement'),
+        findsOneWidget,
+      );
+      expect(find.text('Add paddock'), findsNothing);
+    });
+
     testPage('a deep link on a very wide window opens all three tiers', (
       tester,
     ) async {

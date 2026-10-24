@@ -152,6 +152,10 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Fixed
 
+- **A property's action button is *Add paddock*, however many it has.** Once a
+  property had one paddock, the button became *Record movement* and adding
+  another fell to a bare `+` in the far corner of the app bar, easy to miss.
+  *Record movement* now belongs to an open paddock, and the `+` is gone.
 - Application ID is now `com.skrog.propertyManagementApp` on all six targets.
   Android was scaffolded as `com.skrog.property_management_app` and Linux
   likewise, so the identity claimed in 0.1.0 held only on Apple platforms.

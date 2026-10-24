@@ -7,6 +7,35 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-10-25 — Add paddock is the property page's button
+
+### What prompted it
+
+A report that a property could not get a second paddock. Its action button read
+*Add paddock* only while the property had none, then became *Record movement*.
+Adding more fell to a bare `+` in the app bar, which on a wide window sits above
+the detail pane, a long way from the list it adds to. Nobody found it.
+
+### Decisions
+
+- **The button follows the tier, not the paddock count.** The user wants the
+  floating button kept, but it should do whatever the page on screen is for. A
+  property page is a list of paddocks, so it adds one. An open paddock is where
+  livestock stands, so it records a movement. That was already how the paddock
+  page worked, so only the property page changed.
+- **The app-bar `+` is gone.** It only duplicated the button.
+- **A first attempt was rejected.** It put an *Add paddock* button under the
+  paddock grid and kept *Record movement* on the floating button. The user
+  wanted the floating button's style, just the right one on each page.
+
+### Open
+
+A property page no longer offers *Record movement*, so recording one means
+opening a paddock first. Nothing else opens the movement form. If that proves
+a step too many, Activity is the obvious second home for it.
+
+---
+
 ## 2026-10-24 — Optional tag tracking
 
 ### What prompted it

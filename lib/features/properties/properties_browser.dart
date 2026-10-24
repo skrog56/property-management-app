@@ -67,18 +67,6 @@ class PropertiesBrowser extends StatelessWidget {
             title: panes == 1
                 ? _title(depth)
                 : _Breadcrumbs(propertyId: propertyId, paddockId: paddockId),
-            actions: [
-              if (depth == 1)
-                IconButton(
-                  onPressed: () => addPaddock(
-                    context,
-                    RepositoryScope.of(context),
-                    propertyId!,
-                  ),
-                  icon: const Icon(Icons.add),
-                  tooltip: 'Add paddock',
-                ),
-            ],
           ),
           body: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
