@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../shell/form_dialog.dart';
+
 class NameResult {
   const NameResult(this.value, {this.hectares, this.pic});
 
@@ -15,8 +17,8 @@ Future<NameResult?> promptForName(
   bool askForHectares = false,
   bool askForPic = false,
 }) {
-  return showDialog<NameResult>(
-    context: context,
+  return showFormDialog<NameResult>(
+    context,
     builder: (context) => _NameDialog(
       title: title,
       hint: hint,
@@ -73,57 +75,44 @@ class _NameDialogState extends State<_NameDialog> {
   Widget build(BuildContext context) {
     final hasSecondField = widget.askForHectares || widget.askForPic;
 
-    return AlertDialog(
-      title: Text(widget.title),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _name,
-            autofocus: true,
-            textInputAction: hasSecondField
-                ? TextInputAction.next
-                : TextInputAction.done,
-            decoration: InputDecoration(
-              labelText: 'Name',
-              hintText: widget.hint,
-            ),
-            onSubmitted: (_) => hasSecondField ? null : _submit(),
-          ),
-          if (widget.askForHectares) ...[
-            const SizedBox(height: 12),
-            TextField(
-              controller: _hectares,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Hectares',
-                hintText: '42.4',
-              ),
-              onSubmitted: (_) => _submit(),
-            ),
-          ],
-          if (widget.askForPic) ...[
-            const SizedBox(height: 12),
-            TextField(
-              controller: _pic,
-              textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(
-                labelText: 'PIC (optional)',
-                hintText: 'QABC1234',
-              ),
-              onSubmitted: (_) => _submit(),
-            ),
-          ],
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+    return FormDialog(
+      title: widget.title,
+      actionLabel: 'Create',
+      onAction: _submit,
+      children: [
+        TextField(
+          controller: _name,
+          autofocus: true,
+          textInputAction: hasSecondField
+              ? TextInputAction.next
+              : TextInputAction.done,
+          decoration: InputDecoration(labelText: 'Name', hintText: widget.hint),
+          onSubmitted: (_) => hasSecondField ? null : _submit(),
         ),
-        FilledButton(onPressed: _submit, child: const Text('Create')),
+        if (widget.askForHectares) ...[
+          const SizedBox(height: 12),
+          TextField(
+            controller: _hectares,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Hectares',
+              hintText: '42.4',
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ],
+        if (widget.askForPic) ...[
+          const SizedBox(height: 12),
+          TextField(
+            controller: _pic,
+            textCapitalization: TextCapitalization.characters,
+            decoration: const InputDecoration(
+              labelText: 'PIC (optional)',
+              hintText: 'QABC1234',
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ],
       ],
     );
   }

@@ -62,16 +62,18 @@ justifies a design belongs in `JOURNAL.md`, not in a header comment.
 ```
 lib/
   app/         MaterialApp, seeded M3 theme, go_router routes and shell
-  shell/       AdaptiveScaffold, WindowSizeClass breakpoints, and TierPage —
-               the route every drill-down tier is built as
+  shell/       AdaptiveScaffold, WindowSizeClass breakpoints, TierPage —
+               the route every drill-down tier is built as — and
+               FormDialog, which every form and confirmation is built as
+               and opened by showFormDialog
   data/        Drift schema, repository, platform-specific connection
   features/
     properties/       Three tiers: properties → paddocks → one paddock's livestock,
                       laid out as list-detail panes by PropertiesBrowser
-    transfers/        The movement form — one sheet, four kinds
+    transfers/        The movement form — one dialog, four kinds
     tags/             Tag list and pages (list-detail panes by TagsBrowser),
                       TagField (new tags) and TagPicker (a mob's tags), the
-                      add-tags sheet
+                      add-tags dialog
     activity/         The ledger, rendered
     templates/        Livestock classes (read-only for now)
     developer/        Debug-only tools; hosts platform_proof as a tab

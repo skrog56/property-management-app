@@ -3,28 +3,21 @@ import 'package:flutter/material.dart';
 import '../../data/app_database.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/tables.dart';
+import '../../shell/form_dialog.dart';
 import '../tags/tag_field.dart';
 
-Future<void> showMovementSheet(
+Future<void> showMovementDialog(
   BuildContext context, {
   required LivestockRepository repository,
   String? propertyId,
   String? fromPaddockId,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    useRootNavigator: true,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (context) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: _MovementSheet(
-        repository: repository,
-        propertyId: propertyId,
-        fromPaddockId: fromPaddockId,
-      ),
+  return showFormDialog<void>(
+    context,
+    builder: (context) => _MovementDialog(
+      repository: repository,
+      propertyId: propertyId,
+      fromPaddockId: fromPaddockId,
     ),
   );
 }
@@ -64,8 +57,8 @@ extension on MovementKind {
   bool get takesTo => this != MovementKind.endState;
 }
 
-class _MovementSheet extends StatefulWidget {
-  const _MovementSheet({
+class _MovementDialog extends StatefulWidget {
+  const _MovementDialog({
     required this.repository,
     this.propertyId,
     this.fromPaddockId,
@@ -73,17 +66,17 @@ class _MovementSheet extends StatefulWidget {
 
   final LivestockRepository repository;
 
-  /// Left out, as from Activity, the sheet asks which property first.
+  /// Left out, as from Activity, the form asks which property first.
   final String? propertyId;
 
   /// Opened from a paddock, the origin is already known.
   final String? fromPaddockId;
 
   @override
-  State<_MovementSheet> createState() => _MovementSheetState();
+  State<_MovementDialog> createState() => _MovementDialogState();
 }
 
-class _MovementSheetState extends State<_MovementSheet> {
+class _MovementDialogState extends State<_MovementDialog> {
   final _head = TextEditingController();
   final _note = TextEditingController();
   late final _tags = TagSelection(widget.repository)..addListener(_onTags);
@@ -309,154 +302,146 @@ class _MovementSheetState extends State<_MovementSheet> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const SizedBox(
-        height: 240,
-        child: Center(child: CircularProgressIndicator()),
+      return const FormDialog(
+        title: 'Record movement',
+        actionLabel: 'Record',
+        children: [
+          SizedBox(
+            height: 240,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ],
       );
     }
 
-    final theme = Theme.of(context);
     final blocker = _blocker;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Record movement', style: theme.textTheme.titleLarge),
-          const SizedBox(height: 16),
-          if (widget.propertyId == null) ...[
-            _Dropdown<String>(
-              label: 'Property',
-              value: _propertyId,
-              onChanged: _selectProperty,
-              items: [
-                for (final p in _properties)
-                  DropdownMenuItem(value: p.id, child: Text(p.name)),
-              ],
-              emptyHint: 'No paddocks yet',
-            ),
-            const SizedBox(height: 16),
-          ],
-          SegmentedButton<MovementKind>(
-            segments: [
-              for (final kind in _recordable)
-                ButtonSegment(
-                  value: kind,
-                  label: Text(kind.label),
-                  icon: Icon(kind.icon),
-                ),
+    return FormDialog(
+      title: 'Record movement',
+      actionLabel: blocker ?? 'Record',
+      onAction: blocker == null && !_saving ? _save : null,
+      children: [
+        if (widget.propertyId == null) ...[
+          _Dropdown<String>(
+            label: 'Property',
+            value: _propertyId,
+            onChanged: _selectProperty,
+            items: [
+              for (final p in _properties)
+                DropdownMenuItem(value: p.id, child: Text(p.name)),
             ],
-            selected: {_kind},
-            onSelectionChanged: (s) => _selectKind(s.first),
+            emptyHint: 'No paddocks yet',
           ),
           const SizedBox(height: 16),
-
-          if (_kind.takesFrom) ...[
-            _PaddockField(
-              label: _kind == MovementKind.intake ? 'Paddock' : 'From paddock',
-              paddocks: _paddocks,
-              value: _fromPaddockId,
-              onChanged: _selectFromPaddock,
-            ),
-            const SizedBox(height: 12),
-            _Dropdown<String>(
-              label: 'Mob',
-              value: _fromClassId,
-              onChanged: _selectFromClass,
-              items: [
-                for (final mob in _mobs)
-                  DropdownMenuItem(
-                    value: mob.livestockClass.id,
-                    child: Text(
-                      '${mob.head} × ${mob.label} (${mob.livestockClass.ageBand})',
-                    ),
-                  ),
-              ],
-              emptyHint: _fromPaddockId == null
-                  ? 'Choose a paddock first'
-                  : 'This paddock is empty',
-            ),
-            const SizedBox(height: 12),
+        ],
+        SegmentedButton<MovementKind>(
+          segments: [
+            for (final kind in _recordable)
+              ButtonSegment(
+                value: kind,
+                label: Text(kind.label),
+                icon: Icon(kind.icon),
+              ),
           ],
+          selected: {_kind},
+          onSelectionChanged: (s) => _selectKind(s.first),
+        ),
+        const SizedBox(height: 16),
 
-          if (_kind == MovementKind.intake || _kind == MovementKind.age) ...[
-            _Dropdown<String>(
-              label: _kind == MovementKind.age ? 'Ages into' : 'Class',
-              value: _toClassId,
-              onChanged: (id) => setState(() => _toClassId = id),
-              items: [
-                for (final c in _classes)
-                  DropdownMenuItem(
-                    value: c.id,
-                    child: Text('${c.kind} (${c.ageBand})'),
-                  ),
-              ],
-              emptyHint: 'No templates seeded',
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          if (_kind == MovementKind.intake || _kind == MovementKind.move) ...[
-            _PaddockField(
-              label: _kind == MovementKind.intake ? 'Into' : 'To paddock',
-              paddocks: _paddocks,
-              value: _toPaddockId,
-              onChanged: (id) => setState(() => _toPaddockId = id),
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          if (_kind == MovementKind.endState) ...[
-            _Dropdown<EndState>(
-              label: 'Destination',
-              value: _endState,
-              onChanged: (v) => setState(() => _endState = v!),
-              items: [
-                for (final state in EndState.values)
-                  DropdownMenuItem(value: state, child: Text(state.name)),
-              ],
-              emptyHint: '',
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          TextField(
-            controller: _head,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Head',
-              border: const OutlineInputBorder(),
-              helperText: _headHelper,
-            ),
-            onChanged: (_) {
-              setState(() {});
-              _chooseWholeMobIfNeeded();
-            },
+        if (_kind.takesFrom) ...[
+          _PaddockField(
+            label: _kind == MovementKind.intake ? 'Paddock' : 'From paddock',
+            paddocks: _paddocks,
+            value: _fromPaddockId,
+            onChanged: _selectFromPaddock,
           ),
           const SizedBox(height: 12),
-          if (!_kind.takesFrom) ...[
-            TagField(selection: _tags, label: 'Tags to add (optional)'),
-            const SizedBox(height: 12),
-          ] else if (_tags.mob.isNotEmpty) ...[
-            TagPicker(selection: _tags, label: _kind.tagsLabel),
-            const SizedBox(height: 12),
-          ],
-          TextField(
-            controller: _note,
-            decoration: const InputDecoration(
-              labelText: 'Note (optional)',
-              border: OutlineInputBorder(),
-            ),
+          _Dropdown<String>(
+            label: 'Mob',
+            value: _fromClassId,
+            onChanged: _selectFromClass,
+            items: [
+              for (final mob in _mobs)
+                DropdownMenuItem(
+                  value: mob.livestockClass.id,
+                  child: Text(
+                    '${mob.head} × ${mob.label} (${mob.livestockClass.ageBand})',
+                  ),
+                ),
+            ],
+            emptyHint: _fromPaddockId == null
+                ? 'Choose a paddock first'
+                : 'This paddock is empty',
           ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: blocker == null && !_saving ? _save : null,
-            child: Text(blocker ?? 'Record'),
-          ),
+          const SizedBox(height: 12),
         ],
-      ),
+
+        if (_kind == MovementKind.intake || _kind == MovementKind.age) ...[
+          _Dropdown<String>(
+            label: _kind == MovementKind.age ? 'Ages into' : 'Class',
+            value: _toClassId,
+            onChanged: (id) => setState(() => _toClassId = id),
+            items: [
+              for (final c in _classes)
+                DropdownMenuItem(
+                  value: c.id,
+                  child: Text('${c.kind} (${c.ageBand})'),
+                ),
+            ],
+            emptyHint: 'No templates seeded',
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        if (_kind == MovementKind.intake || _kind == MovementKind.move) ...[
+          _PaddockField(
+            label: _kind == MovementKind.intake ? 'Into' : 'To paddock',
+            paddocks: _paddocks,
+            value: _toPaddockId,
+            onChanged: (id) => setState(() => _toPaddockId = id),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        if (_kind == MovementKind.endState) ...[
+          _Dropdown<EndState>(
+            label: 'Destination',
+            value: _endState,
+            onChanged: (v) => setState(() => _endState = v!),
+            items: [
+              for (final state in EndState.values)
+                DropdownMenuItem(value: state, child: Text(state.name)),
+            ],
+            emptyHint: '',
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        TextField(
+          controller: _head,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: 'Head',
+            helperText: _headHelper,
+          ),
+          onChanged: (_) {
+            setState(() {});
+            _chooseWholeMobIfNeeded();
+          },
+        ),
+        const SizedBox(height: 12),
+        if (!_kind.takesFrom) ...[
+          TagField(selection: _tags, label: 'Tags to add (optional)'),
+          const SizedBox(height: 12),
+        ] else if (_tags.mob.isNotEmpty) ...[
+          TagPicker(selection: _tags, label: _kind.tagsLabel),
+          const SizedBox(height: 12),
+        ],
+        TextField(
+          controller: _note,
+          decoration: const InputDecoration(labelText: 'Note (optional)'),
+        ),
+      ],
     );
   }
 }
@@ -509,10 +494,7 @@ class _Dropdown<T> extends StatelessWidget {
     return DropdownButtonFormField<T>(
       initialValue: value,
       isExpanded: true,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: label),
       hint: Text(emptyHint),
       items: items,
       onChanged: items.isEmpty ? null : onChanged,

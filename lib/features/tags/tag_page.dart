@@ -4,6 +4,7 @@ import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../data/tables.dart';
 import '../../data/tag_numbers.dart';
+import '../../shell/form_dialog.dart';
 import '../activity/activity_page.dart';
 import 'tag_labels.dart';
 
@@ -82,8 +83,8 @@ class _TagDetail extends StatelessWidget {
             runSpacing: 8,
             children: [
               FilledButton.tonalIcon(
-                onPressed: () => showDialog<void>(
-                  context: context,
+                onPressed: () => showFormDialog<void>(
+                  context,
                   builder: (_) => _ReplaceDialog(status: status),
                 ),
                 icon: const Icon(Icons.find_replace),
@@ -93,8 +94,8 @@ class _TagDetail extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: theme.colorScheme.error,
                 ),
-                onPressed: () => showDialog<void>(
-                  context: context,
+                onPressed: () => showFormDialog<void>(
+                  context,
                   builder: (_) => _CancelDialog(status: status),
                 ),
                 icon: const Icon(Icons.label_off_outlined),
@@ -232,70 +233,50 @@ class _ReplaceDialogState extends State<_ReplaceDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text('Replace ${widget.status.tag.tagNumber.display}'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SegmentedButton<TagScheme>(
-              segments: [
-                for (final scheme in TagScheme.values)
-                  ButtonSegment(value: scheme, label: Text(scheme.label)),
-              ],
-              selected: {_scheme},
-              onSelectionChanged: (s) => setState(() {
-                _scheme = s.single;
-                _error = null;
-              }),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _number,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: 'New tag number',
-                errorText: _error,
-                errorMaxLines: 3,
-                border: const OutlineInputBorder(),
-              ),
-              onChanged: (_) => setState(() => _error = null),
-              onSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<TagReason>(
-              initialValue: _reason,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Reason',
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                for (final reason in TagReason.values)
-                  DropdownMenuItem(value: reason, child: Text(reason.label)),
-              ],
-              onChanged: (reason) => setState(() => _reason = reason!),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _note,
-              decoration: const InputDecoration(
-                labelText: 'Note (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
+    return FormDialog(
+      title: 'Replace ${widget.status.tag.tagNumber.display}',
+      dismissLabel: 'Back',
+      actionLabel: 'Replace',
+      onAction: _saving ? null : _submit,
+      children: [
+        SegmentedButton<TagScheme>(
+          segments: [
+            for (final scheme in TagScheme.values)
+              ButtonSegment(value: scheme, label: Text(scheme.label)),
           ],
+          selected: {_scheme},
+          onSelectionChanged: (s) => setState(() {
+            _scheme = s.single;
+            _error = null;
+          }),
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Back'),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _number,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: 'New tag number',
+            errorText: _error,
+            errorMaxLines: 3,
+          ),
+          onChanged: (_) => setState(() => _error = null),
+          onSubmitted: (_) => _submit(),
         ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: const Text('Replace'),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<TagReason>(
+          initialValue: _reason,
+          isExpanded: true,
+          decoration: const InputDecoration(labelText: 'Reason'),
+          items: [
+            for (final reason in TagReason.values)
+              DropdownMenuItem(value: reason, child: Text(reason.label)),
+          ],
+          onChanged: (reason) => setState(() => _reason = reason!),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _note,
+          decoration: const InputDecoration(labelText: 'Note (optional)'),
         ),
       ],
     );
@@ -337,52 +318,33 @@ class _CancelDialogState extends State<_CancelDialog> {
   Widget build(BuildContext context) {
     final status = widget.status;
 
-    return AlertDialog(
-      title: Text('Cancel ${status.tag.tagNumber.display}?'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'The animal stays in the head count of '
-              '${status.paddock?.name ?? 'its paddock'}, untagged.',
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<TagReason>(
-              initialValue: _reason,
-              isExpanded: true,
-              hint: const Text('Choose a reason'),
-              decoration: const InputDecoration(
-                labelText: 'Reason',
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                for (final reason in TagReason.values)
-                  DropdownMenuItem(value: reason, child: Text(reason.label)),
-              ],
-              onChanged: (reason) => setState(() => _reason = reason),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _note,
-              decoration: const InputDecoration(
-                labelText: 'Note (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
+    return FormDialog(
+      title: 'Cancel ${status.tag.tagNumber.display}?',
+      // Not "Cancel", beside a button that cancels the tag.
+      dismissLabel: 'Keep tag',
+      actionLabel: 'Cancel tag',
+      onAction: _reason == null || _saving ? null : _submit,
+      children: [
+        Text(
+          'The animal stays in the head count of '
+          '${status.paddock?.name ?? 'its paddock'}, untagged.',
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<TagReason>(
+          initialValue: _reason,
+          isExpanded: true,
+          hint: const Text('Choose a reason'),
+          decoration: const InputDecoration(labelText: 'Reason'),
+          items: [
+            for (final reason in TagReason.values)
+              DropdownMenuItem(value: reason, child: Text(reason.label)),
           ],
+          onChanged: (reason) => setState(() => _reason = reason),
         ),
-      ),
-      actions: [
-        // Not "Cancel", beside a button that cancels the tag.
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Keep tag'),
-        ),
-        FilledButton(
-          onPressed: _reason == null || _saving ? null : _submit,
-          child: const Text('Cancel tag'),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _note,
+          decoration: const InputDecoration(labelText: 'Note (optional)'),
         ),
       ],
     );

@@ -89,7 +89,6 @@ class _TagsPageState extends State<TagsPage> {
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
                   hintText: 'Search tag numbers',
-                  border: const OutlineInputBorder(),
                   suffixIcon: query.isEmpty
                       ? null
                       : IconButton(

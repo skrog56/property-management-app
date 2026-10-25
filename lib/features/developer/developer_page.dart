@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../shell/breakpoints.dart';
+import '../../shell/form_dialog.dart';
 import '../platform_proof/platform_proof_page.dart';
 import 'dev_data.dart';
 import 'dev_log.dart';
@@ -217,22 +218,16 @@ class _DataTabState extends State<_DataTab> {
     BuildContext context,
     LivestockRepository repository,
   ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Wipe the database?'),
-        content: const Text(
-          'Every property, paddock, movement and tag on this device is '
-          'deleted. Built-in templates are reseeded.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Wipe'),
+    final confirmed = await showFormDialog<bool>(
+      context,
+      builder: (context) => FormDialog(
+        title: 'Wipe the database?',
+        actionLabel: 'Wipe',
+        onAction: () => Navigator.pop(context, true),
+        children: const [
+          Text(
+            'Every property, paddock, movement and tag on this device is '
+            'deleted. Built-in templates are reseeded.',
           ),
         ],
       ),
@@ -249,29 +244,27 @@ class _DataTabState extends State<_DataTab> {
     final overTagged = await repository.overTaggedMobs();
     final consistent = violations.isEmpty && overTagged.isEmpty;
     if (!context.mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(consistent ? 'Ledger consistent' : 'Ledger conflicts'),
-        content: consistent
-            ? const Text(
-                'No paddock holds fewer than zero head of any class, or more '
-                'tags than head.',
-              )
-            : SelectableText(
-                [
-                  for (final v in violations)
-                    'paddock ${v.paddockId}\nclass ${v.classId}\nhead ${v.head}',
-                  for (final o in overTagged)
-                    'paddock ${o.paddockId}\nclass ${o.classId}\n'
-                        '${o.tagged} tags on ${o.head} head',
-                ].join('\n\n'),
-              ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
+    await showFormDialog<void>(
+      context,
+      builder: (context) => FormDialog(
+        title: consistent ? 'Ledger consistent' : 'Ledger conflicts',
+        dismissLabel: 'Close',
+        children: [
+          if (consistent)
+            const Text(
+              'No paddock holds fewer than zero head of any class, or more '
+              'tags than head.',
+            )
+          else
+            SelectableText(
+              [
+                for (final v in violations)
+                  'paddock ${v.paddockId}\nclass ${v.classId}\nhead ${v.head}',
+                for (final o in overTagged)
+                  'paddock ${o.paddockId}\nclass ${o.classId}\n'
+                      '${o.tagged} tags on ${o.head} head',
+              ].join('\n\n'),
+            ),
         ],
       ),
     );

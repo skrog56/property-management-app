@@ -5,7 +5,7 @@ import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/tables.dart';
 import 'package:property_management_app/data/tag_numbers.dart';
-import 'package:property_management_app/features/transfers/movement_sheet.dart';
+import 'package:property_management_app/features/transfers/movement_dialog.dart';
 
 import 'support.dart';
 
@@ -28,7 +28,7 @@ void main() {
   tearDown(() => db.close());
 
   /// [anyProperty] opens it as Activity does, without a property in hand.
-  Future<void> openSheet(
+  Future<void> openForm(
     WidgetTester tester, {
     double width = 800,
     bool anyProperty = false,
@@ -42,7 +42,7 @@ void main() {
         home: Scaffold(
           body: Builder(
             builder: (context) => TextButton(
-              onPressed: () => showMovementSheet(
+              onPressed: () => showMovementDialog(
                 context,
                 repository: repo,
                 propertyId: anyProperty ? null : property,
@@ -97,7 +97,7 @@ void main() {
     String mob, {
     double width = 800,
   }) async {
-    await openSheet(tester, width: width);
+    await openForm(tester, width: width);
     await pick(tester, 'From paddock', 'North Ridge');
     await pick(tester, 'Mob', mob);
     await pick(tester, 'To paddock', 'Creek Flat');
@@ -118,7 +118,7 @@ void main() {
   Finder record() => find.widgetWithText(FilledButton, 'Record');
 
   testPage('records an intake and closes', (tester) async {
-    await openSheet(tester);
+    await openForm(tester);
 
     await tester.tap(find.text('Intake'));
     await drain(tester);
@@ -142,7 +142,7 @@ void main() {
     final back = await repo.createPaddock(block, 'Back Paddock');
     await repo.createProperty('Bare Hill');
 
-    await openSheet(tester, anyProperty: true);
+    await openForm(tester, anyProperty: true);
     expect(record(), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Choose a property'), findsOne);
 
@@ -169,7 +169,7 @@ void main() {
   testPage('a property without paddocks is not offered', (tester) async {
     await repo.createProperty('Bare Hill');
 
-    await openSheet(tester, anyProperty: true);
+    await openForm(tester, anyProperty: true);
     await tester.tap(
       find.ancestor(
         of: find.text('Property'),
@@ -195,7 +195,7 @@ void main() {
       toClassId: 'calves',
     );
 
-    await openSheet(tester);
+    await openForm(tester);
     await pick(tester, 'From paddock', 'North Ridge');
     await pick(tester, 'Mob', '10 × Calves (under 6 months)');
     await pick(tester, 'To paddock', 'Creek Flat');
@@ -216,7 +216,7 @@ void main() {
       toClassId: 'calves',
     );
 
-    await openSheet(tester);
+    await openForm(tester);
     await tester.tap(find.text('Age'));
     await drain(tester);
 
@@ -237,7 +237,7 @@ void main() {
 
   group('tags', () {
     testPage('an intake records scanned tags, one head each', (tester) async {
-      await openSheet(tester);
+      await openForm(tester);
       await tester.tap(find.text('Intake'));
       await drain(tester);
       await pick(tester, 'Class', 'Calves (under 6 months)');
@@ -333,7 +333,7 @@ void main() {
         tags: [a],
       );
 
-      await openSheet(tester);
+      await openForm(tester);
       await tester.tap(find.text('Intake'));
       await drain(tester);
       await pick(tester, 'Class', 'Calves (under 6 months)');
@@ -350,7 +350,7 @@ void main() {
     testPage('a number that is not NLIS stays in the box to be fixed', (
       tester,
     ) async {
-      await openSheet(tester);
+      await openForm(tester);
       await tester.tap(find.text('Intake'));
       await drain(tester);
       await pick(tester, 'Class', 'Calves (under 6 months)');
@@ -389,7 +389,7 @@ void main() {
     });
 
     testPage('an intake only adds, and offers nothing to pick', (tester) async {
-      await openSheet(tester);
+      await openForm(tester);
       await tester.tap(find.text('Intake'));
       await drain(tester);
 
@@ -483,7 +483,7 @@ void main() {
         tags: [a, b],
       );
 
-      await openSheet(tester);
+      await openForm(tester);
       await tester.tap(find.text('End'));
       await drain(tester);
       await pick(tester, 'From paddock', 'North Ridge');
@@ -510,7 +510,7 @@ void main() {
         toClassId: 'calves',
       );
 
-      await openSheet(tester);
+      await openForm(tester);
       await tester.tap(find.text('Intake'));
       await drain(tester);
       await scan(tester, '999000000000001');

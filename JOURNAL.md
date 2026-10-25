@@ -7,6 +7,46 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-10-25 — One dialog for every form
+
+### What prompted it
+
+The user wanted the movement form centred on screen rather than docked to the
+bottom, keeping the way it flew up. Add tags followed, and then the question
+widened: the app had two bottom sheets and five `AlertDialog`s, no two quite
+alike, and the user asked for one style across them all.
+
+### Decisions
+
+- **Rise from the bottom, rest in the middle.** The route slides the whole page
+  up from one screen height down, not just the dialog. Sliding the dialog by
+  its own height would start it from just below where it ends, which reads as a
+  nudge rather than a rise.
+- **A title, a body and an actions row, everywhere.** Two layouts were on the
+  table: the standard Material dialog with Cancel beside the main button, or the
+  old sheets' full-width button with a close × in the corner. The user chose
+  the actions row. It brought back a visible way out of Record movement and
+  Add tags, which had lost theirs with the drag handle and were left with only
+  a tap outside or Escape.
+- **A disabled button still says why.** The sheets put what was missing in the
+  button's label ("Enter head") rather than leaving it greyed and silent.
+  `FormDialog` keeps that, so any form can do it.
+- **Dismiss labels stay specific where they need to.** "Cancel" beside "Cancel
+  tag" is ambiguous, so that dialog keeps "Keep tag". Replace keeps "Back".
+- **Outlined fields come from the theme.** Every field but the new property and
+  paddock ones already set an outline border by hand. The theme now sets it
+  once, and the per-field copies are gone.
+- **One width.** 560 at most, Material's dialog maximum. The name dialog is
+  wider than it was, since `AlertDialog` used to size it to its fields.
+
+The files and functions that still said "sheet" were renamed to say "dialog".
+
+### Open
+
+- Not yet checked by eye on a running build. The tests cover behaviour, not
+  how the rise looks or whether 560 suits a phone in landscape.
+- Swipe-down to dismiss went with the sheets. Nobody has asked for it back.
+
 ## 2026-10-25 — Record movement from Activity
 
 ### What prompted it

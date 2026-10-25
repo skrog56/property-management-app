@@ -6,6 +6,7 @@ import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/tables.dart';
 import 'package:property_management_app/data/tag_numbers.dart';
 import 'package:property_management_app/features/tags/tags_page.dart';
+import 'package:property_management_app/shell/form_dialog.dart';
 
 import 'support.dart';
 
@@ -40,7 +41,7 @@ void main() {
       '/tags/${(await repo.tagStatusByNumber(number))!.tag.id}';
 
   Finder inDialog(Finder finder) =>
-      find.descendant(of: find.byType(AlertDialog), matching: finder);
+      find.descendant(of: find.byType(FormDialog), matching: finder);
 
   testPage('says how tags get here when there are none', (tester) async {
     await pumpRouted(tester, repository: repo, location: '/tags');

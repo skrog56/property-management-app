@@ -5,10 +5,10 @@ import '../../data/repository_scope.dart';
 import '../../data/tag_numbers.dart';
 import '../../shell/tier_route.dart';
 import '../activity/activity_page.dart';
+import '../tags/add_tags_dialog.dart';
 import '../tags/paths.dart';
 import '../tags/tag_page.dart';
-import '../tags/tag_sheet.dart';
-import '../transfers/movement_sheet.dart';
+import '../transfers/movement_dialog.dart';
 
 /// The bottom tier: everything standing in one paddock, and how it got there.
 class PaddockPage extends StatelessWidget {
@@ -50,7 +50,7 @@ class PaddockPage extends StatelessWidget {
               : FloatingActionButton.extended(
                   icon: const Icon(Icons.swap_horiz),
                   label: const Text('Record movement'),
-                  onPressed: () => showMovementSheet(
+                  onPressed: () => showMovementDialog(
                     context,
                     repository: repository,
                     propertyId: summary.paddock.propertyId,
@@ -161,7 +161,7 @@ class _PaddockDetail extends StatelessWidget {
                 _MobTile(
                   mob: mob,
                   tagged: taggedIn(mob),
-                  onAddTags: () => showAddTagsSheet(
+                  onAddTags: () => showAddTagsDialog(
                     context,
                     repository: repository,
                     paddock: paddock,

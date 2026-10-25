@@ -11,7 +11,7 @@ import '../properties/paths.dart';
 import '../tags/paths.dart';
 import '../tags/tag_labels.dart';
 import '../tags/tag_page.dart';
-import '../transfers/movement_sheet.dart';
+import '../transfers/movement_dialog.dart';
 
 class ActivityPage extends StatelessWidget {
   const ActivityPage({super.key});
@@ -31,7 +31,7 @@ class ActivityPage extends StatelessWidget {
           return FloatingActionButton.extended(
             icon: const Icon(Icons.swap_horiz),
             label: const Text('Record movement'),
-            onPressed: () => showMovementSheet(context, repository: repository),
+            onPressed: () => showMovementDialog(context, repository: repository),
           );
         },
       ),

@@ -122,6 +122,13 @@ same commit — a deliberate act, never a side effect of another change.
 ### Changed
 
 - Navigation is now Properties, Activity, Tags, Templates, About.
+- **One look for every form and dialog.** Record movement, Add tags, new
+  property and paddock, Replace tag and Cancel tag all rise from the bottom edge
+  and come to rest centred, at the same width, with the title above and Cancel
+  beside the main button below. Record movement and Add tags gain that Cancel
+  button, having lost the drag handle they were closed by. Where a button is
+  disabled, it still says what is missing. The new property and paddock fields
+  are outlined, like every other field.
 - **Activity names tags.** Entries list the tags a movement carried, each
   linking to its page, and tag events read as what happened to the tags.
 - **The local database upgrades itself** the first time this version opens it,

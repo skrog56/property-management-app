@@ -372,7 +372,7 @@ lib/
   data/         Drift schema, repository, platform-specific connection
   features/
     properties/       Three tiers: properties → paddocks → one paddock's livestock
-    transfers/        The movement form — one sheet, four kinds
+    transfers/        The movement form — one dialog, four kinds
     tags/             Tag search and pages, tag entry, tagging a mob
     activity/         The ledger, rendered
     templates/        Livestock classes (read-only for now)

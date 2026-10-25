@@ -14,5 +14,8 @@ ThemeData buildTheme(Brightness brightness) {
     // Tightens control spacing on desktop while leaving touch targets alone on
     // mobile. One of the few places where per-platform adaptation is desirable.
     visualDensity: VisualDensity.adaptivePlatformDensity,
+    inputDecorationTheme: const InputDecorationThemeData(
+      border: OutlineInputBorder(),
+    ),
   );
 }

@@ -178,7 +178,6 @@ class _TagFieldState extends State<TagField> {
               decoration: InputDecoration(
                 labelText: widget.label,
                 hintText: 'Type or scan, then Enter',
-                border: const OutlineInputBorder(),
                 errorText: _error,
                 errorMaxLines: 3,
                 prefixIcon: _SchemeMenu(
@@ -354,7 +353,6 @@ class _TagPickerState extends State<TagPicker> {
               decoration: InputDecoration(
                 labelText: 'Scan or find',
                 hintText: 'A whole number, or the end of one',
-                border: const OutlineInputBorder(),
                 prefixIcon: const Icon(Icons.search),
                 errorText: _error,
                 errorMaxLines: 3,
