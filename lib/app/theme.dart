@@ -17,5 +17,9 @@ ThemeData buildTheme(Brightness brightness) {
     inputDecorationTheme: const InputDecorationThemeData(
       border: OutlineInputBorder(),
     ),
+    // A pill when labelled, and a circle when square.
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      shape: StadiumBorder(),
+    ),
   );
 }

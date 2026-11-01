@@ -33,11 +33,11 @@ void main() {
     ) async {
       final property = await repo.createProperty('Riverbend Downs');
       await pumpPage(tester, const ActivityPage(), repository: repo);
-      expect(find.text('Record movement'), findsNothing);
+      expect(find.bySemanticsLabel('Record movement'), findsNothing);
 
       await repo.createPaddock(property, 'North Ridge');
       await drain(tester);
-      await tester.tap(find.text('Record movement'));
+      await tester.tap(find.bySemanticsLabel('Record movement'));
       await drain(tester);
 
       expect(find.text('Property'), findsOneWidget);

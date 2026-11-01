@@ -7,6 +7,40 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-01 — Action buttons: a circle on a phone, a pill elsewhere
+
+### What happened
+
+On a phone the labelled *Record movement* button covered a good part of the
+page. The four floating actions (Add property, Add paddock, Record movement on
+a paddock and on Activity) now go through one `ActionButton` in `lib/shell/`.
+On a compact window it is a circle that opens into the labelled pill while
+hovered or long-pressed; wider windows show the pill throughout.
+
+### Decided
+
+- **Keyed off the window, not the pane.** Two panes side by side on an
+  expanded window are each narrow, but there is room for a label there, and a
+  tablet dropping it would read as a phone layout.
+- **One theme shape, `StadiumBorder`, for both forms.** A stadium on a square
+  is a circle, so no per-form shape is needed. The stock extended FAB also
+  snaps between its forms rather than animating, so the label's width is
+  animated by hand; closed, equal padding round the icon makes it 56 square.
+- **Long press instead of a tooltip.** A tooltip would repeat the label the
+  hover already reveals. On touch, which never hovers, a long press opens the
+  pill instead; the icon carries the label for screen readers while closed.
+- **Hover and hold tracked apart, and a pointer cancel closes it.** Two bugs,
+  both reproduced in tests before fixing: a mouse held over the open pill
+  closed it on release, and a long press the system takes over (a pulled-down
+  shade, a call) ends in a cancel, which `onLongPressEnd` never reports, so
+  the pill stayed open.
+
+### Open
+
+- Not yet looked at on a real phone or browser; covered only by widget tests.
+- `dart format` on this toolchain reflows several files the repo has committed
+  in another style, so a project-wide format would touch unrelated code.
+
 ## 2026-11-01 — Roboto bundled for Linux
 
 ### What happened

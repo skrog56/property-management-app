@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
+import '../../shell/action_button.dart';
 import '../../shell/breakpoints.dart';
 import '../../shell/tier_route.dart';
 import 'name_dialog.dart';
@@ -35,9 +36,9 @@ class PropertiesPage extends StatelessWidget {
         return Scaffold(
           backgroundColor: Colors.transparent,
           floatingActionButton: primary
-              ? FloatingActionButton.extended(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add property'),
+              ? ActionButton(
+                  icon: Icons.add,
+                  label: 'Add property',
                   onPressed: () => addProperty(context, repository),
                 )
               : null,

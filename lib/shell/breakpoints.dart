@@ -33,6 +33,9 @@ enum WindowSizeClass {
   /// reach; everything wider gets a side rail.
   bool get usesBottomBar => this == WindowSizeClass.compact;
 
+  /// A labelled action button covers too much of a phone's content.
+  bool get usesIconOnlyActions => this == WindowSizeClass.compact;
+
   /// Only show rail labels once there is width to spare for them.
   bool get usesExtendedRail => index >= WindowSizeClass.expanded.index;
 

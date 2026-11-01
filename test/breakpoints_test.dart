@@ -26,6 +26,16 @@ void main() {
       }
     });
 
+    test('only the compact class drops action button labels', () {
+      for (final sizeClass in WindowSizeClass.values) {
+        expect(
+          sizeClass.usesIconOnlyActions,
+          sizeClass == WindowSizeClass.compact,
+          reason: '$sizeClass',
+        );
+      }
+    });
+
     test('rail labels appear from expanded upwards', () {
       expect(WindowSizeClass.compact.usesExtendedRail, isFalse);
       expect(WindowSizeClass.medium.usesExtendedRail, isFalse);

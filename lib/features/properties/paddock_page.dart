@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../data/tag_numbers.dart';
+import '../../shell/action_button.dart';
 import '../../shell/tier_route.dart';
 import '../activity/activity_page.dart';
 import '../tags/add_tags_dialog.dart';
@@ -47,9 +48,9 @@ class PaddockPage extends StatelessWidget {
           backgroundColor: Colors.transparent,
           floatingActionButton: summary == null || !primary
               ? null
-              : FloatingActionButton.extended(
-                  icon: const Icon(Icons.swap_horiz),
-                  label: const Text('Record movement'),
+              : ActionButton(
+                  icon: Icons.swap_horiz,
+                  label: 'Record movement',
                   onPressed: () => showMovementDialog(
                     context,
                     repository: repository,

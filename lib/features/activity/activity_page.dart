@@ -5,6 +5,7 @@ import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../data/tables.dart';
 import '../../data/tag_numbers.dart';
+import '../../shell/action_button.dart';
 import '../../shell/tier_route.dart';
 import '../properties/paddock_page.dart';
 import '../properties/paths.dart';
@@ -28,9 +29,9 @@ class ActivityPage extends StatelessWidget {
         builder: (context, snapshot) {
           final paddocks = snapshot.data?.any((s) => s.paddockCount > 0);
           if (paddocks != true) return const SizedBox.shrink();
-          return FloatingActionButton.extended(
-            icon: const Icon(Icons.swap_horiz),
-            label: const Text('Record movement'),
+          return ActionButton(
+            icon: Icons.swap_horiz,
+            label: 'Record movement',
             onPressed: () => showMovementDialog(context, repository: repository),
           );
         },
