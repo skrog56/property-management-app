@@ -104,6 +104,10 @@ class _Breadcrumbs extends StatelessWidget {
   final String? propertyId;
   final String? paddockId;
 
+  // Shared by links and the current crumb, so a crumb keeps its place as it
+  // turns into a link.
+  static const _inset = EdgeInsets.symmetric(horizontal: 8);
+
   @override
   Widget build(BuildContext context) {
     final crumbs = <(Widget, String?)>[
@@ -116,7 +120,7 @@ class _Breadcrumbs extends StatelessWidget {
     final linkStyle = TextButton.styleFrom(
       foregroundColor: theme.colorScheme.onSurfaceVariant,
       textStyle: theme.appBarTheme.titleTextStyle ?? theme.textTheme.titleLarge,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: _inset,
     );
 
     return Row(
@@ -129,10 +133,7 @@ class _Breadcrumbs extends StatelessWidget {
             ),
           Flexible(
             child: i == crumbs.length - 1
-                ? Padding(
-                    padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
-                    child: label,
-                  )
+                ? Padding(padding: _inset, child: label)
                 : TextButton(
                     style: linkStyle,
                     onPressed: () => context.go(crumbs[i].$2!),

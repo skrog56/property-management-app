@@ -191,6 +191,9 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Fixed
 
+- **Breadcrumbs no longer jump as they become links.** Opening a property or
+  paddock turned the crumb before it into a link and nudged its text sideways;
+  every crumb now keeps its place.
 - **Linux shows the same font on every machine.** The app now carries Roboto,
   the font Material asks for on Linux, instead of falling back to whatever the
   distro has installed (Ubuntu, Cantarell, DejaVu Sans…). Android and web were

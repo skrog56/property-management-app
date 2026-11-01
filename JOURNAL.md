@@ -7,6 +7,30 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-01 — Breadcrumbs that stay put
+
+### What happened
+
+A crumb jumped as it turned from the current page into a link. Measured with
+the app's theme and the bundled Roboto, the text is the same size either way,
+22 pt and the same width. The jump was the link's 8 px of button padding,
+which the plain crumb didn't have. Both now share one horizontal inset, and a
+test walks all three tiers checking that each crumb keeps its rect.
+
+### Decided
+
+- **The inset goes on the plain crumb, not off the link.** The link needs its
+  padding for the hover and press highlight. The title now starts 8 px in.
+- **Desktop density turned out not to matter.** The theme's adaptive density
+  tightens buttons on desktop, but the shift measured the same on Linux and
+  Android.
+
+### Open
+
+- A link is still drawn in the muted onSurfaceVariant colour and the current
+  crumb in onSurface. That change is deliberate, but it may be what read as a
+  change of size.
+
 ## 2026-11-01 — An action button for every column of Properties
 
 ### What happened

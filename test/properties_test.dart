@@ -367,6 +367,31 @@ void main() {
       expect(await repo.paddocksIn(id.property), hasLength(3));
     });
 
+    testPage('a breadcrumb stays put as it becomes a link', (tester) async {
+      await ids();
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/properties',
+        width: 1900,
+      );
+
+      Rect crumb(String text) => tester.getRect(
+        find.descendant(of: find.byType(AppBar), matching: find.text(text)),
+      );
+
+      final properties = crumb('Properties');
+      await tester.tap(find.text('Riverbend Downs'));
+      await settle(tester);
+      expect(crumb('Properties'), properties);
+
+      final property = crumb('Riverbend Downs');
+      await tester.tap(find.text('North Ridge'));
+      await settle(tester);
+      expect(crumb('Properties'), properties);
+      expect(crumb('Riverbend Downs'), property);
+    });
+
     testPage('each tier keeps its action button in its own column', (
       tester,
     ) async {
