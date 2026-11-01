@@ -117,6 +117,24 @@ void main() {
 
   Finder record() => find.widgetWithText(FilledButton, 'Record');
 
+  bool recordEnabled(WidgetTester tester) =>
+      tester.widget<FilledButton>(record()).onPressed != null;
+
+  /// Whether the field labelled [label] is in its error colours.
+  bool isWrong(WidgetTester tester, String label) =>
+      tester
+          .widget<InputDecorator>(
+            find
+                .ancestor(
+                  of: find.text(label),
+                  matching: find.byType(InputDecorator),
+                )
+                .first,
+          )
+          .decoration
+          .error !=
+      null;
+
   testPage('says a list is empty only when it is', (tester) async {
     await openForm(tester);
 
@@ -153,8 +171,8 @@ void main() {
     await repo.createProperty('Bare Hill');
 
     await openForm(tester, anyProperty: true);
-    expect(record(), findsNothing);
-    expect(find.widgetWithText(FilledButton, 'Choose a property'), findsOne);
+    expect(recordEnabled(tester), isFalse);
+    expect(find.text('Choose a property'), findsOne);
 
     await tester.tap(find.byTooltip('Intake'));
     await drain(tester);
@@ -191,10 +209,7 @@ void main() {
     expect(find.text('Bare Hill'), findsNothing);
     // The only property left is chosen already.
     expect(find.text('Riverbend Downs'), findsWidgets);
-    expect(
-      find.widgetWithText(FilledButton, 'Choose a property'),
-      findsNothing,
-    );
+    expect(find.text('Choose a property'), findsNothing);
   });
 
   testPage('blocks a move of more head than the paddock holds', (tester) async {
@@ -213,7 +228,64 @@ void main() {
     await drain(tester);
 
     expect(find.text('Only 10 head available'), findsOneWidget);
+    expect(isWrong(tester, 'Head'), isTrue);
+    expect(isWrong(tester, 'To paddock'), isFalse);
     expect(await repo.headIn(creek, 'calves'), 0);
+  });
+
+  testPage('names what is missing above the buttons, in no red', (
+    tester,
+  ) async {
+    await openForm(tester);
+
+    expect(find.text('Enter a head count'), findsOne);
+    expect(recordEnabled(tester), isFalse);
+    expect(isWrong(tester, 'Head'), isFalse);
+    expect(isWrong(tester, 'From paddock'), isFalse);
+  });
+
+  testPage('marks a move into the paddock it leaves', (tester) async {
+    await repo.record(
+      kind: MovementKind.intake,
+      head: 10,
+      toPaddockId: north,
+      toClassId: 'calves',
+    );
+
+    await openForm(tester);
+    await pick(tester, 'From paddock', 'North Ridge');
+    await pick(tester, 'Mob', '10 × Calves (under 6 months)');
+    await pick(tester, 'To paddock', 'North Ridge');
+    await tester.enterText(find.widgetWithText(TextField, 'Head'), '5');
+    await drain(tester);
+
+    expect(find.text('Pick a different destination paddock'), findsOne);
+    expect(isWrong(tester, 'To paddock'), isTrue);
+    expect(isWrong(tester, 'From paddock'), isFalse);
+    expect(isWrong(tester, 'Head'), isFalse);
+  });
+
+  testPage('keeps its buttons side by side on a phone, however long the '
+      'blocker', (tester) async {
+    await repo.record(
+      kind: MovementKind.intake,
+      head: 10,
+      toPaddockId: north,
+      toClassId: 'calves',
+    );
+
+    await openForm(tester, width: 360);
+    await pick(tester, 'From paddock', 'North Ridge');
+    await pick(tester, 'Mob', '10 × Calves (under 6 months)');
+    await pick(tester, 'To paddock', 'North Ridge');
+    await tester.enterText(find.widgetWithText(TextField, 'Head'), '5');
+    await drain(tester);
+
+    expect(find.text('Pick a different destination paddock'), findsOne);
+    expect(
+      tester.getTopLeft(record()).dy,
+      tester.getTopLeft(find.widgetWithText(TextButton, 'Cancel')).dy,
+    );
   });
 
   testPage('ageing preselects the class from the template chain', (
@@ -327,9 +399,11 @@ void main() {
       await drain(tester);
 
       expect(find.text('Select 1 more tag'), findsOneWidget);
+      expect(isWrong(tester, 'Scan or find'), isFalse);
       await tester.tap(find.widgetWithText(FilterChip, '999 000000000002'));
       await drain(tester);
-      expect(find.text('Record'), findsOneWidget);
+      expect(find.text('Select 1 more tag'), findsNothing);
+      expect(recordEnabled(tester), isTrue);
     });
 
     testPage('a tag already in another paddock is refused on entry', (
@@ -355,6 +429,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Remove tags recorded elsewhere'), findsOneWidget);
+      expect(isWrong(tester, 'Tags to add (optional)'), isTrue);
     });
 
     testPage('a number that is not NLIS stays in the box to be fixed', (

@@ -170,6 +170,21 @@ more tags than head, by two offline edits — are the checks in
 For the same reason, rows use **client-generated UUIDs** and **soft deletes**.
 Neither can be retrofitted once devices are syncing.
 
+## Forms
+
+Every form and confirmation is a `FormDialog`. While something stops it being
+submitted, pass the reason as `blocker`. It shows above the buttons and
+disables the action, which keeps its own label. Don't put the reason in
+`actionLabel`: the label's width then changes as the form fills in, and the
+buttons stack on a phone.
+
+**A field whose value is wrong is shown in red**, the error colour standing in
+for the focus colour. Pass `wrongField` as its `InputDecoration.error` when the
+blocker is about that field: over a limit, clashing with another field, already
+recorded elsewhere. If two fields clash, mark both. A field that is only
+*empty* is not wrong and stays as it is, or a new form would open in red. A
+field's own validation message still goes in `errorText`.
+
 ## Data layer
 
 `lib/data/tables.dart` is the schema; `app_database.g.dart` is generated, so run

@@ -34,6 +34,11 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- **Wrong values are outlined in red.** In Record movement and Add tags, the
+  field at fault turns red: more head than the mob has, a destination that is
+  the paddock being left, a class that ages into itself, a tag already
+  recorded elsewhere, a typed tag not yet added, more tags than head. A field
+  that is only empty stays as it is, so a new form does not open in red.
 - **Record movement from Activity.** Activity has the same *Record movement*
   button as an open paddock, shown once some property has a paddock. Opened
   from there, the form asks which property first, and chooses it already when
@@ -131,8 +136,13 @@ same commit — a deliberate act, never a side effect of another change.
   and come to rest centred, at the same width, with the title above and Cancel
   beside the main button below. Record movement and Add tags gain that Cancel
   button, having lost the drag handle they were closed by. Where a button is
-  disabled, it still says what is missing. The new property and paddock fields
-  are outlined, like every other field.
+  disabled, a line above it says what is missing. The new property and paddock
+  fields are outlined, like every other field.
+- **What stops a form sits above its buttons, not on one.** Record movement
+  and Add tags used to put the reason in the main button's label, which kept
+  changing width. On a phone the longer reasons stacked the button under
+  Cancel, and at 320 dp they ran out of the button. The button now keeps its
+  own label.
 - **Movement kinds are icons.** The four labels no longer fit the form on a
   phone, so Intake, Move, Age and End are icons alone, named on hover or long
   press. Age is now a clock turning forward rather than a cake, in the form

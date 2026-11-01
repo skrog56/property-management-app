@@ -57,6 +57,15 @@ extension on MovementKind {
   bool get takesTo => this != MovementKind.endState;
 }
 
+/// The fields a blocker can find wrong. One that is only empty is not wrong,
+/// or the form would open in red.
+enum _Field { head, toPaddock, toClass, tags }
+
+typedef _Blocker = ({String reason, Set<_Field> wrong});
+
+_Blocker _blocked(String reason, [Set<_Field> wrong = const {}]) =>
+    (reason: reason, wrong: wrong);
+
 class _MovementDialog extends StatefulWidget {
   const _MovementDialog({
     required this.repository,
@@ -247,30 +256,46 @@ class _MovementDialogState extends State<_MovementDialog> {
     return parts.isEmpty ? null : parts.join(' · ');
   }
 
-  String? get _blocker {
-    if (_propertyId == null) return 'Choose a property';
+  _Blocker? get _blocker {
+    if (_propertyId == null) return _blocked('Choose a property');
     final head = _headValue;
-    if (head == null || head <= 0) return 'Enter a head count';
-    if (_kind.takesFrom && _fromPaddockId == null) return 'Choose a paddock';
-    if (_kind.takesFrom && _fromClassId == null) return 'Choose a mob';
-    if (_kind.takesFrom && head > _available) {
-      return 'Only $_available head available';
+    if (head == null || head <= 0) return _blocked('Enter a head count');
+    if (_kind.takesFrom && _fromPaddockId == null) {
+      return _blocked('Choose a paddock');
     }
-    if (_kind.takesTo && _toPaddockId == null) return 'Choose a destination';
-    if (_kind.takesTo && _toClassId == null) return 'Choose a class';
+    if (_kind.takesFrom && _fromClassId == null) {
+      return _blocked('Choose a mob');
+    }
+    if (_kind.takesFrom && head > _available) {
+      return _blocked('Only $_available head available', {_Field.head});
+    }
+    if (_kind.takesTo && _toPaddockId == null) {
+      return _blocked('Choose a destination');
+    }
+    if (_kind.takesTo && _toClassId == null) return _blocked('Choose a class');
     if (_kind == MovementKind.move && _fromPaddockId == _toPaddockId) {
-      return 'Pick a different destination paddock';
+      return _blocked('Pick a different destination paddock', {
+        _Field.toPaddock,
+      });
     }
     if (_kind == MovementKind.age && _fromClassId == _toClassId) {
-      return 'Pick a different class to age into';
+      return _blocked('Pick a different class to age into', {_Field.toClass});
     }
-    if (_tags.draft.trim().isNotEmpty) return 'Finish the typed tag';
-    if (_tags.pending) return 'Checking tags…';
-    if (_tags.hasElsewhere) return 'Remove tags recorded elsewhere';
-    if (_tags.chosen.length > head) return 'More tags than head';
+    if (_tags.draft.trim().isNotEmpty) {
+      return _blocked('Finish the typed tag', {_Field.tags});
+    }
+    if (_tags.pending) return _blocked('Checking tags…');
+    if (_tags.hasElsewhere) {
+      return _blocked('Remove tags recorded elsewhere', {_Field.tags});
+    }
+    if (_tags.chosen.length > head) {
+      return _blocked('More tags than head', {_Field.head, _Field.tags});
+    }
     if (_kind.takesFrom) {
       final short = head - _tags.carried - _untagged;
-      if (short > 0) return 'Select $short more ${short == 1 ? 'tag' : 'tags'}';
+      if (short > 0) {
+        return _blocked('Select $short more ${short == 1 ? 'tag' : 'tags'}');
+      }
     }
     return null;
   }
@@ -315,11 +340,13 @@ class _MovementDialogState extends State<_MovementDialog> {
     }
 
     final blocker = _blocker;
+    final wrong = blocker?.wrong ?? const {};
 
     return FormDialog(
       title: 'Record movement',
-      actionLabel: blocker ?? 'Record',
-      onAction: blocker == null && !_saving ? _save : null,
+      actionLabel: 'Record',
+      onAction: _saving ? null : _save,
+      blocker: blocker?.reason,
       children: [
         if (widget.propertyId == null) ...[
           _Dropdown<String>(
@@ -383,6 +410,7 @@ class _MovementDialogState extends State<_MovementDialog> {
           _Dropdown<String>(
             label: _kind == MovementKind.age ? 'Ages into' : 'Class',
             value: _toClassId,
+            wrong: wrong.contains(_Field.toClass),
             onChanged: (id) => setState(() => _toClassId = id),
             items: [
               for (final c in _classes)
@@ -401,6 +429,7 @@ class _MovementDialogState extends State<_MovementDialog> {
             label: _kind == MovementKind.intake ? 'Into' : 'To paddock',
             paddocks: _paddocks,
             value: _toPaddockId,
+            wrong: wrong.contains(_Field.toPaddock),
             onChanged: (id) => setState(() => _toPaddockId = id),
           ),
           const SizedBox(height: 12),
@@ -426,6 +455,7 @@ class _MovementDialogState extends State<_MovementDialog> {
           decoration: InputDecoration(
             labelText: 'Head',
             helperText: _headHelper,
+            error: wrong.contains(_Field.head) ? wrongField : null,
           ),
           onChanged: (_) {
             setState(() {});
@@ -434,10 +464,18 @@ class _MovementDialogState extends State<_MovementDialog> {
         ),
         const SizedBox(height: 12),
         if (!_kind.takesFrom) ...[
-          TagField(selection: _tags, label: 'Tags to add (optional)'),
+          TagField(
+            selection: _tags,
+            label: 'Tags to add (optional)',
+            wrong: wrong.contains(_Field.tags),
+          ),
           const SizedBox(height: 12),
         ] else if (_tags.mob.isNotEmpty) ...[
-          TagPicker(selection: _tags, label: _kind.tagsLabel),
+          TagPicker(
+            selection: _tags,
+            label: _kind.tagsLabel,
+            wrong: wrong.contains(_Field.tags),
+          ),
           const SizedBox(height: 12),
         ],
         TextField(
@@ -455,12 +493,14 @@ class _PaddockField extends StatelessWidget {
     required this.paddocks,
     required this.value,
     required this.onChanged,
+    this.wrong = false,
   });
 
   final String label;
   final List<Paddock> paddocks;
   final String? value;
   final ValueChanged<String?> onChanged;
+  final bool wrong;
 
   @override
   Widget build(BuildContext context) {
@@ -473,6 +513,7 @@ class _PaddockField extends StatelessWidget {
           DropdownMenuItem(value: p.id, child: Text(p.name)),
       ],
       emptyHint: 'No paddocks yet',
+      wrong: wrong,
     );
   }
 }
@@ -484,6 +525,7 @@ class _Dropdown<T> extends StatelessWidget {
     required this.onChanged,
     required this.items,
     required this.emptyHint,
+    this.wrong = false,
   });
 
   final String label;
@@ -491,13 +533,17 @@ class _Dropdown<T> extends StatelessWidget {
   final ValueChanged<T?> onChanged;
   final List<DropdownMenuItem<T>> items;
   final String emptyHint;
+  final bool wrong;
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<T>(
       initialValue: value,
       isExpanded: true,
-      decoration: InputDecoration(labelText: label),
+      decoration: InputDecoration(
+        labelText: label,
+        error: wrong ? wrongField : null,
+      ),
       hint: Text(items.isEmpty ? emptyHint : 'Choose…'),
       items: items,
       onChanged: items.isEmpty ? null : onChanged,

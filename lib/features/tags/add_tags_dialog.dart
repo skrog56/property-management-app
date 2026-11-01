@@ -60,13 +60,18 @@ class _AddTagsDialogState extends State<_AddTagsDialog> {
 
   int get _untagged => widget.mob.head - widget.tagged;
 
-  String? get _blocker {
-    if (_tags.draft.trim().isNotEmpty) return 'Finish the typed tag';
-    if (_tags.chosen.isEmpty) return 'Enter a tag';
-    if (_tags.pending) return 'Checking tags…';
-    if (_tags.hasElsewhere) return 'Remove tags recorded elsewhere';
+  /// [wrong] when the tags entered are at fault, not merely missing.
+  ({String reason, bool wrong})? get _blocker {
+    if (_tags.draft.trim().isNotEmpty) {
+      return (reason: 'Finish the typed tag', wrong: true);
+    }
+    if (_tags.chosen.isEmpty) return (reason: 'Enter a tag', wrong: false);
+    if (_tags.pending) return (reason: 'Checking tags…', wrong: false);
+    if (_tags.hasElsewhere) {
+      return (reason: 'Remove tags recorded elsewhere', wrong: true);
+    }
     if (_tags.chosen.length > _untagged) {
-      return 'Only $_untagged untagged head here';
+      return (reason: 'Only $_untagged untagged head here', wrong: true);
     }
     return null;
   }
@@ -99,10 +104,19 @@ class _AddTagsDialogState extends State<_AddTagsDialog> {
       subtitle:
           '${mob.label} (${mob.livestockClass.ageBand}) in '
           '${widget.paddock.name} · $_untagged of ${mob.head} head untagged',
-      actionLabel: blocker ?? 'Record $count ${count == 1 ? 'tag' : 'tags'}',
-      onAction: blocker == null && !_saving ? _save : null,
+      actionLabel: switch (count) {
+        0 => 'Record tags',
+        1 => 'Record 1 tag',
+        _ => 'Record $count tags',
+      },
+      onAction: _saving ? null : _save,
+      blocker: blocker?.reason,
       children: [
-        TagField(selection: _tags, label: 'Tags'),
+        TagField(
+          selection: _tags,
+          label: 'Tags',
+          wrong: blocker?.wrong ?? false,
+        ),
         const SizedBox(height: 12),
         TextField(
           controller: _note,

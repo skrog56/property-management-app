@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/tables.dart';
 import '../../data/tag_numbers.dart';
+import '../../shell/form_dialog.dart';
 import 'tag_labels.dart';
 
 final _separator = RegExp(r'[,;\t\r\n]');
@@ -121,10 +122,15 @@ class TagField extends StatefulWidget {
     super.key,
     required this.selection,
     this.label = 'Tags (optional)',
+    this.wrong = false,
   });
 
   final TagSelection selection;
   final String label;
+
+  /// Set when the form finds the tags wrong, as against a number the field
+  /// itself rejects.
+  final bool wrong;
 
   @override
   State<TagField> createState() => _TagFieldState();
@@ -179,6 +185,7 @@ class _TagFieldState extends State<TagField> {
                 labelText: widget.label,
                 hintText: 'Type or scan, then Enter',
                 errorText: _error,
+                error: _error == null && widget.wrong ? wrongField : null,
                 errorMaxLines: 3,
                 prefixIcon: _SchemeMenu(
                   scheme: _scheme,
@@ -258,10 +265,18 @@ class _TagFieldState extends State<TagField> {
 /// number selects its tag, and part of one narrows the list, so a mob walking
 /// through a race can be scanned in.
 class TagPicker extends StatefulWidget {
-  const TagPicker({super.key, required this.selection, required this.label});
+  const TagPicker({
+    super.key,
+    required this.selection,
+    required this.label,
+    this.wrong = false,
+  });
 
   final TagSelection selection;
   final String label;
+
+  /// As for [TagField.wrong].
+  final bool wrong;
 
   @override
   State<TagPicker> createState() => _TagPickerState();
@@ -355,6 +370,7 @@ class _TagPickerState extends State<TagPicker> {
                 hintText: 'A whole number, or the end of one',
                 prefixIcon: const Icon(Icons.search),
                 errorText: _error,
+                error: _error == null && widget.wrong ? wrongField : null,
                 errorMaxLines: 3,
               ),
               // Multi-line for the same reason as TagField's.

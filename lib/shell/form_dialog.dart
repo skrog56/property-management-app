@@ -26,6 +26,11 @@ Future<T?> showFormDialog<T>(
   );
 }
 
+/// For [InputDecoration.error]: shows a field in its error colours, as focus
+/// shows it in the primary, without a message of its own. The dialog's
+/// [FormDialog.blocker] says what is wrong.
+const Widget wrongField = SizedBox.shrink();
+
 /// The one shape every form and confirmation takes: a title, a scrolling
 /// body, and a dismiss button beside an optional primary action.
 class FormDialog extends StatelessWidget {
@@ -37,6 +42,7 @@ class FormDialog extends StatelessWidget {
     this.dismissLabel = 'Cancel',
     this.actionLabel,
     this.onAction,
+    this.blocker,
   });
 
   final String title;
@@ -47,9 +53,13 @@ class FormDialog extends StatelessWidget {
   /// Left out, the dialog only informs, and [dismissLabel] closes it.
   final String? actionLabel;
 
-  /// Null disables the action. Forms then name what is missing in
-  /// [actionLabel], rather than leaving a dead button unexplained.
+  /// Null disables the action.
   final VoidCallback? onAction;
+
+  /// What stops the action, shown above the buttons, which disables it.
+  /// Not in [actionLabel]: a label that changes width as the form is filled
+  /// in stacks the buttons on a phone whenever it is long.
+  final String? blocker;
 
   @override
   Widget build(BuildContext context) {
@@ -94,18 +104,36 @@ class FormDialog extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.all(24),
-              child: OverflowBar(
-                alignment: MainAxisAlignment.end,
-                overflowAlignment: OverflowBarAlignment.end,
-                spacing: 8,
-                overflowSpacing: 8,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(dismissLabel),
+                  if (blocker case final blocker?) ...[
+                    Text(
+                      blocker,
+                      textAlign: TextAlign.end,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  OverflowBar(
+                    alignment: MainAxisAlignment.end,
+                    overflowAlignment: OverflowBarAlignment.end,
+                    spacing: 8,
+                    overflowSpacing: 8,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text(dismissLabel),
+                      ),
+                      if (actionLabel case final label?)
+                        FilledButton(
+                          onPressed: blocker == null ? onAction : null,
+                          child: Text(label),
+                        ),
+                    ],
                   ),
-                  if (actionLabel case final label?)
-                    FilledButton(onPressed: onAction, child: Text(label)),
                 ],
               ),
             ),

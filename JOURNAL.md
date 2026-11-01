@@ -7,6 +7,51 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-01 — Blockers above the buttons, wrong fields in red
+
+### What happened
+
+This closes the stacking item left open below, though not quite as reported.
+Measured with the real Roboto font, "Enter a head count" fits beside Cancel at
+360 dp with 38 dp to spare. It does too in Ubuntu, which the Linux build falls
+back to on a host without Roboto, and is only 3 dp wider. What did stack at
+360 dp were the three longest blockers ("Pick a different destination
+paddock" and two others). At 320 dp most of them stacked, and the longest
+wrapped onto two lines inside a 40 dp button and ran out of it. The earlier
+screenshot's window probably had less than 360 dp of content, but that was
+not confirmed.
+
+### Decisions
+
+- **The reason moved out of the button.** `FormDialog` takes a `blocker`,
+  shown in a line above the buttons, and it disables the action. The button
+  keeps "Record", so its width no longer depends on what the form is missing.
+  Shortening the labels was rejected: any text in the button can grow.
+- **Wrong fields are red, empty ones are not.** The user asked for the field
+  behind a blockage to be highlighted like focus, in red. A fresh movement
+  form is already blocked on "Enter a head count", so marking every blocking
+  field would open forms in red. The user chose to mark only wrong values.
+  Marking empty fields after they have been visited was the other option,
+  rejected as state to track for little gain. The rule is in `CLAUDE.md`.
+- **Material's error state, not a hand-drawn border.** `wrongField`, an empty
+  widget passed as `InputDecoration.error`, turns the outline and label red
+  through the theme, as `errorText` already does on TagField and the Replace
+  dialog. It hides a field's helper text while it is wrong. For Head, that
+  helper is the count the blocker already names.
+- **More tags than head marks both fields**, since either can be the mistake.
+- **Add tags with nothing entered reads "Record tags"** rather than "Record 0
+  tags".
+
+### Open
+
+- The dialog grows by one line when blocked and shrinks when it is not, which
+  moves the buttons slightly as the last field is filled in.
+- Cancel tag still disables its button without a blocker. Its reason
+  dropdown's hint says "Choose a reason", so it was left alone.
+- Still not looked at on a device.
+
+---
+
 ## 2026-11-01 — Room for the bar's labels
 
 ### What happened
