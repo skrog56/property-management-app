@@ -255,8 +255,13 @@ ends.
 Widget tests draw text in a test font whose every glyph is a full square, so a
 test can't tell whether text fits. Asserting no layout exception is not enough.
 To check fit, load the real font, as `test/bottom_bar_labels_test.dart` loads
-the SDK's Roboto, and keep that test in its own file: a loaded font lasts for
-the file's isolate.
+the bundled Roboto from `assets/fonts/`, and keep that test in its own file: a
+loaded font lasts for the file's isolate.
+
+Roboto is bundled under its own family name and deliberately **not** set in the
+theme. Linux, Android and web ask for Roboto by default and get the bundled
+copy; Windows and Apple platforms ask for their system fonts and keep them.
+Setting `fontFamily` in `buildTheme` would override those too.
 
 Text with inline links is `Text.rich` with `WidgetSpan`s, which
 `find.textContaining` reads as a placeholder. Use `findRichText`, which puts

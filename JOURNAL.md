@@ -7,6 +7,42 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-01 — Roboto bundled for Linux
+
+### What happened
+
+The Linux build looked different from the web build, and from one Linux host
+to the next. Flutter's Linux text theme (`Typography.blackHelsinki`) asks for
+Roboto, then Ubuntu, Adwaita Sans, Cantarell, DejaVu Sans, Liberation Sans and
+Arial. Ubuntu 24.04 ships no Roboto, so the app drew in Ubuntu; Fedora would
+give Adwaita Sans or Cantarell, a minimal install DejaVu.
+
+Regular, Medium and Bold (the 400 and 500 of the M3 type scale, and the one
+`FontWeight.bold`) are copied from the SDK's `material_fonts` cache into
+`assets/fonts/`, with its Apache 2.0 licence, which is registered with
+`LicenseRegistry`. The bottom-bar fit test now loads the bundled Medium rather
+than the SDK's copy, so it measures what ships, and no longer needs
+`FLUTTER_ROOT`.
+
+### Decided
+
+- **Bundled under the family name `Roboto`, not set in the theme.** Bundled
+  fonts are looked up before system ones, so every platform whose default
+  already asks for Roboto (Linux, Android, web) gets this copy, while Windows
+  (Segoe UI) and Apple platforms (San Francisco) keep their own. Setting
+  `fontFamily` in `buildTheme` would have made every target identical, at the
+  cost of looking foreign on Windows and Apple. The user chose the fallback.
+- **Web stops fetching Roboto from Google Fonts.** Its engine adds the CDN copy
+  only when the font manifest has no Roboto. It still fetches Noto from there
+  for glyphs Roboto lacks, such as emoji.
+- About 515 KB added to every bundle, Windows and Apple ones included, which
+  never draw it.
+
+### Open
+
+- Not yet looked at in the running Linux app; checked through the built
+  `FontManifest.json` for Linux and web.
+
 ## 2026-11-01 — Blockers above the buttons, wrong fields in red
 
 ### What happened

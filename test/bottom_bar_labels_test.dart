@@ -8,12 +8,9 @@ import 'package:property_management_app/app/router.dart';
 import 'package:property_management_app/shell/adaptive_scaffold.dart';
 
 // Widget tests draw text in a font whose every glyph is a full square, so
-// widths mean nothing until the real one is loaded. It ships with the SDK.
+// widths mean nothing until the real one is loaded: the copy the app bundles.
 Future<void> _loadRoboto() async {
-  final file = File(
-    '${Platform.environment['FLUTTER_ROOT']}'
-    '/bin/cache/artifacts/material_fonts/Roboto-Medium.ttf',
-  );
+  final file = File('assets/fonts/Roboto-Medium.ttf');
   final bytes = await file.readAsBytes();
   await (FontLoader(
     'Roboto',

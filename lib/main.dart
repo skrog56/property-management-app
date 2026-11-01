@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'app/app.dart';
@@ -12,6 +14,11 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
   if (devMode) DevLog.instance.install();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(const [
+      'Roboto',
+    ], await rootBundle.loadString('assets/fonts/Roboto_LICENSE.txt'));
+  });
 
   final repository = LivestockRepository(AppDatabase.defaults());
   await repository.seedTemplatesIfEmpty();

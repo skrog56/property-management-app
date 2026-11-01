@@ -182,6 +182,11 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Fixed
 
+- **Linux shows the same font on every machine.** The app now carries Roboto,
+  the font Material asks for on Linux, instead of falling back to whatever the
+  distro has installed (Ubuntu, Cantarell, DejaVu Sans…). Android and web were
+  already in Roboto and look the same; web no longer fetches it from Google
+  Fonts. Windows and Apple platforms keep their system fonts.
 - **The movement form no longer calls a full list empty.** Before anything was
   chosen, *Mob* read "This paddock is empty" and *To paddock* "No paddocks yet",
   whatever the paddock held. They now read "Choose…", and say a list is empty
