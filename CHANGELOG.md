@@ -129,6 +129,10 @@ same commit — a deliberate act, never a side effect of another change.
   button, having lost the drag handle they were closed by. Where a button is
   disabled, it still says what is missing. The new property and paddock fields
   are outlined, like every other field.
+- **Movement kinds are icons.** The four labels no longer fit the form on a
+  phone, so Intake, Move, Age and End are icons alone, named on hover or long
+  press. Age is now a clock turning forward rather than a cake, in the form
+  and in Activity.
 - **Activity names tags.** Entries list the tags a movement carried, each
   linking to its page, and tag events read as what happened to the tags.
 - **The local database upgrades itself** the first time this version opens it,
@@ -164,6 +168,10 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Fixed
 
+- **The movement form no longer calls a full list empty.** Before anything was
+  chosen, *Mob* read "This paddock is empty" and *To paddock* "No paddocks yet",
+  whatever the paddock held. They now read "Choose…", and say a list is empty
+  only when it is.
 - **A property's action button is *Add paddock*, however many it has.** Once a
   property had one paddock, the button became *Record movement* and adding
   another fell to a bare `+` in the far corner of the app bar, easy to miss.

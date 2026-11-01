@@ -117,10 +117,20 @@ void main() {
 
   Finder record() => find.widgetWithText(FilledButton, 'Record');
 
+  testPage('says a list is empty only when it is', (tester) async {
+    await openForm(tester);
+
+    expect(find.text('No paddocks yet'), findsNothing);
+    expect(find.text('Choose a paddock first'), findsOne);
+
+    await pick(tester, 'From paddock', 'Creek Flat');
+    expect(find.text('This paddock is empty'), findsOne);
+  });
+
   testPage('records an intake and closes', (tester) async {
     await openForm(tester);
 
-    await tester.tap(find.text('Intake'));
+    await tester.tap(find.byTooltip('Intake'));
     await drain(tester);
 
     await pick(tester, 'Class', 'Calves (under 6 months)');
@@ -146,7 +156,7 @@ void main() {
     expect(record(), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Choose a property'), findsOne);
 
-    await tester.tap(find.text('Intake'));
+    await tester.tap(find.byTooltip('Intake'));
     await drain(tester);
     await pick(tester, 'Property', 'Riverbend Downs');
     await pick(tester, 'Into', 'North Ridge');
@@ -217,7 +227,7 @@ void main() {
     );
 
     await openForm(tester);
-    await tester.tap(find.text('Age'));
+    await tester.tap(find.byTooltip('Age'));
     await drain(tester);
 
     await pick(tester, 'From paddock', 'North Ridge');
@@ -238,7 +248,7 @@ void main() {
   group('tags', () {
     testPage('an intake records scanned tags, one head each', (tester) async {
       await openForm(tester);
-      await tester.tap(find.text('Intake'));
+      await tester.tap(find.byTooltip('Intake'));
       await drain(tester);
       await pick(tester, 'Class', 'Calves (under 6 months)');
       await pick(tester, 'Into', 'North Ridge');
@@ -334,7 +344,7 @@ void main() {
       );
 
       await openForm(tester);
-      await tester.tap(find.text('Intake'));
+      await tester.tap(find.byTooltip('Intake'));
       await drain(tester);
       await pick(tester, 'Class', 'Calves (under 6 months)');
       await pick(tester, 'Into', 'North Ridge');
@@ -351,7 +361,7 @@ void main() {
       tester,
     ) async {
       await openForm(tester);
-      await tester.tap(find.text('Intake'));
+      await tester.tap(find.byTooltip('Intake'));
       await drain(tester);
       await pick(tester, 'Class', 'Calves (under 6 months)');
       await pick(tester, 'Into', 'North Ridge');
@@ -390,7 +400,7 @@ void main() {
 
     testPage('an intake only adds, and offers nothing to pick', (tester) async {
       await openForm(tester);
-      await tester.tap(find.text('Intake'));
+      await tester.tap(find.byTooltip('Intake'));
       await drain(tester);
 
       expect(find.text('Tags to add (optional)'), findsOneWidget);
@@ -484,7 +494,7 @@ void main() {
       );
 
       await openForm(tester);
-      await tester.tap(find.text('End'));
+      await tester.tap(find.byTooltip('End'));
       await drain(tester);
       await pick(tester, 'From paddock', 'North Ridge');
       await pick(tester, 'Mob', '10 × Calves (under 6 months)');
@@ -511,10 +521,10 @@ void main() {
       );
 
       await openForm(tester);
-      await tester.tap(find.text('Intake'));
+      await tester.tap(find.byTooltip('Intake'));
       await drain(tester);
       await scan(tester, '999000000000001');
-      await tester.tap(find.text('Move'));
+      await tester.tap(find.byTooltip('Move'));
       await drain(tester);
       await pick(tester, 'From paddock', 'North Ridge');
       await pick(tester, 'Mob', '3 × Calves (under 6 months)');

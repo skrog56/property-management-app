@@ -110,7 +110,7 @@ class ActivityTile extends StatelessWidget {
           switch (movement.kind) {
             MovementKind.intake => Icons.add_circle_outline,
             MovementKind.move => Icons.swap_horiz,
-            MovementKind.age => Icons.cake_outlined,
+            MovementKind.age => Icons.update,
             MovementKind.endState => Icons.local_shipping_outlined,
             MovementKind.tag => Icons.sell_outlined,
           },

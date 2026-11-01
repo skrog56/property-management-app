@@ -7,6 +7,38 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-01 — The dialogs, seen
+
+### What happened
+
+The entry below left the dialogs unchecked by eye. A throwaway driver booted
+the real Linux build on an in-memory sample farm, tapped through each dialog
+with synthesized pointer events, and screenshotted the window at desktop and
+phone widths. Everything looked as intended except the movement form, where
+two problems showed.
+
+### Decisions
+
+- **Movement kinds became icons alone.** At phone width the four segment
+  labels broke letter by letter, since the dialog leaves about 40 pixels less
+  than the bottom sheet did. Dropping the icons and keeping the words was the
+  other option. The user chose icons, and tooltips keep the names. The
+  selected segment no longer swaps its icon for a tick, which had hidden the
+  Move icon entirely and was part of why it looked wrong.
+- **Age is a clock turning forward** (`Icons.update`), not a cake. The clock
+  with the arrow turning back is `Icons.history`, already Activity's in the
+  navigation.
+- **The placeholder bug predated all of this.** Every dropdown in the form
+  showed its empty-list message as its hint, so an unchosen *Mob* claimed the
+  paddock was empty. It had been there since the ledger landed on 2026-09-25,
+  and no test looked at a hint before a choice. One does now.
+
+### Open
+
+- At 360 pixels the dialog's buttons stack, because a disabled action's
+  label, such as "Enter a head count", is too long to sit beside Cancel.
+- The bottom navigation's labels wrap at phone width ("Properti/es").
+
 ## 2026-10-25 — One dialog for every form
 
 ### What prompted it

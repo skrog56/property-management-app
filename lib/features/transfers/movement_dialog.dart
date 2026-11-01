@@ -42,7 +42,7 @@ extension on MovementKind {
   IconData get icon => switch (this) {
     MovementKind.intake => Icons.add_circle_outline,
     MovementKind.move => Icons.swap_horiz,
-    MovementKind.age => Icons.cake_outlined,
+    MovementKind.age => Icons.update,
     MovementKind.endState => Icons.local_shipping_outlined,
     MovementKind.tag => Icons.sell_outlined,
   };
@@ -334,15 +334,18 @@ class _MovementDialogState extends State<_MovementDialog> {
           ),
           const SizedBox(height: 16),
         ],
+        // Icons alone: four labels do not fit a phone-width dialog. A tick in
+        // place of the selected icon would hide which kind it is.
         SegmentedButton<MovementKind>(
           segments: [
             for (final kind in _recordable)
               ButtonSegment(
                 value: kind,
-                label: Text(kind.label),
                 icon: Icon(kind.icon),
+                tooltip: kind.label,
               ),
           ],
+          showSelectedIcon: false,
           selected: {_kind},
           onSelectionChanged: (s) => _selectKind(s.first),
         ),
@@ -495,7 +498,7 @@ class _Dropdown<T> extends StatelessWidget {
       initialValue: value,
       isExpanded: true,
       decoration: InputDecoration(labelText: label),
-      hint: Text(emptyHint),
+      hint: Text(items.isEmpty ? emptyHint : 'Choose…'),
       items: items,
       onChanged: items.isEmpty ? null : onChanged,
     );
