@@ -20,11 +20,29 @@ const _destinations = [
   ),
 ];
 
+const _withSecondary = [
+  ..._destinations,
+  AppDestination(
+    label: 'Templates',
+    icon: Icons.list_alt_outlined,
+    selectedIcon: Icons.list_alt,
+    secondary: true,
+  ),
+  AppDestination(
+    label: 'Developer',
+    icon: Icons.developer_mode_outlined,
+    selectedIcon: Icons.developer_mode,
+    secondary: true,
+  ),
+];
+
 /// Renders the shell at a specific window width, the way a resized desktop
 /// window or a rotated tablet would present it.
 Future<void> _pumpAtWidth(
   WidgetTester tester,
   double width, {
+  List<AppDestination> destinations = _destinations,
+  int selectedIndex = 0,
   ValueChanged<int>? onDestinationSelected,
 }) async {
   tester.view.devicePixelRatio = 1.0;
@@ -34,8 +52,8 @@ Future<void> _pumpAtWidth(
   await tester.pumpWidget(
     MaterialApp(
       home: AdaptiveScaffold(
-        destinations: _destinations,
-        selectedIndex: 0,
+        destinations: destinations,
+        selectedIndex: selectedIndex,
         onDestinationSelected: onDestinationSelected ?? (_) {},
         body: const Center(child: Text('body')),
         title: 'App',
@@ -159,6 +177,83 @@ void main() {
         await _pumpAtWidth(tester, width);
         expect(find.text('body'), findsOneWidget, reason: 'at ${width}px');
       }
+    });
+
+    group('with secondary destinations', () {
+      Finder inBar(String label) => find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text(label),
+      );
+
+      testWidgets('puts them behind More on a compact window', (tester) async {
+        await _pumpAtWidth(tester, 420, destinations: _withSecondary);
+
+        for (final label in ['Platform', 'Paddocks', 'About', 'More']) {
+          expect(inBar(label), findsOneWidget, reason: label);
+        }
+        expect(find.text('Templates'), findsNothing);
+        expect(find.text('Developer'), findsNothing);
+      });
+
+      testWidgets('opens one from the More sheet', (tester) async {
+        final tapped = <int>[];
+        await _pumpAtWidth(
+          tester,
+          420,
+          destinations: _withSecondary,
+          onDestinationSelected: tapped.add,
+        );
+
+        await tester.tap(find.text('More'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Developer'));
+        await tester.pumpAndSettle();
+
+        expect(tapped, [4]);
+        expect(find.byType(BottomSheet), findsNothing);
+      });
+
+      testWidgets('selects More while one is showing', (tester) async {
+        await _pumpAtWidth(
+          tester,
+          420,
+          destinations: _withSecondary,
+          selectedIndex: 3,
+        );
+
+        final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+        expect(bar.selectedIndex, 3);
+        expect(
+          find.descendant(
+            of: find.byType(AppBar),
+            matching: find.text('Templates'),
+          ),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text('More'));
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<ListTile>(find.widgetWithText(ListTile, 'Templates'))
+              .selected,
+          isTrue,
+        );
+      });
+
+      testWidgets('lists them with the rest on the rails', (tester) async {
+        for (final width in [700.0, 1000.0]) {
+          await _pumpAtWidth(tester, width, destinations: _withSecondary);
+
+          expect(
+            find.text('Templates'),
+            findsOneWidget,
+            reason: 'at ${width}px',
+          );
+          expect(find.text('More'), findsNothing, reason: 'at ${width}px');
+        }
+      });
     });
   });
 }

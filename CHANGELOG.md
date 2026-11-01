@@ -122,6 +122,10 @@ same commit — a deliberate act, never a side effect of another change.
 ### Changed
 
 - Navigation is now Properties, Activity, Tags, Templates, About.
+- **The phone's navigation bar is Properties, Activity, Tags and More.**
+  More lists Templates and About, and shows as selected while either is open.
+  With every destination in the bar, the labels had too little room and broke
+  mid-word ("Properti/es"). Wider windows still list them all in the rail.
 - **One look for every form and dialog.** Record movement, Add tags, new
   property and paddock, Replace tag and Cancel tag all rise from the bottom edge
   and come to rest centred, at the same width, with the title above and Cancel

@@ -7,6 +7,44 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-01 — Room for the bar's labels
+
+### What happened
+
+This closes the label-wrapping item left open below. A `NavigationBar` divides
+its width equally, so a 360 dp phone gave each of six debug destinations 60 dp,
+and "Properties" needs 61. Release builds, with five, had 72 dp and only just
+fitted, so a 320 dp screen or a narrow browser tab would still wrap.
+
+### Decisions
+
+- **Fewer destinations, not smaller labels.** At compact width the bar holds
+  Properties, Activity and Tags, and a More item opens a sheet of the rest.
+  That leaves 80 dp a slot at 320 dp. Material caps the bar at five
+  destinations anyway. The rejected options were shorter labels (a few dp,
+  and "Properties" is the right word), `FittedBox` (labels of different
+  sizes), labels on the selected item only (it still wraps), and an app bar
+  overflow menu (the Properties and Tags browsers draw their own bars, so each
+  would need a copy).
+- **Templates went under More with About and Developer**, being read-only for
+  now. Which destinations go there is a `secondary` flag on `AppDestination`,
+  set in the router, so the shell does only the layout.
+- **Labels truncate rather than wrap**, as a backstop for large text. The bar
+  clamps text scale at 1.3, which can still overrun a slot. Setting
+  `labelTextStyle` replaces the M3 default, so its colours are repeated.
+- **The test that said six destinations fit was wrong.** It checked only for a
+  layout exception, and widget tests draw every glyph as a full square, so it
+  could not see a wrap. `test/bottom_bar_labels_test.dart` loads the SDK's
+  Roboto Medium, the font `labelMedium` uses, and measures every real label
+  at 320 dp.
+
+### Open
+
+- The dialog buttons stacking at 360 dp, from the entry below, is untouched.
+- Not yet looked at on a device.
+
+---
+
 ## 2026-11-01 — The dialogs, seen
 
 ### What happened

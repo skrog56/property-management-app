@@ -95,6 +95,7 @@ List<HomeDestination> homeDestinations({bool developer = devMode}) => [
       label: 'Templates',
       icon: Icons.list_alt_outlined,
       selectedIcon: Icons.list_alt,
+      secondary: true,
     ),
     route: GoRoute(
       path: '/templates',
@@ -107,6 +108,7 @@ List<HomeDestination> homeDestinations({bool developer = devMode}) => [
         label: 'Developer',
         icon: Icons.developer_mode_outlined,
         selectedIcon: Icons.developer_mode,
+        secondary: true,
       ),
       route: GoRoute(
         path: '/developer',
@@ -118,6 +120,7 @@ List<HomeDestination> homeDestinations({bool developer = devMode}) => [
       label: 'About',
       icon: Icons.info_outline,
       selectedIcon: Icons.info,
+      secondary: true,
     ),
     route: GoRoute(path: '/about', builder: (_, _) => const AboutPage()),
   ),

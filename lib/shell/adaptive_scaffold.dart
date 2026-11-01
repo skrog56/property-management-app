@@ -9,11 +9,16 @@ class AppDestination {
     required this.label,
     required this.icon,
     required this.selectedIcon,
+    this.secondary = false,
   });
 
   final String label;
   final IconData icon;
   final IconData selectedIcon;
+
+  /// Behind More in the bottom bar, which has too little width for every
+  /// destination's label. The rails list it with the rest.
+  final bool secondary;
 }
 
 /// Scaffold that swaps its navigation affordance based on window width alone.
@@ -64,17 +69,10 @@ class AdaptiveScaffold extends StatelessWidget {
           return Scaffold(
             appBar: appBar,
             body: body,
-            bottomNavigationBar: NavigationBar(
+            bottomNavigationBar: _BottomBar(
+              destinations: destinations,
               selectedIndex: selectedIndex,
               onDestinationSelected: onDestinationSelected,
-              destinations: [
-                for (final d in destinations)
-                  NavigationDestination(
-                    icon: Icon(d.icon),
-                    selectedIcon: Icon(d.selectedIcon),
-                    label: d.label,
-                  ),
-              ],
             ),
           );
         }
@@ -116,6 +114,92 @@ class AdaptiveScaffold extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _BottomBar extends StatelessWidget {
+  const _BottomBar({
+    required this.destinations,
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+  });
+
+  final List<AppDestination> destinations;
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final primary = [
+      for (final (i, d) in destinations.indexed)
+        if (!d.secondary) i,
+    ];
+    final secondary = [
+      for (final (i, d) in destinations.indexed)
+        if (d.secondary) i,
+    ];
+    final slot = primary.indexOf(selectedIndex);
+
+    return NavigationBar(
+      selectedIndex: slot == -1 ? primary.length : slot,
+      onDestinationSelected: (slot) => slot < primary.length
+          ? onDestinationSelected(primary[slot])
+          : _showMore(context, secondary),
+      // One line, so a label still too wide for its share of the bar
+      // truncates rather than breaking mid-word. This replaces the default
+      // style, whose colours it repeats.
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => theme.textTheme.labelMedium?.copyWith(
+          overflow: TextOverflow.ellipsis,
+          color: states.contains(WidgetState.selected)
+              ? colors.onSurface
+              : colors.onSurfaceVariant,
+        ),
+      ),
+      destinations: [
+        for (final i in primary)
+          NavigationDestination(
+            icon: Icon(destinations[i].icon),
+            selectedIcon: Icon(destinations[i].selectedIcon),
+            label: destinations[i].label,
+          ),
+        if (secondary.isNotEmpty)
+          const NavigationDestination(
+            icon: Icon(Icons.more_horiz),
+            label: 'More',
+          ),
+      ],
+    );
+  }
+
+  Future<void> _showMore(BuildContext context, List<int> secondary) {
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final i in secondary)
+              ListTile(
+                leading: Icon(
+                  i == selectedIndex
+                      ? destinations[i].selectedIcon
+                      : destinations[i].icon,
+                ),
+                title: Text(destinations[i].label),
+                selected: i == selectedIndex,
+                onTap: () {
+                  Navigator.pop(sheet);
+                  onDestinationSelected(i);
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

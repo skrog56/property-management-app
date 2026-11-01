@@ -237,6 +237,12 @@ given location. After navigating, use `settle(tester)` rather than `drain`: a
 page transition outlasts `drain`, and the page beneath stays onstage until it
 ends.
 
+Widget tests draw text in a test font whose every glyph is a full square, so a
+test can't tell whether text fits. Asserting no layout exception is not enough.
+To check fit, load the real font, as `test/bottom_bar_labels_test.dart` loads
+the SDK's Roboto, and keep that test in its own file: a loaded font lasts for
+the file's isolate.
+
 Text with inline links is `Text.rich` with `WidgetSpan`s, which
 `find.textContaining` reads as a placeholder. Use `findRichText`, which puts
 the link text back.

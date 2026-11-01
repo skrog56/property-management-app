@@ -44,7 +44,9 @@ void main() {
       ]);
     });
 
-    testPage('six destinations fit a phone in debug builds', (tester) async {
+    testPage('a phone reaches Developer through More in debug builds', (
+      tester,
+    ) async {
       final db = AppDatabase(NativeDatabase.memory());
       addTearDown(db.close);
 
@@ -56,7 +58,24 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
-      expect(find.byType(NavigationDestination), findsNWidgets(6));
+      expect(find.byType(NavigationDestination), findsNWidgets(4));
+
+      await tester.tap(find.text('More'));
+      await settle(tester);
+      await tester.tap(find.text('Developer'));
+      await settle(tester);
+
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Developer'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        3,
+      );
     });
   });
 
