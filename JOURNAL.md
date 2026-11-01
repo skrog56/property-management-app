@@ -38,10 +38,12 @@ than the SDK's copy, so it measures what ships, and no longer needs
 - About 515 KB added to every bundle, Windows and Apple ones included, which
   never draw it.
 
+Checked through the built `FontManifest.json` for Linux and web, and by eye in
+the running Linux release build on Ubuntu 24.04, which drew in Roboto.
+
 ### Open
 
-- Not yet looked at in the running Linux app; checked through the built
-  `FontManifest.json` for Linux and web.
+- Not yet seen on Windows or Apple platforms, where it should change nothing.
 
 ## 2026-11-01 — Blockers above the buttons, wrong fields in red
 
