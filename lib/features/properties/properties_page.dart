@@ -12,12 +12,9 @@ import 'property_page.dart';
 /// The top of the three tiers: properties, then their paddocks, then the
 /// livestock standing in one paddock.
 class PropertiesPage extends StatelessWidget {
-  const PropertiesPage({super.key, this.selectedId, this.primary = true});
+  const PropertiesPage({super.key, this.selectedId});
 
   final String? selectedId;
-
-  /// Whether this is the deepest tier on screen, and so owns the action button.
-  final bool primary;
 
   @override
   Widget build(BuildContext context) {
@@ -35,13 +32,11 @@ class PropertiesPage extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: Colors.transparent,
-          floatingActionButton: primary
-              ? ActionButton(
-                  icon: Icons.add,
-                  label: 'Add property',
-                  onPressed: () => addProperty(context, repository),
-                )
-              : null,
+          floatingActionButton: ActionButton(
+            icon: Icons.add,
+            label: 'Add property',
+            onPressed: () => addProperty(context, repository),
+          ),
           body: LayoutBuilder(
             builder: (context, constraints) {
               final sizeClass = WindowSizeClass.fromWidth(constraints.maxWidth);

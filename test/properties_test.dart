@@ -7,7 +7,9 @@ import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/tables.dart';
 import 'package:property_management_app/data/tag_numbers.dart';
+import 'package:property_management_app/features/properties/paddock_page.dart';
 import 'package:property_management_app/features/properties/properties_page.dart';
+import 'package:property_management_app/features/properties/property_page.dart';
 import 'package:property_management_app/shell/adaptive_scaffold.dart';
 
 import 'support.dart';
@@ -365,20 +367,33 @@ void main() {
       expect(await repo.paddocksIn(id.property), hasLength(3));
     });
 
-    testPage('an open paddock owns the action button', (tester) async {
+    testPage('each tier keeps its action button in its own column', (
+      tester,
+    ) async {
       final id = await ids();
       await pumpRouted(
         tester,
         repository: repo,
-        location: '/properties/${id.property}/paddocks/${id.north}',
+        location: '/properties/${id.property}',
         width: 1900,
       );
 
-      expect(
-        find.widgetWithText(FloatingActionButton, 'Record movement'),
-        findsOneWidget,
-      );
-      expect(find.text('Add paddock'), findsNothing);
+      await tester.tap(find.text('North Ridge'));
+      await settle(tester);
+
+      for (final (label, page) in [
+        ('Add property', PropertiesPage),
+        ('Add paddock', PropertyPage),
+        ('Record movement', PaddockPage),
+      ]) {
+        final button = find.widgetWithText(FloatingActionButton, label);
+        expect(button, findsOneWidget, reason: label);
+        expect(
+          tester.getTopRight(button).dx,
+          tester.getTopRight(find.byType(page)).dx - 16,
+          reason: label,
+        );
+      }
     });
 
     testPage('a deep link on a very wide window opens all three tiers', (

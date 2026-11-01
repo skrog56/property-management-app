@@ -38,15 +38,11 @@ class PropertiesBrowser extends StatelessWidget {
         final depth = _depth;
 
         final tiers = <Widget>[
-          PropertiesPage(selectedId: propertyId, primary: depth == 0),
+          PropertiesPage(selectedId: propertyId),
           if (propertyId case final pid?)
-            PropertyPage(
-              propertyId: pid,
-              selectedPaddockId: paddockId,
-              primary: depth == 1,
-            ),
+            PropertyPage(propertyId: pid, selectedPaddockId: paddockId),
           if (paddockId case final kid?)
-            PaddockPage(paddockId: kid, propertyId: propertyId, primary: true),
+            PaddockPage(paddockId: kid, propertyId: propertyId),
         ];
 
         final visible = tiers.sublist(max(0, tiers.length - panes));

@@ -17,14 +17,10 @@ class PropertyPage extends StatelessWidget {
     super.key,
     required this.propertyId,
     this.selectedPaddockId,
-    this.primary = true,
   });
 
   final String propertyId;
   final String? selectedPaddockId;
-
-  /// Whether this is the deepest tier on screen, and so owns the action button.
-  final bool primary;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +45,7 @@ class PropertyPage extends StatelessWidget {
 
             return Scaffold(
               backgroundColor: Colors.transparent,
-              floatingActionButton: summaries == null || !primary
+              floatingActionButton: summaries == null
                   ? null
                   : ActionButton(
                       icon: Icons.add,

@@ -13,21 +13,13 @@ import '../transfers/movement_dialog.dart';
 
 /// The bottom tier: everything standing in one paddock, and how it got there.
 class PaddockPage extends StatelessWidget {
-  const PaddockPage({
-    super.key,
-    required this.paddockId,
-    this.propertyId,
-    this.primary = true,
-  });
+  const PaddockPage({super.key, required this.paddockId, this.propertyId});
 
   final String paddockId;
 
   /// When given, a paddock belonging to another property counts as gone, so a
   /// hand-edited URL cannot show it under the wrong parent.
   final String? propertyId;
-
-  /// Whether this is the deepest tier on screen, and so owns the action button.
-  final bool primary;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +38,7 @@ class PaddockPage extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: Colors.transparent,
-          floatingActionButton: summary == null || !primary
+          floatingActionButton: summary == null
               ? null
               : ActionButton(
                   icon: Icons.swap_horiz,

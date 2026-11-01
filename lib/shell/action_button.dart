@@ -69,6 +69,8 @@ class _ActionButtonState extends State<ActionButton>
 
     if (!sizeClass.usesIconOnlyActions) {
       return FloatingActionButton.extended(
+        // Side-by-side panes each show one, and default hero tags would clash.
+        heroTag: null,
         icon: Icon(widget.icon),
         label: Text(widget.label),
         onPressed: widget.onPressed,
@@ -92,6 +94,7 @@ class _ActionButtonState extends State<ActionButton>
             builder: (context, _) {
               final t = _reveal.value;
               return FloatingActionButton.extended(
+                heroTag: null,
                 isExtended: t > 0,
                 // Equal padding either side of the icon makes the closed
                 // button 56 square, which the stadium shape draws as a circle.

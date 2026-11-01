@@ -7,6 +7,28 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-01 — An action button for every column of Properties
+
+### What happened
+
+Side by side, the Properties tiers showed only the deepest tier's action
+button, so adding a property while a paddock was open meant backing out to it
+first. Each tier now always shows its own button, and since every tier is its
+own `Scaffold`, each lands in the bottom-right corner of its own column. The
+`primary` flag that chose the one button is gone; it had no other use.
+
+### Decided
+
+- **No hero tags on action buttons.** Several floating buttons on one route
+  share the default hero tag, which throws on the next navigation. Each button
+  belongs to its pane, not the route, so it has nothing to fly to. On a phone
+  the buttons now slide with their page rather than holding still between tiers.
+
+### Open
+
+- A 360-wide list pane holds the labelled pill and its grid already leaves room
+  beneath for it, but neither has been looked at on a real wide window yet.
+
 ## 2026-11-01 — Action buttons: a circle on a phone, a pill elsewhere
 
 ### What happened
