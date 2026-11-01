@@ -20,7 +20,7 @@ jobs:
     name: Analyze and test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -76,7 +76,7 @@ jobs:
             artifact: build/ios/iphoneos
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install GTK toolchain
         if: matrix.gtk
@@ -87,7 +87,7 @@ jobs:
 
       - name: Set up JDK 17
         if: matrix.java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
@@ -101,7 +101,7 @@ jobs:
       - run: flutter pub get
       - run: ${{ matrix.build }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.name }}
           path: ${{ matrix.artifact }}
