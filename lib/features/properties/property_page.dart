@@ -236,8 +236,7 @@ class _PaddockCard extends StatelessWidget {
                     else
                       for (final mob in summary.mobs)
                         Text(
-                          '${mob.head} × ${mob.label} '
-                          '(${mob.livestockClass.ageBand})',
+                          '${mob.head} × ${mob.label}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),

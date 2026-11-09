@@ -148,8 +148,8 @@ class _Whereabouts extends StatelessWidget {
             paddockLink(status.paddock!),
             if (status.property case final property?)
               TextSpan(text: ', ${property.name}'),
-            if (status.livestockClass case final c?)
-              TextSpan(text: ' · ${c.kind} (${c.ageBand})'),
+            if (status.stockClass case final c?)
+              TextSpan(text: ' · ${c.label}'),
           ],
         ),
       );

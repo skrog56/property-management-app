@@ -999,6 +999,28 @@ class $TemplatesTable extends Templates
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Species, String> species =
+      GeneratedColumn<String>(
+        'species',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('cattle'),
+      ).withConverter<Species>($TemplatesTable.$converterspecies);
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1007,6 +1029,8 @@ class $TemplatesTable extends Templates
     deletedAt,
     name,
     isBuiltIn,
+    sortOrder,
+    species,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1061,6 +1085,12 @@ class $TemplatesTable extends Templates
         isBuiltIn.isAcceptableOrUnknown(data['is_built_in']!, _isBuiltInMeta),
       );
     }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
     return context;
   }
 
@@ -1094,6 +1124,16 @@ class $TemplatesTable extends Templates
         DriftSqlType.bool,
         data['${effectivePrefix}is_built_in'],
       )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      species: $TemplatesTable.$converterspecies.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}species'],
+        )!,
+      ),
     );
   }
 
@@ -1101,6 +1141,9 @@ class $TemplatesTable extends Templates
   $TemplatesTable createAlias(String alias) {
     return $TemplatesTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<Species, String, String> $converterspecies =
+      const EnumNameConverter<Species>(Species.values);
 }
 
 class Template extends DataClass implements Insertable<Template> {
@@ -1110,6 +1153,11 @@ class Template extends DataClass implements Insertable<Template> {
   final DateTime? deletedAt;
   final String name;
   final bool isBuiltIn;
+  final int sortOrder;
+
+  /// Defaulted only so the column could be added to templates already there,
+  /// every one of them cattle.
+  final Species species;
   const Template({
     required this.id,
     required this.createdAt,
@@ -1117,6 +1165,8 @@ class Template extends DataClass implements Insertable<Template> {
     this.deletedAt,
     required this.name,
     required this.isBuiltIn,
+    required this.sortOrder,
+    required this.species,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1129,6 +1179,12 @@ class Template extends DataClass implements Insertable<Template> {
     }
     map['name'] = Variable<String>(name);
     map['is_built_in'] = Variable<bool>(isBuiltIn);
+    map['sort_order'] = Variable<int>(sortOrder);
+    {
+      map['species'] = Variable<String>(
+        $TemplatesTable.$converterspecies.toSql(species),
+      );
+    }
     return map;
   }
 
@@ -1142,6 +1198,8 @@ class Template extends DataClass implements Insertable<Template> {
           : Value(deletedAt),
       name: Value(name),
       isBuiltIn: Value(isBuiltIn),
+      sortOrder: Value(sortOrder),
+      species: Value(species),
     );
   }
 
@@ -1157,6 +1215,10 @@ class Template extends DataClass implements Insertable<Template> {
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       name: serializer.fromJson<String>(json['name']),
       isBuiltIn: serializer.fromJson<bool>(json['isBuiltIn']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      species: $TemplatesTable.$converterspecies.fromJson(
+        serializer.fromJson<String>(json['species']),
+      ),
     );
   }
   @override
@@ -1169,6 +1231,10 @@ class Template extends DataClass implements Insertable<Template> {
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'name': serializer.toJson<String>(name),
       'isBuiltIn': serializer.toJson<bool>(isBuiltIn),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'species': serializer.toJson<String>(
+        $TemplatesTable.$converterspecies.toJson(species),
+      ),
     };
   }
 
@@ -1179,6 +1245,8 @@ class Template extends DataClass implements Insertable<Template> {
     Value<DateTime?> deletedAt = const Value.absent(),
     String? name,
     bool? isBuiltIn,
+    int? sortOrder,
+    Species? species,
   }) => Template(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -1186,6 +1254,8 @@ class Template extends DataClass implements Insertable<Template> {
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     name: name ?? this.name,
     isBuiltIn: isBuiltIn ?? this.isBuiltIn,
+    sortOrder: sortOrder ?? this.sortOrder,
+    species: species ?? this.species,
   );
   Template copyWithCompanion(TemplatesCompanion data) {
     return Template(
@@ -1195,6 +1265,8 @@ class Template extends DataClass implements Insertable<Template> {
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       name: data.name.present ? data.name.value : this.name,
       isBuiltIn: data.isBuiltIn.present ? data.isBuiltIn.value : this.isBuiltIn,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      species: data.species.present ? data.species.value : this.species,
     );
   }
 
@@ -1206,14 +1278,24 @@ class Template extends DataClass implements Insertable<Template> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('name: $name, ')
-          ..write('isBuiltIn: $isBuiltIn')
+          ..write('isBuiltIn: $isBuiltIn, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('species: $species')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, createdAt, updatedAt, deletedAt, name, isBuiltIn);
+  int get hashCode => Object.hash(
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    name,
+    isBuiltIn,
+    sortOrder,
+    species,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1223,7 +1305,9 @@ class Template extends DataClass implements Insertable<Template> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.name == this.name &&
-          other.isBuiltIn == this.isBuiltIn);
+          other.isBuiltIn == this.isBuiltIn &&
+          other.sortOrder == this.sortOrder &&
+          other.species == this.species);
 }
 
 class TemplatesCompanion extends UpdateCompanion<Template> {
@@ -1233,6 +1317,8 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
   final Value<DateTime?> deletedAt;
   final Value<String> name;
   final Value<bool> isBuiltIn;
+  final Value<int> sortOrder;
+  final Value<Species> species;
   final Value<int> rowid;
   const TemplatesCompanion({
     this.id = const Value.absent(),
@@ -1241,6 +1327,8 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
     this.deletedAt = const Value.absent(),
     this.name = const Value.absent(),
     this.isBuiltIn = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.species = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TemplatesCompanion.insert({
@@ -1250,6 +1338,8 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
     this.deletedAt = const Value.absent(),
     required String name,
     this.isBuiltIn = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.species = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        createdAt = Value(createdAt),
@@ -1262,6 +1352,8 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
     Expression<DateTime>? deletedAt,
     Expression<String>? name,
     Expression<bool>? isBuiltIn,
+    Expression<int>? sortOrder,
+    Expression<String>? species,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1271,6 +1363,8 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (name != null) 'name': name,
       if (isBuiltIn != null) 'is_built_in': isBuiltIn,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (species != null) 'species': species,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1282,6 +1376,8 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
     Value<DateTime?>? deletedAt,
     Value<String>? name,
     Value<bool>? isBuiltIn,
+    Value<int>? sortOrder,
+    Value<Species>? species,
     Value<int>? rowid,
   }) {
     return TemplatesCompanion(
@@ -1291,6 +1387,8 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
       deletedAt: deletedAt ?? this.deletedAt,
       name: name ?? this.name,
       isBuiltIn: isBuiltIn ?? this.isBuiltIn,
+      sortOrder: sortOrder ?? this.sortOrder,
+      species: species ?? this.species,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1316,6 +1414,14 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
     if (isBuiltIn.present) {
       map['is_built_in'] = Variable<bool>(isBuiltIn.value);
     }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (species.present) {
+      map['species'] = Variable<String>(
+        $TemplatesTable.$converterspecies.toSql(species.value),
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1331,6 +1437,8 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
           ..write('deletedAt: $deletedAt, ')
           ..write('name: $name, ')
           ..write('isBuiltIn: $isBuiltIn, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('species: $species, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1424,9 +1532,9 @@ class $LivestockClassesTable extends LivestockClasses
   late final GeneratedColumn<String> ageBand = GeneratedColumn<String>(
     'age_band',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _agesIntoClassIdMeta = const VerificationMeta(
     'agesIntoClassId',
@@ -1439,6 +1547,17 @@ class $LivestockClassesTable extends LivestockClasses
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _readyToSellOfClassIdMeta =
+      const VerificationMeta('readyToSellOfClassId');
+  @override
+  late final GeneratedColumn<String> readyToSellOfClassId =
+      GeneratedColumn<String>(
+        'ready_to_sell_of_class_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -1462,6 +1581,7 @@ class $LivestockClassesTable extends LivestockClasses
     breed,
     ageBand,
     agesIntoClassId,
+    readyToSellOfClassId,
     sortOrder,
   ];
   @override
@@ -1530,8 +1650,6 @@ class $LivestockClassesTable extends LivestockClasses
         _ageBandMeta,
         ageBand.isAcceptableOrUnknown(data['age_band']!, _ageBandMeta),
       );
-    } else if (isInserting) {
-      context.missing(_ageBandMeta);
     }
     if (data.containsKey('ages_into_class_id')) {
       context.handle(
@@ -1539,6 +1657,15 @@ class $LivestockClassesTable extends LivestockClasses
         agesIntoClassId.isAcceptableOrUnknown(
           data['ages_into_class_id']!,
           _agesIntoClassIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ready_to_sell_of_class_id')) {
+      context.handle(
+        _readyToSellOfClassIdMeta,
+        readyToSellOfClassId.isAcceptableOrUnknown(
+          data['ready_to_sell_of_class_id']!,
+          _readyToSellOfClassIdMeta,
         ),
       );
     }
@@ -1588,10 +1715,14 @@ class $LivestockClassesTable extends LivestockClasses
       ageBand: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}age_band'],
-      )!,
+      ),
       agesIntoClassId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}ages_into_class_id'],
+      ),
+      readyToSellOfClassId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ready_to_sell_of_class_id'],
       ),
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -1614,10 +1745,14 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
   final String templateId;
   final String kind;
   final String? breed;
-  final String ageBand;
+  final String? ageBand;
 
   /// Makes aging one tap instead of a class picker.
   final String? agesIntoClassId;
+
+  /// Set on a ready-to-sell twin: the class whose head it holds once they are
+  /// marked ready to sell.
+  final String? readyToSellOfClassId;
   final int sortOrder;
   const LivestockClass({
     required this.id,
@@ -1627,8 +1762,9 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
     required this.templateId,
     required this.kind,
     this.breed,
-    required this.ageBand,
+    this.ageBand,
     this.agesIntoClassId,
+    this.readyToSellOfClassId,
     required this.sortOrder,
   });
   @override
@@ -1645,9 +1781,14 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
     if (!nullToAbsent || breed != null) {
       map['breed'] = Variable<String>(breed);
     }
-    map['age_band'] = Variable<String>(ageBand);
+    if (!nullToAbsent || ageBand != null) {
+      map['age_band'] = Variable<String>(ageBand);
+    }
     if (!nullToAbsent || agesIntoClassId != null) {
       map['ages_into_class_id'] = Variable<String>(agesIntoClassId);
+    }
+    if (!nullToAbsent || readyToSellOfClassId != null) {
+      map['ready_to_sell_of_class_id'] = Variable<String>(readyToSellOfClassId);
     }
     map['sort_order'] = Variable<int>(sortOrder);
     return map;
@@ -1666,10 +1807,15 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
       breed: breed == null && nullToAbsent
           ? const Value.absent()
           : Value(breed),
-      ageBand: Value(ageBand),
+      ageBand: ageBand == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ageBand),
       agesIntoClassId: agesIntoClassId == null && nullToAbsent
           ? const Value.absent()
           : Value(agesIntoClassId),
+      readyToSellOfClassId: readyToSellOfClassId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(readyToSellOfClassId),
       sortOrder: Value(sortOrder),
     );
   }
@@ -1687,8 +1833,11 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
       templateId: serializer.fromJson<String>(json['templateId']),
       kind: serializer.fromJson<String>(json['kind']),
       breed: serializer.fromJson<String?>(json['breed']),
-      ageBand: serializer.fromJson<String>(json['ageBand']),
+      ageBand: serializer.fromJson<String?>(json['ageBand']),
       agesIntoClassId: serializer.fromJson<String?>(json['agesIntoClassId']),
+      readyToSellOfClassId: serializer.fromJson<String?>(
+        json['readyToSellOfClassId'],
+      ),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
@@ -1703,8 +1852,9 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
       'templateId': serializer.toJson<String>(templateId),
       'kind': serializer.toJson<String>(kind),
       'breed': serializer.toJson<String?>(breed),
-      'ageBand': serializer.toJson<String>(ageBand),
+      'ageBand': serializer.toJson<String?>(ageBand),
       'agesIntoClassId': serializer.toJson<String?>(agesIntoClassId),
+      'readyToSellOfClassId': serializer.toJson<String?>(readyToSellOfClassId),
       'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
@@ -1717,8 +1867,9 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
     String? templateId,
     String? kind,
     Value<String?> breed = const Value.absent(),
-    String? ageBand,
+    Value<String?> ageBand = const Value.absent(),
     Value<String?> agesIntoClassId = const Value.absent(),
+    Value<String?> readyToSellOfClassId = const Value.absent(),
     int? sortOrder,
   }) => LivestockClass(
     id: id ?? this.id,
@@ -1728,10 +1879,13 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
     templateId: templateId ?? this.templateId,
     kind: kind ?? this.kind,
     breed: breed.present ? breed.value : this.breed,
-    ageBand: ageBand ?? this.ageBand,
+    ageBand: ageBand.present ? ageBand.value : this.ageBand,
     agesIntoClassId: agesIntoClassId.present
         ? agesIntoClassId.value
         : this.agesIntoClassId,
+    readyToSellOfClassId: readyToSellOfClassId.present
+        ? readyToSellOfClassId.value
+        : this.readyToSellOfClassId,
     sortOrder: sortOrder ?? this.sortOrder,
   );
   LivestockClass copyWithCompanion(LivestockClassesCompanion data) {
@@ -1749,6 +1903,9 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
       agesIntoClassId: data.agesIntoClassId.present
           ? data.agesIntoClassId.value
           : this.agesIntoClassId,
+      readyToSellOfClassId: data.readyToSellOfClassId.present
+          ? data.readyToSellOfClassId.value
+          : this.readyToSellOfClassId,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
   }
@@ -1765,6 +1922,7 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
           ..write('breed: $breed, ')
           ..write('ageBand: $ageBand, ')
           ..write('agesIntoClassId: $agesIntoClassId, ')
+          ..write('readyToSellOfClassId: $readyToSellOfClassId, ')
           ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
@@ -1781,6 +1939,7 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
     breed,
     ageBand,
     agesIntoClassId,
+    readyToSellOfClassId,
     sortOrder,
   );
   @override
@@ -1796,6 +1955,7 @@ class LivestockClass extends DataClass implements Insertable<LivestockClass> {
           other.breed == this.breed &&
           other.ageBand == this.ageBand &&
           other.agesIntoClassId == this.agesIntoClassId &&
+          other.readyToSellOfClassId == this.readyToSellOfClassId &&
           other.sortOrder == this.sortOrder);
 }
 
@@ -1807,8 +1967,9 @@ class LivestockClassesCompanion extends UpdateCompanion<LivestockClass> {
   final Value<String> templateId;
   final Value<String> kind;
   final Value<String?> breed;
-  final Value<String> ageBand;
+  final Value<String?> ageBand;
   final Value<String?> agesIntoClassId;
+  final Value<String?> readyToSellOfClassId;
   final Value<int> sortOrder;
   final Value<int> rowid;
   const LivestockClassesCompanion({
@@ -1821,6 +1982,7 @@ class LivestockClassesCompanion extends UpdateCompanion<LivestockClass> {
     this.breed = const Value.absent(),
     this.ageBand = const Value.absent(),
     this.agesIntoClassId = const Value.absent(),
+    this.readyToSellOfClassId = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1832,16 +1994,16 @@ class LivestockClassesCompanion extends UpdateCompanion<LivestockClass> {
     required String templateId,
     required String kind,
     this.breed = const Value.absent(),
-    required String ageBand,
+    this.ageBand = const Value.absent(),
     this.agesIntoClassId = const Value.absent(),
+    this.readyToSellOfClassId = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt),
        templateId = Value(templateId),
-       kind = Value(kind),
-       ageBand = Value(ageBand);
+       kind = Value(kind);
   static Insertable<LivestockClass> custom({
     Expression<String>? id,
     Expression<DateTime>? createdAt,
@@ -1852,6 +2014,7 @@ class LivestockClassesCompanion extends UpdateCompanion<LivestockClass> {
     Expression<String>? breed,
     Expression<String>? ageBand,
     Expression<String>? agesIntoClassId,
+    Expression<String>? readyToSellOfClassId,
     Expression<int>? sortOrder,
     Expression<int>? rowid,
   }) {
@@ -1865,6 +2028,8 @@ class LivestockClassesCompanion extends UpdateCompanion<LivestockClass> {
       if (breed != null) 'breed': breed,
       if (ageBand != null) 'age_band': ageBand,
       if (agesIntoClassId != null) 'ages_into_class_id': agesIntoClassId,
+      if (readyToSellOfClassId != null)
+        'ready_to_sell_of_class_id': readyToSellOfClassId,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1878,8 +2043,9 @@ class LivestockClassesCompanion extends UpdateCompanion<LivestockClass> {
     Value<String>? templateId,
     Value<String>? kind,
     Value<String?>? breed,
-    Value<String>? ageBand,
+    Value<String?>? ageBand,
     Value<String?>? agesIntoClassId,
+    Value<String?>? readyToSellOfClassId,
     Value<int>? sortOrder,
     Value<int>? rowid,
   }) {
@@ -1893,6 +2059,7 @@ class LivestockClassesCompanion extends UpdateCompanion<LivestockClass> {
       breed: breed ?? this.breed,
       ageBand: ageBand ?? this.ageBand,
       agesIntoClassId: agesIntoClassId ?? this.agesIntoClassId,
+      readyToSellOfClassId: readyToSellOfClassId ?? this.readyToSellOfClassId,
       sortOrder: sortOrder ?? this.sortOrder,
       rowid: rowid ?? this.rowid,
     );
@@ -1928,6 +2095,11 @@ class LivestockClassesCompanion extends UpdateCompanion<LivestockClass> {
     if (agesIntoClassId.present) {
       map['ages_into_class_id'] = Variable<String>(agesIntoClassId.value);
     }
+    if (readyToSellOfClassId.present) {
+      map['ready_to_sell_of_class_id'] = Variable<String>(
+        readyToSellOfClassId.value,
+      );
+    }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
@@ -1949,6 +2121,7 @@ class LivestockClassesCompanion extends UpdateCompanion<LivestockClass> {
           ..write('breed: $breed, ')
           ..write('ageBand: $ageBand, ')
           ..write('agesIntoClassId: $agesIntoClassId, ')
+          ..write('readyToSellOfClassId: $readyToSellOfClassId, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4698,6 +4871,8 @@ typedef $$TemplatesTableCreateCompanionBuilder =
       Value<DateTime?> deletedAt,
       required String name,
       Value<bool> isBuiltIn,
+      Value<int> sortOrder,
+      Value<Species> species,
       Value<int> rowid,
     });
 typedef $$TemplatesTableUpdateCompanionBuilder =
@@ -4708,6 +4883,8 @@ typedef $$TemplatesTableUpdateCompanionBuilder =
       Value<DateTime?> deletedAt,
       Value<String> name,
       Value<bool> isBuiltIn,
+      Value<int> sortOrder,
+      Value<Species> species,
       Value<int> rowid,
     });
 
@@ -4775,6 +4952,17 @@ class $$TemplatesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Species, Species, String> get species =>
+      $composableBuilder(
+        column: $table.species,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
   Expression<bool> livestockClassesRefs(
     Expression<bool> Function($$LivestockClassesTableFilterComposer f) f,
   ) {
@@ -4839,6 +5027,16 @@ class $$TemplatesTableOrderingComposer
     column: $table.isBuiltIn,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get species => $composableBuilder(
+    column: $table.species,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TemplatesTableAnnotationComposer
@@ -4867,6 +5065,12 @@ class $$TemplatesTableAnnotationComposer
 
   GeneratedColumn<bool> get isBuiltIn =>
       $composableBuilder(column: $table.isBuiltIn, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Species, String> get species =>
+      $composableBuilder(column: $table.species, builder: (column) => column);
 
   Expression<T> livestockClassesRefs<T extends Object>(
     Expression<T> Function($$LivestockClassesTableAnnotationComposer a) f,
@@ -4928,6 +5132,8 @@ class $$TemplatesTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<bool> isBuiltIn = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<Species> species = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TemplatesCompanion(
                 id: id,
@@ -4936,6 +5142,8 @@ class $$TemplatesTableTableManager
                 deletedAt: deletedAt,
                 name: name,
                 isBuiltIn: isBuiltIn,
+                sortOrder: sortOrder,
+                species: species,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4946,6 +5154,8 @@ class $$TemplatesTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required String name,
                 Value<bool> isBuiltIn = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<Species> species = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TemplatesCompanion.insert(
                 id: id,
@@ -4954,6 +5164,8 @@ class $$TemplatesTableTableManager
                 deletedAt: deletedAt,
                 name: name,
                 isBuiltIn: isBuiltIn,
+                sortOrder: sortOrder,
+                species: species,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -5023,8 +5235,9 @@ typedef $$LivestockClassesTableCreateCompanionBuilder =
       required String templateId,
       required String kind,
       Value<String?> breed,
-      required String ageBand,
+      Value<String?> ageBand,
       Value<String?> agesIntoClassId,
+      Value<String?> readyToSellOfClassId,
       Value<int> sortOrder,
       Value<int> rowid,
     });
@@ -5037,8 +5250,9 @@ typedef $$LivestockClassesTableUpdateCompanionBuilder =
       Value<String> templateId,
       Value<String> kind,
       Value<String?> breed,
-      Value<String> ageBand,
+      Value<String?> ageBand,
       Value<String?> agesIntoClassId,
+      Value<String?> readyToSellOfClassId,
       Value<int> sortOrder,
       Value<int> rowid,
     });
@@ -5153,6 +5367,11 @@ class $$LivestockClassesTableFilterComposer
 
   ColumnFilters<String> get agesIntoClassId => $composableBuilder(
     column: $table.agesIntoClassId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get readyToSellOfClassId => $composableBuilder(
+    column: $table.readyToSellOfClassId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5284,6 +5503,11 @@ class $$LivestockClassesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get readyToSellOfClassId => $composableBuilder(
+    column: $table.readyToSellOfClassId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -5345,6 +5569,11 @@ class $$LivestockClassesTableAnnotationComposer
 
   GeneratedColumn<String> get agesIntoClassId => $composableBuilder(
     column: $table.agesIntoClassId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get readyToSellOfClassId => $composableBuilder(
+    column: $table.readyToSellOfClassId,
     builder: (column) => column,
   );
 
@@ -5466,8 +5695,9 @@ class $$LivestockClassesTableTableManager
                 Value<String> templateId = const Value.absent(),
                 Value<String> kind = const Value.absent(),
                 Value<String?> breed = const Value.absent(),
-                Value<String> ageBand = const Value.absent(),
+                Value<String?> ageBand = const Value.absent(),
                 Value<String?> agesIntoClassId = const Value.absent(),
+                Value<String?> readyToSellOfClassId = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LivestockClassesCompanion(
@@ -5480,6 +5710,7 @@ class $$LivestockClassesTableTableManager
                 breed: breed,
                 ageBand: ageBand,
                 agesIntoClassId: agesIntoClassId,
+                readyToSellOfClassId: readyToSellOfClassId,
                 sortOrder: sortOrder,
                 rowid: rowid,
               ),
@@ -5492,8 +5723,9 @@ class $$LivestockClassesTableTableManager
                 required String templateId,
                 required String kind,
                 Value<String?> breed = const Value.absent(),
-                required String ageBand,
+                Value<String?> ageBand = const Value.absent(),
                 Value<String?> agesIntoClassId = const Value.absent(),
+                Value<String?> readyToSellOfClassId = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LivestockClassesCompanion.insert(
@@ -5506,6 +5738,7 @@ class $$LivestockClassesTableTableManager
                 breed: breed,
                 ageBand: ageBand,
                 agesIntoClassId: agesIntoClassId,
+                readyToSellOfClassId: readyToSellOfClassId,
                 sortOrder: sortOrder,
                 rowid: rowid,
               ),

@@ -34,7 +34,7 @@ void main() {
             updatedAt: now,
             templateId: templateId,
             kind: kind,
-            ageBand: ageBand,
+            ageBand: Value(ageBand),
             sortOrder: Value(sortOrder),
           ),
         );
@@ -190,7 +190,7 @@ void main() {
 
     expect(ridge.mobs, hasLength(2));
     expect(ridge.head, 19);
-    expect(ridge.mobs.first.livestockClass.kind, 'Calves');
+    expect(ridge.mobs.first.stockClass.row.kind, 'Calves');
   });
 
   test('the ledger keeps every movement as history', () async {

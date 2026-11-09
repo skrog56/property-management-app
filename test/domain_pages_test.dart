@@ -97,6 +97,78 @@ void main() {
       expect(findRichText('5 head · Creek Flat → meatworks'), findsOneWidget);
     });
 
+    testPage('names a class after a dot, and says what ready to sell did', (
+      tester,
+    ) async {
+      final property = await repo.createProperty('Riverbend Downs');
+      final north = await repo.createPaddock(property, 'North Ridge');
+      final creek = await repo.createPaddock(property, 'Creek Flat');
+      final steers = await repo.createClass(
+        'beef',
+        kind: 'Steers',
+        readyToSell: true,
+      );
+      final ready = (await repo.allClasses())
+          .singleWhere((c) => c.isReadyToSell)
+          .id;
+
+      await repo.record(
+        kind: MovementKind.intake,
+        head: 10,
+        toPaddockId: north,
+        toClassId: steers,
+      );
+      await repo.record(
+        kind: MovementKind.move,
+        head: 2,
+        fromPaddockId: north,
+        fromClassId: steers,
+        toPaddockId: creek,
+        toClassId: steers,
+      );
+      for (final (head, from, to) in [(3, steers, ready), (1, ready, steers)]) {
+        await repo.record(
+          kind: MovementKind.readyToSell,
+          head: head,
+          fromPaddockId: north,
+          fromClassId: from,
+          toPaddockId: north,
+          toClassId: to,
+        );
+      }
+      await repo.record(
+        kind: MovementKind.endState,
+        head: 2,
+        fromPaddockId: creek,
+        fromClassId: steers,
+        endState: EndState.died,
+      );
+
+      await pumpPage(
+        tester,
+        const ActivityPage(),
+        width: 900,
+        repository: repo,
+      );
+
+      expect(
+        findRichText('2 head · North Ridge → Creek Flat · Steers (Beef)'),
+        findsOneWidget,
+      );
+      expect(
+        findRichText('3 head · Steers (Beef) marked ready to sell in North'),
+        findsOneWidget,
+      );
+      expect(
+        findRichText('1 head · Steers (Beef) no longer ready to sell in North'),
+        findsOneWidget,
+      );
+      expect(
+        findRichText('2 head · Creek Flat → died · Steers (Beef)'),
+        findsOneWidget,
+      );
+    });
+
     testPage('tag events read as what happened to the tags', (tester) async {
       TagNumber tag(int n) =>
           TagNumber.tryParse(TagScheme.nlis, '99900000000000$n')!;
@@ -184,9 +256,13 @@ void main() {
       );
 
       expect(find.text('Beef'), findsOneWidget);
-      expect(find.text('Calves — under 6 months'), findsOneWidget);
-      expect(find.text('Weaners — 6-12 months'), findsOneWidget);
-      expect(find.text('→ Weaners'), findsOneWidget);
+      expect(find.text('Calves'), findsOneWidget);
+      expect(
+        find.text('under 6 months · ages into Weaners (Beef) · 6-12 months'),
+        findsOneWidget,
+      );
+      expect(find.text('Weaners'), findsOneWidget);
+      expect(find.text('6-12 months'), findsOneWidget);
     });
 
     testPage('lays out without overflow across size classes', (tester) async {

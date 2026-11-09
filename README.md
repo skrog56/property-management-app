@@ -31,8 +31,16 @@ rather than an oversight; see [`JOURNAL.md`](JOURNAL.md).
   own page with its whole history, and the Tags screen searches them by number.
 - **Activity** — every movement, newest first, naming the tags it carried. It
   is the ledger rendered, so it needed no separate audit log.
-- **Templates** — livestock classes and their ageing chains. The seeded Beef and
-  Dairy lists are provisional, pending the real ones.
+- **Deaths and stock ready to sell** — every mob can record a death, which each
+  paddock lists, and Feeders and Fats stock can be marked ready to sell. Both
+  are ledger movements like the rest, so what is ready to sell is counted, not
+  noted.
+- **Templates** — the classes livestock is counted in: Breeder, Backgrounders,
+  Feeders and Fats to start with, each class named with its template, as in
+  *Steers (Feeders)*. Each template is for one animal, cattle, sheep, goats or
+  another, shown by its icon. Templates and classes can be added, edited and
+  removed, with optional breeds and age bands, ageing chains, and ready-to-sell
+  twins, and the page searches them, groups them by animal and sorts them.
 
 ## What it demonstrates
 
@@ -372,10 +380,11 @@ lib/
   data/         Drift schema, repository, platform-specific connection
   features/
     properties/       Three tiers: properties → paddocks → one paddock's livestock
-    transfers/        The movement form — one dialog, four kinds
+    transfers/        The movement form — one dialog, four kinds — and the
+                      shortcuts on a mob: Record death, ready to sell
     tags/             Tag search and pages, tag entry, tagging a mob
     activity/         The ledger, rendered
-    templates/        Livestock classes (read-only for now)
+    templates/        The template editor, with search and animal icons
     developer/        Debug-only tools: data, overlays, overrides, log
     platform_proof/   The evidence screen and fact gathering
     about/            What the app covers and what it does not

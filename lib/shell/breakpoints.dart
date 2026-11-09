@@ -46,6 +46,15 @@ enum WindowSizeClass {
     WindowSizeClass.extraLarge => 3,
   };
 
+  /// Cards that each hold a short list, such as a template and its classes,
+  /// stay readable narrower than [contentColumns] allows.
+  int get cardColumns => switch (this) {
+    WindowSizeClass.compact => 1,
+    WindowSizeClass.medium || WindowSizeClass.expanded => 2,
+    WindowSizeClass.large => 3,
+    WindowSizeClass.extraLarge => 4,
+  };
+
   /// How many tiers of a drill-down sit side by side, list-detail style.
   int get panes => switch (this) {
     WindowSizeClass.compact || WindowSizeClass.medium => 1,

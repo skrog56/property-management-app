@@ -18,6 +18,9 @@ Future<void> main() async {
     yield LicenseEntryWithLineBreaks(const [
       'Roboto',
     ], await rootBundle.loadString('assets/fonts/Roboto_LICENSE.txt'));
+    yield LicenseEntryWithLineBreaks(const [
+      'IconOven',
+    ], await rootBundle.loadString('assets/icons/IconOven_LICENSE.txt'));
   });
 
   final repository = LivestockRepository(AppDatabase.defaults());

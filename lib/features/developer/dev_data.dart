@@ -86,24 +86,19 @@ extension DevData on LivestockRepository {
   /// Two properties with a few weeks of history, recorded through [record] so
   /// the sample obeys the same ledger rules as real use.
   Future<void> seedSampleFarm() async {
-    final templates = await this.templates();
-    if (templates.isEmpty) {
-      throw StateError('No templates to draw livestock classes from');
-    }
-    final template = templates.firstWhere(
-      (t) => t.name == 'Beef',
-      orElse: () => templates.first,
-    );
-    final classes = await classesIn(template.id);
-    if (classes.length < 2) {
-      throw StateError('Template ${template.name} needs at least two classes');
-    }
-
-    final young = classes.first;
-    final older = classes.firstWhere(
-      (c) => c.id == young.agesIntoClassId,
-      orElse: () => classes[1],
-    );
+    final classes = await allClasses();
+    StockClass find(String template, String kind, {bool ready = false}) =>
+        classes.firstWhere(
+          (c) =>
+              c.template.name == template &&
+              c.row.kind == kind &&
+              c.isReadyToSell == ready,
+          orElse: () => throw StateError('No $kind in $template to draw on'),
+        );
+    final calves = find('Breeder', 'Calves').id;
+    final weaners = find('Breeder', 'Weaners').id;
+    final steers = find('Feeders', 'Steers').id;
+    final readySteers = find('Feeders', 'Steers', ready: true).id;
 
     final riverbend = await createProperty('Riverbend Downs', pic: 'QDEV0001');
     final northFlat = await createPaddock(
@@ -136,7 +131,7 @@ extension DevData on LivestockRepository {
       kind: MovementKind.intake,
       head: 120,
       toPaddockId: northFlat,
-      toClassId: young.id,
+      toClassId: calves,
       occurredAt: daysAgo(42),
       tags: tags.sublist(0, 3),
     );
@@ -144,16 +139,16 @@ extension DevData on LivestockRepository {
       kind: MovementKind.intake,
       head: 200,
       toPaddockId: topRun,
-      toClassId: older.id,
+      toClassId: steers,
       occurredAt: daysAgo(35),
     );
     await record(
       kind: MovementKind.move,
       head: 40,
       fromPaddockId: northFlat,
-      fromClassId: young.id,
+      fromClassId: calves,
       toPaddockId: creek,
-      toClassId: young.id,
+      toClassId: calves,
       occurredAt: daysAgo(28),
       tags: [tags[0]],
     );
@@ -161,9 +156,9 @@ extension DevData on LivestockRepository {
       kind: MovementKind.age,
       head: 30,
       fromPaddockId: creek,
-      fromClassId: young.id,
+      fromClassId: calves,
       toPaddockId: creek,
-      toClassId: older.id,
+      toClassId: weaners,
       occurredAt: daysAgo(21),
       tags: [tags[0]],
     );
@@ -171,19 +166,10 @@ extension DevData on LivestockRepository {
       kind: MovementKind.move,
       head: 50,
       fromPaddockId: topRun,
-      fromClassId: older.id,
+      fromClassId: steers,
       toPaddockId: bottomRun,
-      toClassId: older.id,
+      toClassId: steers,
       occurredAt: daysAgo(14),
-    );
-    await record(
-      kind: MovementKind.endState,
-      head: 20,
-      fromPaddockId: bottomRun,
-      fromClassId: older.id,
-      endState: EndState.sold,
-      note: 'Sample sale',
-      occurredAt: daysAgo(7),
     );
     final lost = await tagStatusByNumber(tags[2]);
     await replaceTag(
@@ -193,11 +179,30 @@ extension DevData on LivestockRepository {
       occurredAt: daysAgo(10),
     );
     await record(
+      kind: MovementKind.readyToSell,
+      head: 30,
+      fromPaddockId: bottomRun,
+      fromClassId: steers,
+      toPaddockId: bottomRun,
+      toClassId: readySteers,
+      occurredAt: daysAgo(9),
+    );
+    await record(
+      kind: MovementKind.endState,
+      head: 20,
+      fromPaddockId: bottomRun,
+      fromClassId: readySteers,
+      endState: EndState.sold,
+      note: 'Sample sale',
+      occurredAt: daysAgo(7),
+    );
+    await record(
       kind: MovementKind.endState,
       head: 1,
       fromPaddockId: northFlat,
-      fromClassId: young.id,
+      fromClassId: calves,
       endState: EndState.died,
+      note: 'Found in the dam',
       occurredAt: daysAgo(2),
       tags: [tags[1]],
     );

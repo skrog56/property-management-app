@@ -34,6 +34,36 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- **The real livestock templates.** Breeder (cows, calves and weaners),
+  Backgrounders (steers and heifers), Feeders (steers and heifers) and Fats
+  (bullocks and cows) replace the provisional Beef and Dairy lists, in that
+  order. Calves age into weaners, and backgrounder steers and heifers into
+  feeders.
+- **Ready to sell.** Each Feeders and Fats class has a twin for its stock that
+  is ready to sell, such as *Steers (Feeders) · ready to sell*. *Mark ready to
+  sell* on a mob moves head into the twin without leaving the paddock, and *No
+  longer ready to sell* moves them back. Both are kept in the ledger like any
+  movement, so what is ready to sell is counted from it, and selling them is
+  an ordinary end.
+- **Record death on every mob.** It starts at one head, takes the date the
+  death was found and a cause or note, and asks for the tags of tagged animals
+  as an end does. Each paddock lists its deaths in a Deaths section, which has
+  its own *Record death*.
+- **Templates can be edited.** Add templates and change their name or
+  animal, and add, edit or remove classes: a name, an optional breed and age
+  band, the class it ages into, and whether it can be marked ready to sell.
+  Nothing with head still in it can be removed until they are moved or aged
+  out, and each class shows the head standing in it.
+- **Each template is for one animal**: cattle, sheep, goats, pigs, horses,
+  alpacas, deer, poultry or other. A new template has to be given one, and its
+  card shows that animal's icon. The four defaults are cattle.
+- **Search, group and sort templates.** The Templates page finds templates by
+  their name or by any of their classes, and picks out the words that matched.
+  Its cards are grouped under a heading for each animal, which can be turned
+  off, and sorted with the most head first, or by fewest head, by name either
+  way, or newest or oldest first. They sit in a grid, from one column on a
+  phone to four on a wide screen, and the cards in a row share one height, so
+  their Add class buttons line up.
 - **Wrong values are outlined in red.** In Record movement and Add tags, the
   field at fault turns red: more head than the mob has, a destination that is
   the paddock being left, a class that ages into itself, a tag already
@@ -126,6 +156,12 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Changed
 
+- **A class is named with its template**, as in *Steers (Feeders)*, since
+  Feeders and Backgrounders both have steers. Its age band, now optional,
+  follows after a dot. Activity also puts the class after a dot rather than in
+  brackets, and an end now says which class left.
+- **A mob's actions are in a menu.** Mark ready to sell, Record death and Add
+  tags sit behind ⋮ on each mob.
 - Navigation is now Properties, Activity, Tags, Templates, About.
 - **The phone's navigation bar is Properties, Activity, Tags and More.**
   More lists Templates and About, and shows as selected while either is open.
@@ -188,6 +224,13 @@ same commit — a deliberate act, never a side effect of another change.
   raw Dart package name (`property_management_app`) that every platform except
   iOS was showing in launchers, window titles and browser tabs. Executable and
   bundle filenames on Linux and Windows are unchanged.
+
+### Removed
+
+- **The provisional Beef and Dairy templates.** Nobody uses the app yet, so
+  the first launch of this version replaces them rather than carrying them
+  over. Every movement names a class, so the movements and tags recorded
+  against them go too. Properties and paddocks stay.
 
 ### Fixed
 

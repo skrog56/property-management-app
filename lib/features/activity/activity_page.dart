@@ -114,6 +114,7 @@ class ActivityTile extends StatelessWidget {
             MovementKind.age => Icons.update,
             MovementKind.endState => Icons.local_shipping_outlined,
             MovementKind.tag => Icons.sell_outlined,
+            MovementKind.readyToSell => Icons.paid_outlined,
           },
           size: 20,
           color: theme.colorScheme.onSecondaryContainer,
@@ -139,32 +140,54 @@ class ActivityTile extends StatelessWidget {
     );
   }
 
+  /// A class goes after a dot rather than in brackets, since its label
+  /// already brackets its template.
   List<InlineSpan> _summary(Movement movement) => switch (movement.kind) {
     MovementKind.intake => [
       const TextSpan(text: 'intake to '),
       _paddock(entry.toPaddock),
-      TextSpan(text: ' as ${entry.toClass}'),
+      TextSpan(text: ' as ${_label(entry.toClass)}'),
     ],
     MovementKind.move => [
       _paddock(entry.fromPaddock),
       const TextSpan(text: ' → '),
       _paddock(entry.toPaddock),
-      TextSpan(text: ' (${entry.fromClass})'),
+      TextSpan(text: ' · ${_label(entry.fromClass)}'),
     ],
     MovementKind.age => [
-      TextSpan(text: '${entry.fromClass} → ${entry.toClass} in '),
+      TextSpan(
+        text: '${_label(entry.fromClass)} → ${_label(entry.toClass)} in ',
+      ),
       _paddock(entry.fromPaddock),
     ],
     MovementKind.endState => [
       _paddock(entry.fromPaddock),
-      TextSpan(text: ' → ${movement.endState?.name ?? 'removed'}'),
+      TextSpan(
+        text:
+            ' → ${movement.endState?.name ?? 'removed'} · '
+            '${_label(entry.fromClass)}',
+      ),
     ],
     MovementKind.tag => [
       TextSpan(text: '${_tagEvent(movement)} in '),
       _paddock(entry.toPaddock),
-      TextSpan(text: ' (${entry.toClass})'),
+      TextSpan(text: ' · ${_label(entry.toClass)}'),
+    ],
+    MovementKind.readyToSell => [
+      TextSpan(text: '${_readiness()} in '),
+      _paddock(entry.toPaddock),
     ],
   };
+
+  String _label(StockClass? c) => c?.label ?? 'an unknown class';
+
+  /// Named by the class that is not the twin, whichever way it went.
+  String _readiness() {
+    final marked = entry.toClass?.isReadyToSell ?? false;
+    final base = marked ? entry.fromClass : entry.toClass;
+    return '${_label(base)} '
+        '${marked ? 'marked ready to sell' : 'no longer ready to sell'}';
+  }
 
   String _tagEvent(Movement movement) {
     final removed = entry.tags.where((t) => t.role == TagRole.removed).length;

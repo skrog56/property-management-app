@@ -63,19 +63,25 @@ justifies a design belongs in `JOURNAL.md`, not in a header comment.
 lib/
   app/         MaterialApp, seeded M3 theme, go_router routes and shell
   shell/       AdaptiveScaffold, WindowSizeClass breakpoints, TierPage —
-               the route every drill-down tier is built as — and
-               FormDialog, which every form and confirmation is built as
-               and opened by showFormDialog
+               the route every drill-down tier is built as — FormDialog,
+               which every form and confirmation is built as and opened by
+               showFormDialog, and CardGrid, rows of cards as tall as the
+               tallest in each
   data/        Drift schema, repository, platform-specific connection
   features/
     properties/       Three tiers: properties → paddocks → one paddock's livestock,
                       laid out as list-detail panes by PropertiesBrowser
-    transfers/        The movement form — one dialog, four kinds
+    transfers/        The movement form — one dialog, four kinds — which a
+                      mob's Record death and ready-to-sell shortcuts open
+                      locked to one job
     tags/             Tag list and pages (list-detail panes by TagsBrowser),
                       TagField (new tags) and TagPicker (a mob's tags), the
                       add-tags dialog
     activity/         The ledger, rendered
-    templates/        Livestock classes (read-only for now)
+    templates/        The template editor: templates and the animal each
+                      counts, their classes, and each class's ready-to-sell
+                      twin, searched, grouped and sorted on one page;
+                      SpeciesIcon, each animal's icon
     developer/        Debug-only tools; hosts platform_proof as a tab
     platform_proof/   The evidence screen and fact gathering
     about/            Target checklist and build identity
@@ -147,11 +153,13 @@ session.
 head(paddock, class) = Σ(movements in) − Σ(movements out)
 ```
 
-All five movement kinds — intake, move, age, end state and tag — are the same
-row shape, which is why one Activity view serves all of them, and one form the
-first four. Ageing is a movement whose paddock does not change and whose class
-does; a move is the reverse. A tag event changes neither: its from and to are
-the same mob, so it nets to zero, and it exists to carry its `movement_tags`.
+All six movement kinds — intake, move, age, end state, tag and ready to sell —
+are the same row shape, which is why one Activity view serves all of them, and
+one form all but tag events. Ageing is a movement whose paddock does not change
+and whose class does; a move is the reverse. Ready to sell is a class change
+too, between a class and its ready-to-sell twin, either way. A tag event changes
+neither: its from and to are the same mob, so it nets to zero, and it exists to
+carry its `movement_tags`.
 
 Tags follow the same rule. A tagged animal is one of its mob's head, and a tag
 is wherever its latest `movement_tags` link left it — derived by
@@ -196,11 +204,23 @@ time and whole seconds are not precise enough.
 the web build on Vercel among them — so bump `schemaVersion` and run
 `dart run drift_dev make-migrations`. It snapshots each version under
 `drift_schemas/`, regenerates the `stepByStep` helper in
-`lib/data/app_database.steps.dart` and the tests under `test/drift/`. The
+`lib/data/app_database.steps.dart` and the schema files under `test/drift/`. The
 snapshot of the version being left must exist before `tables.dart` changes, so
 if it is missing, run the command once first. Write the step in
 `AppDatabase.migration` (`createTable` leaves out indexes; create those too),
-then fill in the generated data-integrity test.
+then add a data-integrity test for it to
+`test/drift/app_database/migration_test.dart`, which the command generates only
+once.
+
+Nobody uses the app yet, so a step may replace data rather than carry it over,
+as v3 did with the provisional templates. Say plainly what it discards. That
+stops once the app has real users.
+
+**A class is never shown without its template.** The same kind can sit in two
+(Backgrounders and Feeders both have Steers), so `StockClass.label` names a
+class everywhere, as `Steers (Feeders)`. Don't format one by hand. A watch that
+shows labels must also read `livestock_classes` and `templates`, or an edit in
+the template editor won't reach a page already open.
 
 **Web needs two files in `web/`**: `sqlite3.wasm` and `drift_worker.js`, taken
 from the [drift release](https://github.com/simolus3/drift/releases) matching
@@ -224,6 +244,11 @@ reach for them without reopening the decision:
 - **`cloud_firestore`** does not support Linux.
 - **`google_maps_flutter`** does not support Linux, macOS or Windows. Use
   `flutter_map`, which is pure Dart, when the map screen lands.
+
+Animal icons are not a dependency either. Material Icons has no cattle, sheep
+or goats, so `SpeciesIcon` paints IconOven's MIT-licensed stroke icons from
+their SVG path data, and `main.dart` registers the licence. A new animal needs
+only its path data pasted in.
 
 ## Tests
 

@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.defaults() : super(openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -36,6 +36,19 @@ class AppDatabase extends _$AppDatabase {
         await m.create(schema.movementTagsTag);
         await m.create(schema.movementTagsMovement);
       },
+      // Replaced rather than converted: nobody uses the app yet, and every
+      // movement names a class, so the ledger goes with the old templates.
+      from2To3: (m, schema) async {
+        for (final table in ['movement_tags', 'livestock_tags', 'movements']) {
+          await customStatement('DELETE FROM $table');
+        }
+        await m.deleteTable('livestock_classes');
+        await m.deleteTable('templates');
+        await m.createTable(schema.templates);
+        await m.createTable(schema.livestockClasses);
+      },
+      from3To4: (m, schema) =>
+          m.addColumn(schema.templates, schema.templates.species),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

@@ -7,6 +7,284 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-09 — Templates by animal, with search, sorting and a grid
+
+### What prompted it
+
+Straight after the editor landed, the user asked for five things on the
+Templates page:
+
+- a responsive grid of cards;
+- a type of livestock (cattle, sheep and so on) given to each template when it
+  is created;
+- an icon for each template, from its animal;
+- search by template name and class;
+- grouping by animal or not, and sorting options.
+
+### Decided
+
+- **The animal is a fixed list, stored on the template.** `Species` holds
+  cattle, sheep, goat, pig, horse, alpaca, deer, poultry and other. Those are
+  NLIS's four species, then the others an Australian property is likely to
+  run, with *other* as the way out. A fixed list is what gives every animal an
+  icon.
+  - The values are stored by name, so they are only ever added to.
+- **A new template has to be given its animal.** Nothing is preselected, so
+  cattle is never assumed by accident. "Choose an animal" blocks the dialog,
+  but the field is only unfilled, so it doesn't show red.
+  - The animal can be changed later in the same dialog, which replaced Rename
+    and the extensions to `promptForName` made for it. Those were reverted.
+- **v4 adds a column and keeps everything.** The existing rows are the four
+  cattle defaults, so a default of `cattle` is simply correct. The no-users
+  rule allows discarding data, but there was nothing to discard. The local
+  Linux database was already at v3 from this morning, so folding the column
+  into v3 would have stranded it.
+- **The icons are IconOven's, drawn from their path data.** Material Icons has
+  no cow, sheep, goat or pig. These were compared:
+  - Material Design Icons (Pictogrammers) has a cow, sheep, pig and horse, but
+    no goat. Its Flutter package also reads every glyph from one map, which
+    would likely keep icon tree-shaking from trimming its 1.3 MB font.
+  - Monochrome Noto Emoji has every animal, but as detailed emoji drawings,
+    small and busy at 24 dp.
+  - IconOven (MIT, Appic Marketing LLC) has a cow, sheep, goat, pig, horse,
+    llama, deer and chicken in one stroke style on a 24 grid, close to
+    Material's outlined icons.
+
+  `SpeciesIcon` paints their SVG path data with a small parser. That avoids a
+  new dependency and a font build, and adding an animal is a paste. The
+  strokes are drawn at 1.75 rather than IconOven's 1.5. Side by side with
+  `home_work_outlined` and `sell_outlined`, 1.5 looked faint and 2.0 filled in
+  the faces. The licence ships in `assets/icons/` and is registered beside
+  Roboto's.
+- **The grid is a `CardGrid` in `shell/`.** A new `WindowSizeClass.cardColumns`
+  gives 1, 2, 2, 3 and 4 columns across the size classes, measured on the
+  content area as the breakpoint rule requires. Template cards hold a short
+  list, so they stay readable narrower than `contentColumns` assumes.
+  - Cards in a row share one height, so their Add class buttons line up.
+  - `IntrinsicHeight` was the first attempt, and failed: `ListTile` leaves its
+    vertical padding out of its intrinsic height, so wrapped class rows
+    overflowed.
+  - `CardGrid`'s rows lay each card out, then again at least as tall as the
+    tallest. The second pass is a minimum, not a tight height. A child laid
+    out tight becomes its own relayout boundary. When a search swapped one
+    card's content for a taller one, it relaid itself out at the old height
+    and overflowed. The search test caught it.
+- **Search reads a template's name and its classes' own words**: breed, kind,
+  age band and "ready to sell". "Ages into" text is not searched, since it
+  names another template's class.
+  - Every word must be found somewhere in the template, so "feeders heifers"
+    finds Feeders.
+  - Matches are picked out with the tertiary container colour.
+  - A matching template shows all its classes. Hiding the rest would make a
+    template look smaller than it is.
+- **Groups keep the list's order** (cattle, sheep, goats…), whatever the sort.
+  The sort applies within each group, so groups don't jump about as the sort
+  changes. A search leaves out a group it empties.
+- **Sorting** offers most and fewest head, name both ways, and newest and
+  oldest first. Ties fall back to the order the templates were added in, since
+  `List.sort` isn't stable.
+- **Grouped, with the most head first, is how the page opens.** The user chose
+  both after trying the page. The first version opened ungrouped, in a
+  "Default order" (the order templates were added in), with no "Oldest first",
+  which would have matched it. Taking the default out of the menu made room
+  for "Oldest first". The added order still decides ties, so a new farm with
+  no stock sees Breeder, Backgrounders, Feeders and Fats.
+- **Then the toolbar became pills, and the classes moved inside their
+  header.** The user asked for this after a first look.
+  - The search keeps the app's outlined field, but with a corner radius past
+    half its height, so it stays round at any height. The two chips take
+    `StadiumBorder`.
+  - **All three share one height and one outline.** The height is a touch
+    target, 48 px, or 40 px at desktop density. A chip can't be given a
+    height, so its vertical padding is worked out from that one.
+    The chips take the field's outline: `outline` at rest, `onSurface` on
+    hover, and 2 px `primary` when focused, or while the sort menu is open.
+    Selected, *Group by animal* keeps its outline as well as its fill.
+  - **Neither chip changes size with its state**, so nothing beside it moves.
+    *Group by animal* swaps a groups icon for a check, instead of a check
+    appearing. The sort label sits in an `IndexedStack` of every choice, as
+    wide as the longest. Three Flutter details had to be worked round:
+    - a chip pads its content by its outline's width, so a 2 px focus outline
+      would grow it. Its outline is drawn outside instead, and its box is 2 px
+      smaller to make up for it;
+    - Material 3 icon buttons ignore the theme's density, so the clear button
+      grew the field from 40 to 48 px when it appeared, until it was given the
+      theme's;
+    - the chip padding assumes a label line of 20.02 px, and the engine lays
+      out 20, so the chips can come out 0.02 px short. That can't be seen.
+    A test checks the heights at both densities, and that no control moves
+    through grouping, every sort and a search. Put back, the old chips fail it.
+  - The search icon sits 16 px in, as far as the hint sits from it.
+  - A card's class rows sit 16 px inside its header at both ends. At the start
+    that lines them up with Add class's icon, so the button reads as the last
+    line of the list. At the end, their ⋮ sits as far inside the template's ⋮
+    as the class names sit inside its avatar.
+
+### Verification
+
+Analyze clean, and all 194 tests pass. That includes a v3→v4 data-integrity
+test, which checks every template comes through as cattle, a soft-deleted one
+among them. `flutter build web` succeeded.
+
+The local Linux database was backed up at v3 as `livestock.v3-backup.sqlite`
+and opened by the release build. It came up at v4 with:
+
+- the four templates in order, each `cattle`;
+- the thirteen classes, the property and the paddock unchanged;
+- clean integrity and foreign-key checks.
+
+A throwaway widget test rendered the page through the real shell, with the
+bundled Roboto and the SDK's icon font. It covered:
+
+- a phone, default and searching;
+- the new-template dialog;
+- a tablet;
+- 1440 px, grouped and with the sort menu open;
+- 1920 px in the dark theme, grouped and searching.
+
+They looked as intended. At 1440 px the content area is in the expanded class,
+so two columns. The 1920 px window shows four.
+
+The pills and insets were rendered the same way: on a phone, also with text at
+130%; at 700 px; at 1440 px in both densities; and at 1920 px in the dark
+theme.
+
+### Open
+
+- Grouping and sorting reset when the app restarts. They last for the session,
+  since the shell keeps each destination alive. Keeping them belongs with
+  Settings.
+- Nothing shows the licence page, so IconOven's licence, like Roboto's, is
+  registered but never displayed. An About entry would close that for both.
+- The animal icons appear only on the Templates page. Mobs and paddock cards
+  could carry them too, once a property runs more than one animal.
+- This resolves the stretched template cards left open this morning.
+- When the content area is 600 to roughly 640 px wide (a 700 px window, say),
+  the search shares a row with the chips and cuts its hint short. Stacking the
+  toolbar for the whole medium class was tried and undone. The class is
+  measured beside the rail, so it would also have stacked a 1000 px desktop
+  window, where the row fits.
+
+## 2026-11-09 — Real templates, ready to sell, deaths, and editing them
+
+### What prompted it
+
+Phase 2 opened with the stakeholder's list of default templates. It replaces
+the provisional Beef and Dairy placeholder:
+
+- **Breeder:** cows, calves and weaners.
+- **Backgrounders:** steers and heifers.
+- **Feeders:** steers and heifers, plus "a section to note down what's
+  suitable to sell".
+- **Fats:** bullocks and cows, plus "a section to note down what to sell".
+
+Every template also needed "a section to be able to record deaths". The editor,
+the first of Phase 2's three items, came in the same round. Settings and export
+come later.
+
+### Decided
+
+- **Ready to sell is a twin class, not a note.** Three shapes went to the user:
+  a count and note on a mob, a free-text note, or a class to draft head into.
+  The user chose the class, with one twin per sellable class, so steers and
+  heifers stay apart among the stock ready to sell.
+  - Marking is a class change within the paddock, as ageing is. So what is
+    ready to sell comes out of the ledger like every other count, and selling
+    it is an ordinary end.
+  - A note would have gone stale as soon as anything moved.
+- **It is a movement kind of its own.** `readyToSell` has an age's row shape,
+  so the balance fold and tag carrying needed nothing new.
+  - Reusing `age` would have shown a clock in Activity, beside
+    "Steers (Feeders) → Steers (Feeders) · ready to sell".
+  - `record` accepts it only within one paddock, between a class and its twin.
+  - Age's target list leaves twins out, so marking always goes through the
+    mob's shortcut and is always this kind.
+- **Deaths get a shortcut on every mob, and a section on every paddock.** A
+  death was already an end into died.
+  - The shortcut opens the movement form locked to that one job, starting at
+    one head, with the date found and a cause or note. Locking the form rather
+    than writing a new dialog kept the mob, head and tag rules in one place.
+  - A past date records at the end of that day, after anything else recorded
+    for it.
+  - The form refuses a date before a chosen tag's last movement, which `record`
+    would reject.
+- **A class is named with its template**, as in *Steers (Feeders)*.
+  Backgrounders and Feeders both have steers, and Breeder and Fats both have
+  cows.
+  - The user chose this over distinct default names ("Feeder steers"), since
+    the editor lets anyone repeat a name.
+  - `StockClass` carries a class with its template, and its `label` is the one
+    place a class is spelled out.
+- **The old templates are replaced, not kept.** The first plan retired Beef and
+  Dairy while keeping the stock in them, with stable ids for reconciling the
+  built-ins on every launch. The user stopped it: nobody uses the app yet, so
+  nothing in the existing databases needs carrying forward.
+  - The v3 migration clears movements and tags and recreates the template
+    tables in their new shape. Properties and paddocks stay.
+  - Every movement names a class, so the ledger could not outlive the classes.
+  - The launch-time seed then fills the empty table from the new list.
+  - `CLAUDE.md` now says a migration may discard data until the app has real
+    users.
+- **Age bands are optional**, since the real list has none. The table was being
+  recreated anyway, so making the column nullable cost nothing.
+- **The ageing chains are a proposal, and stay editable.** Calves age into
+  weaners. Backgrounder steers and heifers age into feeder steers and heifers.
+  Weaners split by sex, so they have no default.
+- **Edits are guarded where they would strand head.**
+  - A template or class can't be removed while head stands in it or in its
+    twin.
+  - Removing a class clears any chain that points at it. The Age form would
+    otherwise preselect a class its dropdown doesn't list, and
+    `DropdownButtonFormField` asserts on that.
+  - Turning ready to sell off and on again restores the same twin, history and
+    all.
+  - Template names must differ, since every label brackets one.
+- **An edit shows everywhere at once.** Watches that show classes now also read
+  `livestock_classes` and `templates`. `watchActivity` became a custom select
+  so it could, with the same signature.
+- **Templates stays under More on a phone.** Editing templates is a setup task,
+  and the bar is tight at 320 dp.
+
+### Verification
+
+Analyze clean, 181 tests passing, up from 147. `flutter build web` succeeded.
+
+The local Linux database was at v2, with Beef, Dairy, one property and one
+paddock. It was backed up beside itself as `livestock.v2-backup.sqlite`, then
+opened by the release build. It came up at v3 with:
+
+- the four new templates in order, with thirteen classes (four of them twins);
+- no movements or tags;
+- clean integrity and foreign-key checks;
+- the property and paddock rows unchanged.
+
+A throwaway widget test then rendered the new screens on the sample farm, with
+the bundled Roboto and the SDK's icon font. It covered:
+
+- Templates at phone and desktop width, and the class dialog;
+- two paddocks with their menus and Deaths sections;
+- both shortcuts;
+- Activity;
+- three panes on a wide window.
+
+They looked as intended.
+
+### Open
+
+- Settings (how long ended stock stays visible) and export, the rest of
+  Phase 2.
+- Templates and classes can't be reordered. A new one goes last.
+- Nothing totals what is ready to sell across a property.
+- The general movement form still records the time it is saved. Only Record
+  death asks for a date.
+- A property can't choose its templates: every form offers every class.
+- Each device seeds the templates with its own fresh ids, which sync will have
+  to reconcile.
+- On a wide window the template cards stretch the full width, as Activity's
+  rows do.
+- The web upgrade from v2 was not tried. Neither was the running Linux build's
+  interface, beyond opening it to upgrade the database.
+
 ## 2026-11-01 — Breadcrumbs that stay put
 
 ### What happened

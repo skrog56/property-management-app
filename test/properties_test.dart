@@ -108,8 +108,7 @@ void main() {
 
       expect(find.text('128 head'), findsOneWidget);
       expect(find.text('42.4 ha · 1 mob'), findsOneWidget);
-      expect(find.text('Calves'), findsOneWidget);
-      expect(find.text('under 6 months'), findsOneWidget);
+      expect(find.text('Calves (Beef) · under 6 months'), findsOneWidget);
       expect(
         find.textContaining('128 head · intake to North Ridge'),
         findsOneWidget,
@@ -436,7 +435,7 @@ void main() {
       expect(find.text('2 paddocks · 128 head'), findsNWidgets(2));
       expect(find.text('Woolshed'), findsOneWidget);
       expect(find.text('128 head'), findsOneWidget);
-      expect(find.text('Calves'), findsOneWidget);
+      expect(find.text('Calves (Beef) · under 6 months'), findsOneWidget);
 
       await tester.tap(find.widgetWithText(TextButton, 'Properties'));
       await settle(tester);
@@ -529,7 +528,7 @@ void main() {
     ) async {
       await pumpRouted(tester, repository: repo, location: await tagged());
 
-      expect(find.text('under 6 months · 1 tagged'), findsOneWidget);
+      expect(find.text('1 tagged'), findsOneWidget);
 
       await tester.tap(find.widgetWithText(ActionChip, '999 000000000001'));
       await settle(tester);
@@ -546,7 +545,11 @@ void main() {
     ) async {
       await pumpRouted(tester, repository: repo, location: await tagged());
 
-      await tester.tap(find.byTooltip('Add tags'));
+      await tester.tap(
+        find.byTooltip('Actions for Calves (Beef) · under 6 months'),
+      );
+      await settle(tester);
+      await tester.tap(find.text('Add tags'));
       await settle(tester);
       expect(find.textContaining('11 of 12 head untagged'), findsOneWidget);
 
@@ -558,7 +561,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Record 1 tag'));
       await settle(tester);
 
-      expect(find.text('under 6 months · 2 tagged'), findsOneWidget);
+      expect(find.text('2 tagged'), findsOneWidget);
       expect(findRichText('1 head · tagged in North Ridge'), findsOneWidget);
     });
   });

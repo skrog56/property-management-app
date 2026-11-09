@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../data/app_database.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/tables.dart';
+import '../../data/tag_numbers.dart';
 import '../../shell/form_dialog.dart';
 import '../tags/tag_field.dart';
+import '../tags/tag_labels.dart';
 
 Future<void> showMovementDialog(
   BuildContext context, {
@@ -22,7 +24,64 @@ Future<void> showMovementDialog(
   );
 }
 
-/// Tag events start from a mob or a tag instead.
+/// Records a death in [paddock]: an end state, fixed to died. Given [mob], it
+/// starts chosen.
+Future<void> showDeathDialog(
+  BuildContext context, {
+  required LivestockRepository repository,
+  required Paddock paddock,
+  MobLine? mob,
+}) {
+  return showFormDialog<void>(
+    context,
+    builder: (context) => _MovementDialog(
+      repository: repository,
+      propertyId: paddock.propertyId,
+      fromPaddockId: paddock.id,
+      fromClassId: mob?.stockClass.id,
+      shortcut: _Shortcut.death,
+      title: 'Record death',
+      subtitle: paddock.name,
+    ),
+  );
+}
+
+/// Marks head of [mob] ready to sell, or takes them off it when [mob] is
+/// already ready to sell.
+Future<void> showReadyToSellDialog(
+  BuildContext context, {
+  required LivestockRepository repository,
+  required Paddock paddock,
+  required MobLine mob,
+}) {
+  return showFormDialog<void>(
+    context,
+    builder: (context) => _MovementDialog(
+      repository: repository,
+      propertyId: paddock.propertyId,
+      fromPaddockId: paddock.id,
+      fromClassId: mob.stockClass.id,
+      shortcut: _Shortcut.readyToSell,
+      title: mob.stockClass.isReadyToSell
+          ? 'No longer ready to sell'
+          : 'Mark ready to sell',
+      subtitle: '${mob.label} in ${paddock.name}',
+    ),
+  );
+}
+
+/// A form opened from a mob for one job. Its kind is fixed, and so are the
+/// paddock and whatever else the kind implies.
+enum _Shortcut {
+  death(MovementKind.endState),
+  readyToSell(MovementKind.readyToSell);
+
+  const _Shortcut(this.kind);
+
+  final MovementKind kind;
+}
+
+/// Tag events and ready to sell start from a mob or a tag instead.
 const _recordable = [
   MovementKind.intake,
   MovementKind.move,
@@ -37,6 +96,7 @@ extension on MovementKind {
     MovementKind.age => 'Age',
     MovementKind.endState => 'End',
     MovementKind.tag => 'Tag',
+    MovementKind.readyToSell => 'Ready to sell',
   };
 
   IconData get icon => switch (this) {
@@ -45,11 +105,13 @@ extension on MovementKind {
     MovementKind.age => Icons.update,
     MovementKind.endState => Icons.local_shipping_outlined,
     MovementKind.tag => Icons.sell_outlined,
+    MovementKind.readyToSell => Icons.paid_outlined,
   };
 
   String get tagsLabel => switch (this) {
     MovementKind.move => 'Tags to move',
     MovementKind.age => 'Tags to age',
+    MovementKind.readyToSell => 'Tags ready to sell',
     _ => 'Tags to remove',
   };
 
@@ -59,7 +121,7 @@ extension on MovementKind {
 
 /// The fields a blocker can find wrong. One that is only empty is not wrong,
 /// or the form would open in red.
-enum _Field { head, toPaddock, toClass, tags }
+enum _Field { head, toPaddock, toClass, tags, date }
 
 typedef _Blocker = ({String reason, Set<_Field> wrong});
 
@@ -71,6 +133,10 @@ class _MovementDialog extends StatefulWidget {
     required this.repository,
     this.propertyId,
     this.fromPaddockId,
+    this.fromClassId,
+    this.shortcut,
+    this.title = 'Record movement',
+    this.subtitle,
   });
 
   final LivestockRepository repository;
@@ -81,20 +147,28 @@ class _MovementDialog extends StatefulWidget {
   /// Opened from a paddock, the origin is already known.
   final String? fromPaddockId;
 
+  /// Opened from a mob, so is that.
+  final String? fromClassId;
+
+  final _Shortcut? shortcut;
+  final String title;
+  final String? subtitle;
+
   @override
   State<_MovementDialog> createState() => _MovementDialogState();
 }
 
 class _MovementDialogState extends State<_MovementDialog> {
-  final _head = TextEditingController();
+  late final _head = TextEditingController(text: _death ? '1' : '');
   final _note = TextEditingController();
+  late final _date = TextEditingController(text: shortDate(_day));
   late final _tags = TagSelection(widget.repository)..addListener(_onTags);
 
-  MovementKind _kind = MovementKind.move;
+  late MovementKind _kind = widget.shortcut?.kind ?? MovementKind.move;
   List<Property> _properties = const [];
   String? _propertyId;
   List<Paddock> _paddocks = const [];
-  List<LivestockClass> _classes = const [];
+  List<StockClass> _classes = const [];
   List<MobLine> _mobs = const [];
   List<TagStatus> _paddockTags = const [];
 
@@ -102,7 +176,8 @@ class _MovementDialogState extends State<_MovementDialog> {
   String? _toPaddockId;
   String? _fromClassId;
   String? _toClassId;
-  EndState _endState = EndState.meatworks;
+  late EndState _endState = _death ? EndState.died : EndState.meatworks;
+  DateTime _day = DateUtils.dateOnly(DateTime.now());
 
   bool _loading = true;
   bool _saving = false;
@@ -117,6 +192,7 @@ class _MovementDialogState extends State<_MovementDialog> {
   void dispose() {
     _head.dispose();
     _note.dispose();
+    _date.dispose();
     _tags.dispose();
     super.dispose();
   }
@@ -152,8 +228,17 @@ class _MovementDialogState extends State<_MovementDialog> {
     });
     if (widget.fromPaddockId != null) {
       await _selectFromPaddock(widget.fromPaddockId);
+      if (!mounted) return;
+      // A death from the paddock rather than a mob needs no choice when only
+      // one mob is there.
+      final start =
+          widget.fromClassId ??
+          (_death && _mobs.length == 1 ? _mobs.single.stockClass.id : null);
+      if (_mobs.any((m) => m.stockClass.id == start)) _selectFromClass(start);
     }
   }
+
+  bool get _death => widget.shortcut == _Shortcut.death;
 
   Future<void> _selectProperty(String? id) async {
     if (id == null || id == _propertyId) return;
@@ -187,18 +272,29 @@ class _MovementDialogState extends State<_MovementDialog> {
   }
 
   /// Aging keeps the mob where it is and follows the template's chain, so the
-  /// destination is implied rather than asked for.
+  /// destination is implied rather than asked for. Ready to sell keeps it
+  /// there too, and its class has only one way to go.
   void _selectFromClass(String? id) {
     setState(() {
       _fromClassId = id;
       if (_kind == MovementKind.age) {
         _toPaddockId = _fromPaddockId;
-        _toClassId = _classes
+        final next = _classes
             .where((c) => c.id == id)
-            .map((c) => c.agesIntoClassId)
+            .map((c) => c.row.agesIntoClassId)
             .firstOrNull;
+        // The dropdown asserts on a value it does not list.
+        _toClassId = _ageTargets.any((c) => c.id == next) ? next : null;
       } else if (_kind == MovementKind.move) {
         _toClassId = id;
+      } else if (_kind == MovementKind.readyToSell) {
+        _toPaddockId = _fromPaddockId;
+        final c = _mob?.stockClass;
+        _toClassId = c == null
+            ? null
+            : c.isReadyToSell
+            ? c.row.readyToSellOfClassId
+            : c.readyToSellClassId;
       }
     });
     _tags.mob = _mobTags;
@@ -224,8 +320,52 @@ class _MovementDialogState extends State<_MovementDialog> {
 
   List<TagStatus> get _mobTags => [
     for (final status in _paddockTags)
-      if (status.livestockClass?.id == _fromClassId) status,
+      if (status.stockClass?.id == _fromClassId) status,
   ];
+
+  MobLine? get _mob =>
+      _mobs.where((m) => m.stockClass.id == _fromClassId).firstOrNull;
+
+  /// Marking ready to sell goes through a mob's shortcut, so it is always
+  /// recorded as that kind.
+  List<StockClass> get _ageTargets => [
+    for (final c in _classes)
+      if (!c.isReadyToSell) c,
+  ];
+
+  /// Today records now. A past day records at its end, after anything else
+  /// recorded for it, since nobody is asked for the time.
+  DateTime? get _occurredAt {
+    if (!_death || DateUtils.isSameDay(_day, DateTime.now())) return null;
+    return DateTime(_day.year, _day.month, _day.day, 23, 59, 59);
+  }
+
+  /// When the last of the chosen tags last moved, which a death cannot be
+  /// dated before.
+  DateTime? get _lastTagMove {
+    DateTime? last;
+    for (final status in _tags.mob) {
+      if (!_tags.isChosen(status.tag.tagNumber)) continue;
+      if (last == null || status.occurredAt.isAfter(last)) {
+        last = status.occurredAt;
+      }
+    }
+    return last;
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _day,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _day = picked;
+      _date.text = shortDate(picked);
+    });
+  }
 
   /// Moving more head than the mob has untagged takes some of its tags along.
   /// When that is all of them, there is nothing to choose.
@@ -235,9 +375,7 @@ class _MovementDialogState extends State<_MovementDialog> {
     if (head - _untagged >= _tags.mob.length) _tags.chooseWholeMob();
   }
 
-  int get _available =>
-      _mobs.where((m) => m.livestockClass.id == _fromClassId).firstOrNull?.head ??
-      0;
+  int get _available => _mob?.head ?? 0;
 
   int get _untagged => _available - _tags.mob.length;
 
@@ -297,6 +435,13 @@ class _MovementDialogState extends State<_MovementDialog> {
         return _blocked('Select $short more ${short == 1 ? 'tag' : 'tags'}');
       }
     }
+    if (_lastTagMove case final last?
+        when last.isAfter(_occurredAt ?? DateTime.now())) {
+      return _blocked(
+        'A chosen tag moved on ${shortDate(last)}, after that date',
+        {_Field.date},
+      );
+    }
     return null;
   }
 
@@ -312,6 +457,7 @@ class _MovementDialogState extends State<_MovementDialog> {
         toClassId: _kind.takesTo ? _toClassId : null,
         endState: _kind == MovementKind.endState ? _endState : null,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+        occurredAt: _occurredAt,
         tags: _tags.chosen,
       );
       if (mounted) Navigator.of(context).pop();
@@ -327,10 +473,11 @@ class _MovementDialogState extends State<_MovementDialog> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const FormDialog(
-        title: 'Record movement',
+      return FormDialog(
+        title: widget.title,
+        subtitle: widget.subtitle,
         actionLabel: 'Record',
-        children: [
+        children: const [
           SizedBox(
             height: 240,
             child: Center(child: CircularProgressIndicator()),
@@ -341,9 +488,11 @@ class _MovementDialogState extends State<_MovementDialog> {
 
     final blocker = _blocker;
     final wrong = blocker?.wrong ?? const {};
+    final shortcut = widget.shortcut;
 
     return FormDialog(
-      title: 'Record movement',
+      title: widget.title,
+      subtitle: widget.subtitle,
       actionLabel: 'Record',
       onAction: _saving ? null : _save,
       blocker: blocker?.reason,
@@ -361,49 +510,53 @@ class _MovementDialogState extends State<_MovementDialog> {
           ),
           const SizedBox(height: 16),
         ],
-        // Icons alone: four labels do not fit a phone-width dialog. A tick in
-        // place of the selected icon would hide which kind it is.
-        SegmentedButton<MovementKind>(
-          segments: [
-            for (final kind in _recordable)
-              ButtonSegment(
-                value: kind,
-                icon: Icon(kind.icon),
-                tooltip: kind.label,
-              ),
-          ],
-          showSelectedIcon: false,
-          selected: {_kind},
-          onSelectionChanged: (s) => _selectKind(s.first),
-        ),
-        const SizedBox(height: 16),
-
-        if (_kind.takesFrom) ...[
-          _PaddockField(
-            label: _kind == MovementKind.intake ? 'Paddock' : 'From paddock',
-            paddocks: _paddocks,
-            value: _fromPaddockId,
-            onChanged: _selectFromPaddock,
-          ),
-          const SizedBox(height: 12),
-          _Dropdown<String>(
-            label: 'Mob',
-            value: _fromClassId,
-            onChanged: _selectFromClass,
-            items: [
-              for (final mob in _mobs)
-                DropdownMenuItem(
-                  value: mob.livestockClass.id,
-                  child: Text(
-                    '${mob.head} × ${mob.label} (${mob.livestockClass.ageBand})',
-                  ),
+        if (shortcut == null) ...[
+          // Icons alone: four labels do not fit a phone-width dialog. A tick
+          // in place of the selected icon would hide which kind it is.
+          SegmentedButton<MovementKind>(
+            segments: [
+              for (final kind in _recordable)
+                ButtonSegment(
+                  value: kind,
+                  icon: Icon(kind.icon),
+                  tooltip: kind.label,
                 ),
             ],
-            emptyHint: _fromPaddockId == null
-                ? 'Choose a paddock first'
-                : 'This paddock is empty',
+            showSelectedIcon: false,
+            selected: {_kind},
+            onSelectionChanged: (s) => _selectKind(s.first),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+        ],
+
+        if (_kind.takesFrom) ...[
+          if (shortcut == null) ...[
+            _PaddockField(
+              label: _kind == MovementKind.intake ? 'Paddock' : 'From paddock',
+              paddocks: _paddocks,
+              value: _fromPaddockId,
+              onChanged: _selectFromPaddock,
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (shortcut != _Shortcut.readyToSell) ...[
+            _Dropdown<String>(
+              label: 'Mob',
+              value: _fromClassId,
+              onChanged: _selectFromClass,
+              items: [
+                for (final mob in _mobs)
+                  DropdownMenuItem(
+                    value: mob.stockClass.id,
+                    child: Text('${mob.head} × ${mob.label}'),
+                  ),
+              ],
+              emptyHint: _fromPaddockId == null
+                  ? 'Choose a paddock first'
+                  : 'This paddock is empty',
+            ),
+            const SizedBox(height: 12),
+          ],
         ],
 
         if (_kind == MovementKind.intake || _kind == MovementKind.age) ...[
@@ -413,13 +566,11 @@ class _MovementDialogState extends State<_MovementDialog> {
             wrong: wrong.contains(_Field.toClass),
             onChanged: (id) => setState(() => _toClassId = id),
             items: [
-              for (final c in _classes)
-                DropdownMenuItem(
-                  value: c.id,
-                  child: Text('${c.kind} (${c.ageBand})'),
-                ),
+              for (final c
+                  in _kind == MovementKind.age ? _ageTargets : _classes)
+                DropdownMenuItem(value: c.id, child: Text(c.label)),
             ],
-            emptyHint: 'No templates seeded',
+            emptyHint: 'No classes yet: add one in Templates',
           ),
           const SizedBox(height: 12),
         ],
@@ -435,7 +586,7 @@ class _MovementDialogState extends State<_MovementDialog> {
           const SizedBox(height: 12),
         ],
 
-        if (_kind == MovementKind.endState) ...[
+        if (_kind == MovementKind.endState && shortcut == null) ...[
           _Dropdown<EndState>(
             label: 'Destination',
             value: _endState,
@@ -449,6 +600,19 @@ class _MovementDialogState extends State<_MovementDialog> {
           const SizedBox(height: 12),
         ],
 
+        if (_death) ...[
+          TextField(
+            controller: _date,
+            readOnly: true,
+            decoration: InputDecoration(
+              labelText: 'Date',
+              suffixIcon: const Icon(Icons.calendar_today_outlined),
+              error: wrong.contains(_Field.date) ? wrongField : null,
+            ),
+            onTap: _pickDate,
+          ),
+          const SizedBox(height: 12),
+        ],
         TextField(
           controller: _head,
           keyboardType: TextInputType.number,
@@ -473,18 +637,24 @@ class _MovementDialogState extends State<_MovementDialog> {
         ] else if (_tags.mob.isNotEmpty) ...[
           TagPicker(
             selection: _tags,
-            label: _kind.tagsLabel,
+            label: _kind == MovementKind.readyToSell && _unmarking
+                ? 'Tags no longer ready to sell'
+                : _kind.tagsLabel,
             wrong: wrong.contains(_Field.tags),
           ),
           const SizedBox(height: 12),
         ],
         TextField(
           controller: _note,
-          decoration: const InputDecoration(labelText: 'Note (optional)'),
+          decoration: InputDecoration(
+            labelText: _death ? 'Cause or note (optional)' : 'Note (optional)',
+          ),
         ),
       ],
     );
   }
+
+  bool get _unmarking => _mob?.stockClass.isReadyToSell ?? false;
 }
 
 class _PaddockField extends StatelessWidget {

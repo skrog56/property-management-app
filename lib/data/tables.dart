@@ -2,10 +2,16 @@ import 'package:drift/drift.dart';
 
 /// Every kind shares one row shape, so the Activity view is this table
 /// rendered. A [tag] event moves nothing: its from and to are the same mob, so
-/// it nets to zero, and it exists to carry its [MovementTags].
-enum MovementKind { intake, move, age, endState, tag }
+/// it nets to zero, and it exists to carry its [MovementTags]. [readyToSell]
+/// changes class within a paddock, between a class and its ready-to-sell twin,
+/// in either direction.
+enum MovementKind { intake, move, age, endState, tag, readyToSell }
 
 enum EndState { meatworks, sold, died, lost, other }
+
+/// The animal a template counts. Stored by name, so values are only ever
+/// added.
+enum Species { cattle, sheep, goat, pig, horse, alpaca, deer, poultry, other }
 
 /// An NLIS device carries two numbers, the 16-character NLIS ID printed on it
 /// and the 15-digit RFID it transmits. Either may be recorded under [nlis].
@@ -49,6 +55,12 @@ class Paddocks extends Table with SyncSafe {
 class Templates extends Table with SyncSafe {
   TextColumn get name => text()();
   BoolColumn get isBuiltIn => boolean().withDefault(const Constant(false))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// Defaulted only so the column could be added to templates already there,
+  /// every one of them cattle.
+  TextColumn get species =>
+      textEnum<Species>().withDefault(const Constant('cattle'))();
 }
 
 @DataClassName('LivestockClass')
@@ -56,10 +68,14 @@ class LivestockClasses extends Table with SyncSafe {
   TextColumn get templateId => text().references(Templates, #id)();
   TextColumn get kind => text()();
   TextColumn get breed => text().nullable()();
-  TextColumn get ageBand => text()();
+  TextColumn get ageBand => text().nullable()();
 
   /// Makes aging one tap instead of a class picker.
   TextColumn get agesIntoClassId => text().nullable()();
+
+  /// Set on a ready-to-sell twin: the class whose head it holds once they are
+  /// marked ready to sell.
+  TextColumn get readyToSellOfClassId => text().nullable()();
 
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }

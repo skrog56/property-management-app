@@ -66,7 +66,7 @@ void main() {
 
       expect(await tagsIn(north), [a, b]);
       expect((await status(a)).role, TagRole.added);
-      expect((await status(a)).livestockClass?.id, 'calves');
+      expect((await status(a)).stockClass?.id, 'calves');
     });
 
     test('a move carries the tags it names and leaves the rest', () async {
@@ -98,7 +98,7 @@ void main() {
         tags: [a],
       );
 
-      expect((await status(a)).livestockClass?.id, 'weaners');
+      expect((await status(a)).stockClass?.id, 'weaners');
     });
 
     test('an end state takes its tags off the property', () async {

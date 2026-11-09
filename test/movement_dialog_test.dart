@@ -151,7 +151,7 @@ void main() {
     await tester.tap(find.byTooltip('Intake'));
     await drain(tester);
 
-    await pick(tester, 'Class', 'Calves (under 6 months)');
+    await pick(tester, 'Class', 'Calves (Beef) · under 6 months');
     await pick(tester, 'Into', 'North Ridge');
     await tester.enterText(find.widgetWithText(TextField, 'Head'), '40');
     await drain(tester);
@@ -182,7 +182,7 @@ void main() {
     // Switching property clears the paddock chosen in the old one.
     await pick(tester, 'Property', 'River Block');
     expect(find.text('North Ridge'), findsNothing);
-    await pick(tester, 'Class', 'Calves (under 6 months)');
+    await pick(tester, 'Class', 'Calves (Beef) · under 6 months');
     await pick(tester, 'Into', 'Back Paddock');
     await tester.enterText(find.widgetWithText(TextField, 'Head'), '12');
     await drain(tester);
@@ -222,7 +222,7 @@ void main() {
 
     await openForm(tester);
     await pick(tester, 'From paddock', 'North Ridge');
-    await pick(tester, 'Mob', '10 × Calves (under 6 months)');
+    await pick(tester, 'Mob', '10 × Calves (Beef) · under 6 months');
     await pick(tester, 'To paddock', 'Creek Flat');
     await tester.enterText(find.widgetWithText(TextField, 'Head'), '11');
     await drain(tester);
@@ -254,7 +254,7 @@ void main() {
 
     await openForm(tester);
     await pick(tester, 'From paddock', 'North Ridge');
-    await pick(tester, 'Mob', '10 × Calves (under 6 months)');
+    await pick(tester, 'Mob', '10 × Calves (Beef) · under 6 months');
     await pick(tester, 'To paddock', 'North Ridge');
     await tester.enterText(find.widgetWithText(TextField, 'Head'), '5');
     await drain(tester);
@@ -276,7 +276,7 @@ void main() {
 
     await openForm(tester, width: 360);
     await pick(tester, 'From paddock', 'North Ridge');
-    await pick(tester, 'Mob', '10 × Calves (under 6 months)');
+    await pick(tester, 'Mob', '10 × Calves (Beef) · under 6 months');
     await pick(tester, 'To paddock', 'North Ridge');
     await tester.enterText(find.widgetWithText(TextField, 'Head'), '5');
     await drain(tester);
@@ -303,10 +303,10 @@ void main() {
     await drain(tester);
 
     await pick(tester, 'From paddock', 'North Ridge');
-    await pick(tester, 'Mob', '20 × Calves (under 6 months)');
+    await pick(tester, 'Mob', '20 × Calves (Beef) · under 6 months');
 
     // The chain says calves age into weaners, so no destination is asked for.
-    expect(find.text('Weaners (6-12 months)'), findsOneWidget);
+    expect(find.text('Weaners (Beef) · 6-12 months'), findsOneWidget);
 
     await tester.enterText(find.widgetWithText(TextField, 'Head'), '20');
     await drain(tester);
@@ -322,7 +322,7 @@ void main() {
       await openForm(tester);
       await tester.tap(find.byTooltip('Intake'));
       await drain(tester);
-      await pick(tester, 'Class', 'Calves (under 6 months)');
+      await pick(tester, 'Class', 'Calves (Beef) · under 6 months');
       await pick(tester, 'Into', 'North Ridge');
 
       await scan(tester, '999 000000000001');
@@ -351,7 +351,7 @@ void main() {
         tags: [a, b],
       );
 
-      await openMove(tester, '10 × Calves (under 6 months)');
+      await openMove(tester, '10 × Calves (Beef) · under 6 months');
       await tester.tap(find.widgetWithText(FilterChip, '999 000000000001'));
       await tester.enterText(find.widgetWithText(TextField, 'Head'), '2');
       await drain(tester);
@@ -371,7 +371,7 @@ void main() {
         tags: [a, b],
       );
 
-      await openMove(tester, '3 × Calves (under 6 months)');
+      await openMove(tester, '3 × Calves (Beef) · under 6 months');
       await tester.enterText(find.widgetWithText(TextField, 'Head'), '3');
       await drain(tester);
 
@@ -394,7 +394,7 @@ void main() {
         tags: [a, b],
       );
 
-      await openMove(tester, '2 × Calves (under 6 months)');
+      await openMove(tester, '2 × Calves (Beef) · under 6 months');
       await tester.enterText(find.widgetWithText(TextField, 'Head'), '1');
       await drain(tester);
 
@@ -420,7 +420,7 @@ void main() {
       await openForm(tester);
       await tester.tap(find.byTooltip('Intake'));
       await drain(tester);
-      await pick(tester, 'Class', 'Calves (under 6 months)');
+      await pick(tester, 'Class', 'Calves (Beef) · under 6 months');
       await pick(tester, 'Into', 'North Ridge');
       await scan(tester, '999000000000001');
 
@@ -438,7 +438,7 @@ void main() {
       await openForm(tester);
       await tester.tap(find.byTooltip('Intake'));
       await drain(tester);
-      await pick(tester, 'Class', 'Calves (under 6 months)');
+      await pick(tester, 'Class', 'Calves (Beef) · under 6 months');
       await pick(tester, 'Into', 'North Ridge');
       await tester.enterText(find.widgetWithText(TextField, 'Head'), '1');
       await scan(tester, '12345');
@@ -465,7 +465,7 @@ void main() {
         tags: [TagNumber.tryParse(TagScheme.nlis, '999000000000003')!],
       );
 
-      await openMove(tester, '4 × Calves (under 6 months)', width: 360);
+      await openMove(tester, '4 × Calves (Beef) · under 6 months', width: 360);
       await scanInto(tester, '999000000000003');
 
       expect(find.byType(FilterChip), findsNWidgets(2));
@@ -500,7 +500,7 @@ void main() {
         toClassId: 'calves',
       );
 
-      await openMove(tester, '5 × Calves (under 6 months)');
+      await openMove(tester, '5 × Calves (Beef) · under 6 months');
 
       expect(find.text('Scan or find'), findsNothing);
       expect(find.text('Tags to add (optional)'), findsNothing);
@@ -517,7 +517,7 @@ void main() {
         tags: [a, b],
       );
 
-      await openMove(tester, '10 × Calves (under 6 months)');
+      await openMove(tester, '10 × Calves (Beef) · under 6 months');
       expect(find.text('Tags to move · 0 of 2'), findsOneWidget);
 
       await scanInto(tester, '999 000000000001');
@@ -544,7 +544,7 @@ void main() {
         tags: [a, b],
       );
 
-      await openMove(tester, '10 × Calves (under 6 months)');
+      await openMove(tester, '10 × Calves (Beef) · under 6 months');
       await tester.enterText(
         find.widgetWithText(TextField, 'Scan or find'),
         '0002',
@@ -572,7 +572,7 @@ void main() {
       await tester.tap(find.byTooltip('End'));
       await drain(tester);
       await pick(tester, 'From paddock', 'North Ridge');
-      await pick(tester, 'Mob', '10 × Calves (under 6 months)');
+      await pick(tester, 'Mob', '10 × Calves (Beef) · under 6 months');
 
       await tester.tap(find.widgetWithText(TextButton, 'Select all'));
       await drain(tester);
@@ -602,7 +602,7 @@ void main() {
       await tester.tap(find.byTooltip('Move'));
       await drain(tester);
       await pick(tester, 'From paddock', 'North Ridge');
-      await pick(tester, 'Mob', '3 × Calves (under 6 months)');
+      await pick(tester, 'Mob', '3 × Calves (Beef) · under 6 months');
       await pick(tester, 'To paddock', 'Creek Flat');
       await tester.enterText(find.widgetWithText(TextField, 'Head'), '1');
       await drain(tester);

@@ -62,7 +62,10 @@ void main() {
     await pumpRouted(tester, repository: repo, location: '/tags');
 
     expect(find.text('999 000000000001'), findsOneWidget);
-    expect(find.text('North Ridge · Calves'), findsOneWidget);
+    expect(
+      find.text('North Ridge · Calves (Beef) · under 6 months'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Sold · '), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '0002');

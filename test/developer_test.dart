@@ -112,7 +112,7 @@ void main() {
       await repo.seedSampleFarm();
 
       expect(await repo.properties(), hasLength(2));
-      expect(await repo.movementCount(), 8);
+      expect(await repo.movementCount(), 9);
       expect(await repo.negativeBalances(), isEmpty);
       expect(await repo.overTaggedMobs(), isEmpty);
 

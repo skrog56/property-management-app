@@ -81,7 +81,7 @@ class _AddTagsDialogState extends State<_AddTagsDialog> {
     try {
       await widget.repository.applyTags(
         paddockId: widget.paddock.id,
-        classId: widget.mob.livestockClass.id,
+        classId: widget.mob.stockClass.id,
         tags: _tags.chosen,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
       );
@@ -102,8 +102,8 @@ class _AddTagsDialogState extends State<_AddTagsDialog> {
     return FormDialog(
       title: 'Add tags',
       subtitle:
-          '${mob.label} (${mob.livestockClass.ageBand}) in '
-          '${widget.paddock.name} · $_untagged of ${mob.head} head untagged',
+          '${mob.label} in ${widget.paddock.name} · '
+          '$_untagged of ${mob.head} head untagged',
       actionLabel: switch (count) {
         0 => 'Record tags',
         1 => 'Record 1 tag',

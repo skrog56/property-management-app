@@ -56,16 +56,66 @@ class UntaggedShortfall extends LedgerConflict {
       'Only $untagged untagged head here, but this needs $needed';
 }
 
-class MobLine {
-  const MobLine({required this.livestockClass, required this.head});
+/// A class with its template. The same kind can sit in two templates, so a
+/// class is never named without its own.
+class StockClass {
+  const StockClass(this.row, this.template, {this.readyToSellClassId});
 
-  final LivestockClass livestockClass;
-  final int head;
+  final LivestockClass row;
+  final Template template;
+
+  /// The live twin this class's head move to when marked ready to sell.
+  final String? readyToSellClassId;
+
+  String get id => row.id;
+
+  /// Holds another class's head that are ready to sell.
+  bool get isReadyToSell => row.readyToSellOfClassId != null;
 
   String get label => [
-    livestockClass.breed,
-    livestockClass.kind,
-  ].whereType<String>().join(' ');
+    '${[row.breed, row.kind].whereType<String>().join(' ')} (${template.name})',
+    ?row.ageBand,
+    if (isReadyToSell) 'ready to sell',
+  ].join(' · ');
+
+  /// Templates in order, each one's classes before their ready-to-sell twins.
+  static int compare(StockClass a, StockClass b) {
+    int twin(StockClass c) => c.isReadyToSell ? 1 : 0;
+    return [
+      a.template.sortOrder.compareTo(b.template.sortOrder),
+      a.template.name.compareTo(b.template.name),
+      twin(a).compareTo(twin(b)),
+      a.row.sortOrder.compareTo(b.row.sortOrder),
+      a.row.kind.compareTo(b.row.kind),
+    ].firstWhere((order) => order != 0, orElse: () => 0);
+  }
+}
+
+class MobLine {
+  const MobLine({required this.stockClass, required this.head});
+
+  final StockClass stockClass;
+  final int head;
+
+  String get label => stockClass.label;
+}
+
+/// A template as the editor shows it, with the head standing in each class,
+/// which a removal has to wait for.
+class TemplateSummary {
+  const TemplateSummary({
+    required this.template,
+    required this.classes,
+    required this.head,
+  });
+
+  final Template template;
+  final List<StockClass> classes;
+  final Map<String, int> head;
+
+  int headIn(String? classId) => head[classId] ?? 0;
+
+  int get totalHead => classes.fold(0, (sum, c) => sum + headIn(c.id));
 }
 
 class ActivityEntry {
@@ -81,8 +131,8 @@ class ActivityEntry {
   final Movement movement;
   final Paddock? fromPaddock;
   final Paddock? toPaddock;
-  final String? fromClass;
-  final String? toClass;
+  final StockClass? fromClass;
+  final StockClass? toClass;
 
   /// Removed tags first, so a replacement reads old then new.
   final List<TagRef> tags;
@@ -107,7 +157,7 @@ class TagStatus {
     this.endState,
     this.paddock,
     this.property,
-    this.livestockClass,
+    this.stockClass,
     this.replacedBy,
   });
 
@@ -120,7 +170,7 @@ class TagStatus {
   /// Where that movement took the animal. An end state has nowhere.
   final Paddock? paddock;
   final Property? property;
-  final LivestockClass? livestockClass;
+  final StockClass? stockClass;
 
   /// The tag that took this one's place, when that movement replaced it.
   final LivestockTag? replacedBy;
@@ -208,7 +258,17 @@ class LivestockRepository {
     int limit = 200,
     String? paddockId,
     String? tagId,
-  }) => _latest['activity:$paddockId:$tagId:$limit'] as List<ActivityEntry>?;
+    EndState? endState,
+  }) =>
+      _latest[_activityKey(limit, paddockId, tagId, endState)]
+          as List<ActivityEntry>?;
+
+  static String _activityKey(
+    int limit,
+    String? paddockId,
+    String? tagId,
+    EndState? endState,
+  ) => 'activity:$paddockId:$tagId:${endState?.name}:$limit';
 
   List<TagStatus>? latestTagsIn(String paddockId) =>
       _latest['tags:$paddockId'] as List<TagStatus>?;
@@ -299,7 +359,7 @@ class LivestockRepository {
           HAVING b.class_id IS NULL OR SUM(b.delta) <> 0
           ''',
           variables: [Variable<String>(propertyId)],
-          readsFrom: {db.paddocks, db.movements},
+          readsFrom: {db.paddocks, db.movements, ..._labelTables},
         )
         .watch()
         .asyncMap((rows) => _assemble(propertyId, rows));
@@ -321,18 +381,15 @@ class LivestockRepository {
     final mobs = <String, List<MobLine>>{};
     for (final row in rows) {
       final classId = row.read<String?>('cid');
-      final livestockClass = classId == null ? null : classes[classId];
-      if (livestockClass == null) continue;
-      mobs.putIfAbsent(row.read<String>('pid'), () => []).add(
-        MobLine(livestockClass: livestockClass, head: row.read<int>('head')),
-      );
+      final stockClass = classId == null ? null : classes[classId];
+      if (stockClass == null) continue;
+      mobs
+          .putIfAbsent(row.read<String>('pid'), () => [])
+          .add(MobLine(stockClass: stockClass, head: row.read<int>('head')));
     }
 
     for (final lines in mobs.values) {
-      lines.sort(
-        (a, b) =>
-            a.livestockClass.sortOrder.compareTo(b.livestockClass.sortOrder),
-      );
+      lines.sort(_mobsInOrder);
     }
 
     return [
@@ -352,7 +409,7 @@ class LivestockRepository {
            GROUP BY class_id HAVING SUM(delta) <> 0
           ''',
           variables: [Variable<String>(paddockId)],
-          readsFrom: {db.paddocks, db.movements},
+          readsFrom: {db.paddocks, db.movements, ..._labelTables},
         )
         .watch()
         .asyncMap((rows) async {
@@ -366,28 +423,43 @@ class LivestockRepository {
           final classes = await _classesById();
           final mobs = <MobLine>[];
           for (final row in rows) {
-            final livestockClass = classes[row.read<String>('cid')];
-            if (livestockClass == null) continue;
+            final stockClass = classes[row.read<String>('cid')];
+            if (stockClass == null) continue;
             mobs.add(
-              MobLine(
-                livestockClass: livestockClass,
-                head: row.read<int>('head'),
-              ),
+              MobLine(stockClass: stockClass, head: row.read<int>('head')),
             );
           }
-          mobs.sort(
-            (a, b) =>
-                a.livestockClass.sortOrder.compareTo(b.livestockClass.sortOrder),
-          );
+          mobs.sort(_mobsInOrder);
 
           return PaddockSummary(paddock: paddock, mobs: mobs);
         });
     return _remembered('paddock:$paddockId', summary);
   }
 
-  Future<Map<String, LivestockClass>> _classesById() async => {
-    for (final c in await db.select(db.livestockClasses).get()) c.id: c,
-  };
+  /// What a watch must also read when it shows class labels, which the
+  /// template editor can change.
+  Set<TableInfo> get _labelTables => {db.livestockClasses, db.templates};
+
+  static int _mobsInOrder(MobLine a, MobLine b) =>
+      StockClass.compare(a.stockClass, b.stockClass);
+
+  /// Every class, removed ones too, so history can still name them.
+  Future<Map<String, StockClass>> _classesById() async {
+    final templates = {
+      for (final t in await db.select(db.templates).get()) t.id: t,
+    };
+    final rows = await db.select(db.livestockClasses).get();
+    final twins = {
+      for (final c in rows)
+        if (c.readyToSellOfClassId case final base? when c.deletedAt == null)
+          base: c.id,
+    };
+    return {
+      for (final c in rows)
+        if (templates[c.templateId] case final template?)
+          c.id: StockClass(c, template, readyToSellClassId: twins[c.id]),
+    };
+  }
 
   Future<int> headIn(String paddockId, String classId) async {
     final row = await db
@@ -403,61 +475,65 @@ class LivestockRepository {
     return row.read<int>('head');
   }
 
+  /// Newest first. A custom select rather than a typed one, so it can also
+  /// read the tables its entries are labelled from.
   Stream<List<Movement>> watchActivity({
     int limit = 200,
     String? paddockId,
     String? tagId,
+    EndState? endState,
   }) {
-    return (db.select(db.movements)
-          ..where((m) => m.deletedAt.isNull())
-          ..where(
-            (m) => paddockId == null
-                ? const Constant(true)
-                : m.fromPaddockId.equals(paddockId) |
-                      m.toPaddockId.equals(paddockId),
-          )
-          ..where(
-            (m) => tagId == null
-                ? const Constant(true)
-                : m.id.isInQuery(
-                    db.selectOnly(db.movementTags)
-                      ..addColumns([db.movementTags.movementId])
-                      ..where(
-                        db.movementTags.tagId.equals(tagId) &
-                            db.movementTags.deletedAt.isNull(),
-                      ),
-                  ),
-          )
-          ..orderBy([
-            (m) => OrderingTerm(
-              expression: m.occurredAt,
-              mode: OrderingMode.desc,
-            ),
-            (m) =>
-                OrderingTerm(expression: m.createdAt, mode: OrderingMode.desc),
-          ])
-          ..limit(limit))
-        .watch();
+    final variables = <Variable>[];
+    String bind(Variable variable) {
+      variables.add(variable);
+      return '?${variables.length}';
+    }
+
+    final where = ['deleted_at IS NULL'];
+    if (paddockId != null) {
+      final paddock = bind(Variable<String>(paddockId));
+      where.add('(from_paddock_id = $paddock OR to_paddock_id = $paddock)');
+    }
+    if (tagId != null) {
+      where.add(
+        'id IN (SELECT movement_id FROM movement_tags '
+        'WHERE tag_id = ${bind(Variable<String>(tagId))} '
+        'AND deleted_at IS NULL)',
+      );
+    }
+    if (endState != null) {
+      where.add('end_state = ${bind(Variable<String>(endState.name))}');
+    }
+
+    return db
+        .customSelect(
+          'SELECT * FROM movements WHERE ${where.join(' AND ')} '
+          'ORDER BY occurred_at DESC, created_at DESC '
+          'LIMIT ${bind(Variable<int>(limit))}',
+          variables: variables,
+          readsFrom: {db.movements, db.movementTags, ..._labelTables},
+        )
+        .watch()
+        .map((rows) => [for (final row in rows) db.movements.map(row.data)]);
   }
 
   Stream<List<ActivityEntry>> watchActivityEntries({
     int limit = 200,
     String? paddockId,
     String? tagId,
+    EndState? endState,
   }) {
     final entries =
         watchActivity(
           limit: limit,
           paddockId: paddockId,
           tagId: tagId,
+          endState: endState,
         ).asyncMap((movements) async {
           final paddocks = {
             for (final p in await db.select(db.paddocks).get()) p.id: p,
           };
-          final classes = {
-            for (final c in (await _classesById()).values)
-              c.id: '${c.kind} (${c.ageBand})',
-          };
+          final classes = await _classesById();
           final tags = await _tagRefs({for (final m in movements) m.id});
 
           return [
@@ -472,7 +548,10 @@ class LivestockRepository {
               ),
           ];
         });
-    return _remembered('activity:$paddockId:$tagId:$limit', entries);
+    return _remembered(
+      _activityKey(limit, paddockId, tagId, endState),
+      entries,
+    );
   }
 
   Future<Map<String, List<TagRef>>> _tagRefs(Set<String> movementIds) async {
@@ -518,7 +597,8 @@ class LivestockRepository {
   /// than in the form.
   ///
   /// Each of [tags] is carried if it is standing in the source mob, and added
-  /// if it is standing nowhere.
+  /// if it is standing nowhere. A [MovementKind.readyToSell] must stay in its
+  /// paddock and pass between a class and its ready-to-sell twin.
   Future<String> record({
     required MovementKind kind,
     required int head,
@@ -538,6 +618,9 @@ class LivestockRepository {
       throw ArgumentError.value(head, 'head', 'must be greater than zero');
     }
     _checkTags(tags, head);
+    if (kind == MovementKind.readyToSell) {
+      await _checkTwins(fromPaddockId, fromClassId, toPaddockId, toClassId);
+    }
     final at = occurredAt?.toUtc() ?? DateTime.now().toUtc();
 
     return db.transaction(() async {
@@ -558,7 +641,7 @@ class LivestockRepository {
         if (status == null || !status.isActive) {
           role = TagRole.added;
         } else if (status.paddock?.id == fromPaddockId &&
-            status.livestockClass?.id == fromClassId) {
+            status.stockClass?.id == fromClassId) {
           role = TagRole.carried;
         } else {
           throw TagElsewhere(r.number, status);
@@ -669,9 +752,9 @@ class LivestockRepository {
         head: 1,
         at: at,
         fromPaddockId: old.paddock!.id,
-        fromClassId: old.livestockClass!.id,
+        fromClassId: old.stockClass!.id,
         toPaddockId: old.paddock!.id,
-        toClassId: old.livestockClass!.id,
+        toClassId: old.stockClass!.id,
         note: note,
         links: [
           (
@@ -703,9 +786,9 @@ class LivestockRepository {
         head: 1,
         at: at,
         fromPaddockId: status.paddock!.id,
-        fromClassId: status.livestockClass!.id,
+        fromClassId: status.stockClass!.id,
         toPaddockId: status.paddock!.id,
-        toClassId: status.livestockClass!.id,
+        toClassId: status.stockClass!.id,
         note: note,
         links: [
           (
@@ -725,6 +808,37 @@ class LivestockRepository {
       throw StateError('Tag $tagId is not on the property');
     }
     return status;
+  }
+
+  Future<void> _checkTwins(
+    String? fromPaddockId,
+    String? fromClassId,
+    String? toPaddockId,
+    String? toClassId,
+  ) async {
+    if (fromPaddockId == null || fromPaddockId != toPaddockId) {
+      throw ArgumentError.value(
+        toPaddockId,
+        'toPaddockId',
+        'must be the paddock it is marked in',
+      );
+    }
+    final rows = await (db.select(
+      db.livestockClasses,
+    )..where((c) => c.id.isIn([?fromClassId, ?toClassId]))).get();
+    final byId = {for (final c in rows) c.id: c};
+    final from = byId[fromClassId];
+    final to = byId[toClassId];
+    if (from == null ||
+        to == null ||
+        (to.readyToSellOfClassId != from.id &&
+            from.readyToSellOfClassId != to.id)) {
+      throw ArgumentError.value(
+        toClassId,
+        'toClassId',
+        'is not $fromClassId or its ready-to-sell twin',
+      );
+    }
   }
 
   static void _checkTags(List<TagNumber> tags, int head) {
@@ -858,7 +972,12 @@ class LivestockRepository {
      WHERE t.deleted_at IS NULL $filter
     ''',
     variables: variables,
-    readsFrom: {db.livestockTags, db.movementTags, db.movements},
+    readsFrom: {
+      db.livestockTags,
+      db.movementTags,
+      db.movements,
+      ..._labelTables,
+    },
   );
 
   Future<List<TagStatus>> _statuses(List<QueryRow> rows) async {
@@ -890,7 +1009,7 @@ class LivestockRepository {
           occurredAt: row.read<DateTime>('occurred_at'),
           paddock: paddock,
           property: properties[paddock?.propertyId],
-          livestockClass: classes[row.read<String?>('to_class_id')],
+          stockClass: classes[row.read<String?>('to_class_id')],
           replacedBy: role == TagRole.removed
               ? successors[row.read<String>('movement_id')]
               : null,
@@ -951,9 +1070,10 @@ class LivestockRepository {
   Future<List<TagStatus>> _mobOrder(List<QueryRow> rows) async {
     final statuses = await _statuses(rows);
     return statuses..sort((a, b) {
-      final byClass = (a.livestockClass?.sortOrder ?? 0).compareTo(
-        b.livestockClass?.sortOrder ?? 0,
-      );
+      final byClass = switch ((a.stockClass, b.stockClass)) {
+        (final x?, final y?) => StockClass.compare(x, y),
+        _ => 0,
+      };
       return byClass != 0 ? byClass : a.tag.number.compareTo(b.tag.number);
     });
   }
@@ -1116,10 +1236,11 @@ class LivestockRepository {
             ..orderBy([(p) => OrderingTerm(expression: p.name)]))
           .get();
 
-  Future<List<LivestockClass>> allClasses() => (db.select(db.livestockClasses)
-        ..where((c) => c.deletedAt.isNull())
-        ..orderBy([(c) => OrderingTerm(expression: c.sortOrder)]))
-      .get();
+  /// What a picker offers: the live classes of live templates, in order.
+  Future<List<StockClass>> allClasses() async => [
+    for (final c in (await _classesById()).values)
+      if (c.row.deletedAt == null && c.template.deletedAt == null) c,
+  ]..sort(StockClass.compare);
 
   /// What is actually standing in a paddock right now, for pickers that must
   /// not offer livestock that is not there.
@@ -1140,32 +1261,246 @@ class LivestockRepository {
 
     final mobs = <MobLine>[];
     for (final row in rows) {
-      final livestockClass = classes[row.read<String>('cid')];
-      if (livestockClass == null) continue;
-      mobs.add(
-        MobLine(livestockClass: livestockClass, head: row.read<int>('head')),
-      );
+      final stockClass = classes[row.read<String>('cid')];
+      if (stockClass == null) continue;
+      mobs.add(MobLine(stockClass: stockClass, head: row.read<int>('head')));
     }
-    mobs.sort(
-      (a, b) =>
-          a.livestockClass.sortOrder.compareTo(b.livestockClass.sortOrder),
-    );
-    return mobs;
+    return mobs..sort(_mobsInOrder);
   }
 
-  Future<List<LivestockClass>> classesIn(String templateId) =>
-      (db.select(db.livestockClasses)
-            ..where((c) => c.templateId.equals(templateId))
-            ..where((c) => c.deletedAt.isNull())
-            ..orderBy([(c) => OrderingTerm(expression: c.sortOrder)]))
+  Future<List<Template>> templates() =>
+      (db.select(db.templates)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([
+              (t) => OrderingTerm(expression: t.sortOrder),
+              (t) => OrderingTerm(expression: t.name),
+            ]))
           .get();
 
-  Future<List<Template>> templates() => (db.select(
-    db.templates,
-  )..where((t) => t.deletedAt.isNull())).get();
+  /// The template editor's view: every live template with its classes, and
+  /// the head standing in each class across all paddocks.
+  Stream<List<TemplateSummary>> watchTemplates() => db
+      .customSelect(
+        '''
+        SELECT class_id AS cid, SUM(delta) AS head FROM ($_balances)
+         GROUP BY class_id HAVING SUM(delta) <> 0
+        ''',
+        readsFrom: {db.movements, ..._labelTables},
+      )
+      .watch()
+      .asyncMap((rows) async {
+        final head = {
+          for (final row in rows)
+            ?row.read<String?>('cid'): row.read<int>('head'),
+        };
+        final classes = await allClasses();
+        return [
+          for (final template in await templates())
+            TemplateSummary(
+              template: template,
+              classes: [
+                for (final c in classes)
+                  if (c.template.id == template.id) c,
+              ],
+              head: head,
+            ),
+        ];
+      });
 
-  /// Seeds the built-in templates. The lists themselves are provisional and
-  /// awaiting Alex; replacing the asset is a content change, not a code one.
+  Future<String> createTemplate(String name, {required Species species}) async {
+    final now = DateTime.now().toUtc();
+    final id = _uuid.v4();
+    final next = await db
+        .customSelect(
+          'SELECT COALESCE(MAX(sort_order) + 1, 0) AS n FROM templates',
+          readsFrom: {db.templates},
+        )
+        .getSingle();
+    await db
+        .into(db.templates)
+        .insert(
+          TemplatesCompanion.insert(
+            id: id,
+            createdAt: now,
+            updatedAt: now,
+            name: name,
+            sortOrder: Value(next.read<int>('n')),
+            species: Value(species),
+          ),
+        );
+    return id;
+  }
+
+  Future<void> updateTemplate(
+    String id, {
+    required String name,
+    required Species species,
+  }) => (db.update(db.templates)..where((t) => t.id.equals(id))).write(
+    TemplatesCompanion(
+      name: Value(name),
+      species: Value(species),
+      updatedAt: Value(DateTime.now().toUtc()),
+    ),
+  );
+
+  /// Refused while head stands in any of its classes.
+  Future<void> removeTemplate(String id) => db.transaction(() async {
+    final classes =
+        await (db.select(db.livestockClasses)
+              ..where((c) => c.templateId.equals(id))
+              ..where((c) => c.deletedAt.isNull()))
+            .get();
+    final ids = [for (final c in classes) c.id];
+    await _checkEmpty(ids);
+    final now = DateTime.now().toUtc();
+    await _retireClasses(ids, now);
+    await (db.update(db.templates)..where((t) => t.id.equals(id))).write(
+      TemplatesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+  });
+
+  Future<String> createClass(
+    String templateId, {
+    required String kind,
+    String? breed,
+    String? ageBand,
+    String? agesIntoClassId,
+    bool readyToSell = false,
+  }) => db.transaction(() async {
+    final now = DateTime.now().toUtc();
+    final next = await db
+        .customSelect(
+          'SELECT COALESCE(MAX(sort_order) + 1, 0) AS n '
+          'FROM livestock_classes WHERE template_id = ?1',
+          variables: [Variable<String>(templateId)],
+          readsFrom: {db.livestockClasses},
+        )
+        .getSingle();
+    final row = LivestockClassesCompanion.insert(
+      id: _uuid.v4(),
+      createdAt: now,
+      updatedAt: now,
+      templateId: templateId,
+      kind: kind,
+      breed: Value(breed),
+      ageBand: Value(ageBand),
+      agesIntoClassId: Value(agesIntoClassId),
+      sortOrder: Value(next.read<int>('n')),
+    );
+    await db.into(db.livestockClasses).insert(row);
+    if (readyToSell) await _insertTwin(row);
+    return row.id.value;
+  });
+
+  /// Keeps the class's ready-to-sell twin in step. Turning ready to sell off
+  /// is refused while the twin holds head, and turning it back on restores the
+  /// same twin, so its history still names it.
+  Future<void> updateClass(
+    String id, {
+    required String kind,
+    String? breed,
+    String? ageBand,
+    String? agesIntoClassId,
+    required bool readyToSell,
+  }) => db.transaction(() async {
+    final now = DateTime.now().toUtc();
+    final names = LivestockClassesCompanion(
+      kind: Value(kind),
+      breed: Value(breed),
+      ageBand: Value(ageBand),
+      updatedAt: Value(now),
+    );
+    await (db.update(db.livestockClasses)..where((c) => c.id.equals(id))).write(
+      names.copyWith(agesIntoClassId: Value(agesIntoClassId)),
+    );
+
+    final twin =
+        await (db.select(db.livestockClasses)
+              ..where((c) => c.readyToSellOfClassId.equals(id))
+              ..limit(1))
+            .getSingleOrNull();
+    if (twin == null) {
+      if (!readyToSell) return;
+      final base = await (db.select(
+        db.livestockClasses,
+      )..where((c) => c.id.equals(id))).getSingle();
+      await _insertTwin(
+        base
+            .toCompanion(false)
+            .copyWith(createdAt: Value(now), updatedAt: Value(now)),
+      );
+    } else if (readyToSell) {
+      await (db.update(db.livestockClasses)..where((c) => c.id.equals(twin.id)))
+          .write(names.copyWith(deletedAt: const Value(null)));
+    } else if (twin.deletedAt == null) {
+      await _checkEmpty([twin.id]);
+      await _retireClasses([twin.id], now);
+    }
+  });
+
+  /// Takes its ready-to-sell twin with it. Refused while either holds head.
+  Future<void> removeClass(String id) => db.transaction(() async {
+    final twins =
+        await (db.select(db.livestockClasses)
+              ..where((c) => c.readyToSellOfClassId.equals(id))
+              ..where((c) => c.deletedAt.isNull()))
+            .get();
+    final ids = [id, for (final t in twins) t.id];
+    await _checkEmpty(ids);
+    await _retireClasses(ids, DateTime.now().toUtc());
+  });
+
+  /// [base] under a new id, holding its head that are ready to sell.
+  Future<void> _insertTwin(LivestockClassesCompanion base) => db
+      .into(db.livestockClasses)
+      .insert(
+        base.copyWith(
+          id: Value(_uuid.v4()),
+          agesIntoClassId: const Value(null),
+          readyToSellOfClassId: Value(base.id.value),
+        ),
+      );
+
+  Future<void> _checkEmpty(List<String> classIds) async {
+    if (classIds.isEmpty) return;
+    final placeholders = [
+      for (var i = 1; i <= classIds.length; i++) '?$i',
+    ].join(', ');
+    final rows = await db
+        .customSelect(
+          '''
+          SELECT class_id FROM ($_balances)
+           WHERE class_id IN ($placeholders)
+           GROUP BY class_id HAVING SUM(delta) <> 0
+          ''',
+          variables: [for (final id in classIds) Variable<String>(id)],
+          readsFrom: {db.movements},
+        )
+        .get();
+    if (rows.isNotEmpty) {
+      throw StateError('Head still stand in ${rows.length} of $classIds');
+    }
+  }
+
+  /// Soft-deletes [ids] and clears any ageing chain pointing at them, which
+  /// would otherwise preselect a class the Age form no longer lists.
+  Future<void> _retireClasses(List<String> ids, DateTime now) async {
+    if (ids.isEmpty) return;
+    await (db.update(db.livestockClasses)..where((c) => c.id.isIn(ids))).write(
+      LivestockClassesCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+    );
+    await (db.update(
+      db.livestockClasses,
+    )..where((c) => c.agesIntoClassId.isIn(ids))).write(
+      LivestockClassesCompanion(
+        agesIntoClassId: const Value(null),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  /// Seeds the built-in templates from the asset, where a class's key is
+  /// `template/class`. `agesInto` names one, so a chain can cross templates.
   Future<void> seedTemplatesIfEmpty() async {
     final existing = await db.select(db.templates).get();
     if (existing.isNotEmpty) return;
@@ -1173,11 +1508,22 @@ class LivestockRepository {
     final raw = await rootBundle.loadString(
       'assets/templates/default_templates.json',
     );
-    final decoded = jsonDecode(raw) as List<dynamic>;
+    final templates = (jsonDecode(raw) as List<dynamic>)
+        .cast<Map<String, dynamic>>();
+    List<Map<String, dynamic>> classesOf(Map<String, dynamic> template) =>
+        (template['classes'] as List<dynamic>).cast<Map<String, dynamic>>();
+
+    // Allocated up front, so a chain can point at a class not inserted yet.
+    final ids = {
+      for (final t in templates)
+        for (final c in classesOf(t)) '${t['key']}/${c['key']}': _uuid.v4(),
+    };
+    String classId(String key) =>
+        ids[key] ?? (throw FormatException('No default class $key'));
     final now = DateTime.now().toUtc();
 
     await db.transaction(() async {
-      for (final entry in decoded.cast<Map<String, dynamic>>()) {
+      for (final (i, t) in templates.indexed) {
         final templateId = _uuid.v4();
         await db
             .into(db.templates)
@@ -1186,37 +1532,28 @@ class LivestockRepository {
                 id: templateId,
                 createdAt: now,
                 updatedAt: now,
-                name: entry['name'] as String,
+                name: t['name'] as String,
                 isBuiltIn: const Value(true),
+                sortOrder: Value(i),
+                species: Value(Species.values.byName(t['species'] as String)),
               ),
             );
 
-        final classes = (entry['classes'] as List<dynamic>)
-            .cast<Map<String, dynamic>>();
-
-        // Ids are allocated up front so `agesInto` can point at a class that
-        // has not been inserted yet.
-        final ids = [for (final _ in classes) _uuid.v4()];
-
-        for (var i = 0; i < classes.length; i++) {
-          final agesInto = classes[i]['agesInto'] as int?;
-          await db
-              .into(db.livestockClasses)
-              .insert(
-                LivestockClassesCompanion.insert(
-                  id: ids[i],
-                  createdAt: now,
-                  updatedAt: now,
-                  templateId: templateId,
-                  kind: classes[i]['kind'] as String,
-                  ageBand: classes[i]['ageBand'] as String,
-                  breed: Value(classes[i]['breed'] as String?),
-                  agesIntoClassId: Value(
-                    agesInto == null ? null : ids[agesInto],
-                  ),
-                  sortOrder: Value(i),
-                ),
-              );
+        for (final (j, c) in classesOf(t).indexed) {
+          final agesInto = c['agesInto'] as String?;
+          final row = LivestockClassesCompanion.insert(
+            id: classId('${t['key']}/${c['key']}'),
+            createdAt: now,
+            updatedAt: now,
+            templateId: templateId,
+            kind: c['kind'] as String,
+            breed: Value(c['breed'] as String?),
+            ageBand: Value(c['ageBand'] as String?),
+            agesIntoClassId: Value(agesInto == null ? null : classId(agesInto)),
+            sortOrder: Value(j),
+          );
+          await db.into(db.livestockClasses).insert(row);
+          if (c['readyToSell'] == true) await _insertTwin(row);
         }
       }
     });

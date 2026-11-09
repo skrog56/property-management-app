@@ -32,10 +32,7 @@ String shortDate(DateTime at) {
 /// Where a tag is, or how it left, on one line.
 String tagWhereabouts(TagStatus status) {
   if (status.isActive) {
-    return [
-      status.paddock!.name,
-      if (status.livestockClass case final c?) c.kind,
-    ].join(' · ');
+    return [status.paddock!.name, ?status.stockClass?.label].join(' · ');
   }
   final when = shortDate(status.occurredAt);
   if (status.replacedBy case final next?) {

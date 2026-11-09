@@ -21,10 +21,11 @@ Future<void> pumpPage(
   WidgetTester tester,
   Widget child, {
   double width = 420,
+  double height = 900,
   LivestockRepository? repository,
 }) async {
   tester.view.devicePixelRatio = 1.0;
-  tester.view.physicalSize = Size(width, 900);
+  tester.view.physicalSize = Size(width, height);
   addTearDown(tester.view.reset);
 
   // The scope sits above the navigator, as it does in the real app, so pages
@@ -106,7 +107,7 @@ Future<void> seedBeefTemplate(AppDatabase db) async {
             updatedAt: now,
             templateId: 'beef',
             kind: kind,
-            ageBand: age,
+            ageBand: Value(age),
             agesIntoClassId: Value(next),
             sortOrder: Value(order),
           ),
