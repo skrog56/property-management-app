@@ -4,6 +4,7 @@ import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../data/tables.dart';
 import '../../data/tag_numbers.dart';
+import '../../shell/pill_controls.dart';
 import '../../shell/tier_route.dart';
 import 'paths.dart';
 import 'tag_labels.dart';
@@ -84,19 +85,9 @@ class _TagsPageState extends State<TagsPage> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: TextField(
+              child: PillSearchField(
                 controller: _search,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: 'Search tag numbers',
-                  suffixIcon: query.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Clear search',
-                          icon: const Icon(Icons.clear),
-                          onPressed: () => setState(_search.clear),
-                        ),
-                ),
+                hintText: 'Search tag numbers',
                 onChanged: (_) => setState(() {}),
               ),
             ),

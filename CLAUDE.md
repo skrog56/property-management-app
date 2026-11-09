@@ -65,8 +65,10 @@ lib/
   shell/       AdaptiveScaffold, WindowSizeClass breakpoints, TierPage —
                the route every drill-down tier is built as — FormDialog,
                which every form and confirmation is built as and opened by
-               showFormDialog, and CardGrid, rows of cards as tall as the
-               tallest in each
+               showFormDialog, CardGrid, rows of cards as tall as the
+               tallest in each, and PillToolbar, a PillSearchField and the
+               PillChips beside it at one height and outline, stacked when
+               the search's hint wouldn't fit
   data/        Drift schema, repository, platform-specific connection
   features/
     properties/       Three tiers: properties → paddocks → one paddock's livestock,

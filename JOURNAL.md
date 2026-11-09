@@ -119,6 +119,25 @@ Templates page:
     that lines them up with Add class's icon, so the button reads as the last
     line of the list. At the end, their ⋮ sits as far inside the template's ⋮
     as the class names sit inside its avatar.
+- **Then the search and its chips became shared.** `shell/pill_controls.dart`
+  holds `PillSearchField`, `PillChips` and `pillOutline`, and the Tags search
+  uses the field too, so the two pages' searches match.
+  - Hovering a chip no longer tints it, so hover changes only the outline, as
+    on the field. A chip drops its hover tint once it has any `color`, so
+    `PillChips` gives one that always resolves to nothing, and the chip's own
+    colours still apply.
+- **The toolbar stacks whenever the hint won't fit beside the chips.** At a
+  700 px window the hint had read "Search templates and …". `PillToolbar` now
+  measures the hint, with the search icon and its insets, against the room the
+  chips leave, and puts the search above them when it falls short. This
+  replaced stacking on phone widths only, and an earlier try at stacking for
+  the whole medium size class, which also stacked 1000 px windows where the
+  row fits. The hint never changes, so typing never moves the chips. A test
+  sweeps 300 to 1200 px, checking the hint is whole wherever the chips sit
+  beside it.
+- **About has a Licences entry**, which opens Flutter's licence page with the
+  Roboto and IconOven licences and the packages'. Flutter titles that page
+  "Licenses"; changing it would take a localisations override.
 
 ### Verification
 
@@ -159,16 +178,9 @@ closes the upgrade left open on 2026-08-19.
 - Grouping and sorting reset when the app restarts. They last for the session,
   since the shell keeps each destination alive. Keeping them belongs with
   Settings.
-- Nothing shows the licence page, so IconOven's licence, like Roboto's, is
-  registered but never displayed. An About entry would close that for both.
 - The animal icons appear only on the Templates page. Mobs and paddock cards
   could carry them too, once a property runs more than one animal.
 - This resolves the stretched template cards left open this morning.
-- When the content area is 600 to roughly 640 px wide (a 700 px window, say),
-  the search shares a row with the chips and cuts its hint short. Stacking the
-  toolbar for the whole medium class was tried and undone. The class is
-  measured beside the rail, so it would also have stacked a 1000 px desktop
-  window, where the row fits.
 
 ## 2026-11-09 — Real templates, ready to sell, deaths, and editing them
 

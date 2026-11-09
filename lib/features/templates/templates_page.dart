@@ -6,6 +6,7 @@ import '../../data/tables.dart';
 import '../../shell/action_button.dart';
 import '../../shell/breakpoints.dart';
 import '../../shell/card_grid.dart';
+import '../../shell/pill_controls.dart';
 import '../../shell/form_dialog.dart';
 import 'class_dialog.dart';
 import 'species.dart';
@@ -146,7 +147,7 @@ class _TemplatesPageState extends State<TemplatesPage> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: _toolbar(query, compact: sizeClass == WindowSizeClass.compact),
+          child: _toolbar(),
         ),
         Expanded(
           child: shown.isEmpty
@@ -179,86 +180,17 @@ class _TemplatesPageState extends State<TemplatesPage> {
       if (t.template.species == species) t,
   ];
 
-  /// The search field's outline, for the chips beside it. It is drawn outside
-  /// a chip, which would otherwise grow by the 2 px of a focused outline.
-  static WidgetStateBorderSide _outline(
-    ColorScheme colors, {
-    bool inUse = false,
-  }) => WidgetStateBorderSide.resolveWith((states) {
-    if (inUse || states.contains(WidgetState.focused)) {
-      return BorderSide(
-        color: colors.primary,
-        width: 2,
-        strokeAlign: BorderSide.strokeAlignOutside,
-      );
-    }
-    return BorderSide(
-      color: states.contains(WidgetState.hovered)
-          ? colors.onSurface
-          : colors.outline,
-      strokeAlign: BorderSide.strokeAlignOutside,
-    );
-  });
-
-  Widget _toolbar(String query, {required bool compact}) {
-    final theme = Theme.of(context);
-    final densityHeight = theme.visualDensity.baseSizeAdjustment.dy;
-    // The search and both chips share one height: a touch target, or less
-    // where the platform's density is compact.
-    final height = kMinInteractiveDimension + densityHeight;
-    // A chip is as tall as its label line and vertical padding, plus half the
-    // density adjustment. Its outline is drawn outside that, so 1 px comes off
-    // each side for the outline to finish level with the search's.
-    final label = theme.textTheme.labelLarge!;
-    final chipPadding = EdgeInsets.symmetric(
-      horizontal: 12,
-      vertical:
-          (height - label.fontSize! * label.height! - densityHeight / 2) / 2 -
-          1,
-    );
-    final body = theme.textTheme.bodyLarge!;
-
-    final search = TextField(
+  Widget _toolbar() {
+    final search = PillSearchField(
       controller: _search,
-      decoration: InputDecoration(
-        // Past half of any height the field takes, so its ends stay round.
-        border: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(100)),
-        ),
-        isDense: true,
-        contentPadding: EdgeInsets.symmetric(
-          vertical: (height - body.fontSize! * body.height!) / 2,
-        ),
-        // As far in from the end as the hint is from the icon.
-        prefixIcon: const Padding(
-          padding: EdgeInsetsDirectional.only(start: 16, end: 12),
-          child: Icon(Icons.search),
-        ),
-        hintText: 'Search templates and classes',
-        suffixIcon: query.isEmpty
-            ? null
-            : IconButton(
-                // Material 3 icon buttons keep standard density, and the
-                // field would grow to fit one where the theme's is compact.
-                visualDensity: theme.visualDensity,
-                tooltip: 'Clear search',
-                icon: const Icon(Icons.clear),
-                onPressed: () => setState(_search.clear),
-              ),
-      ),
+      hintText: 'Search templates and classes',
       onChanged: (_) => setState(() {}),
     );
 
     // Neither chip changes width with its state, so nothing beside it moves.
-    final controls = Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
+    final controls = PillChips(
       children: [
         FilterChip(
-          shape: const StadiumBorder(),
-          side: _outline(theme.colorScheme),
-          padding: chipPadding,
           // An icon in both states, rather than a check that appears.
           showCheckmark: false,
           avatar: Icon(_grouped ? Icons.check : Icons.workspaces_outlined),
@@ -276,10 +208,10 @@ class _TemplatesPageState extends State<TemplatesPage> {
               ),
           ],
           builder: (context, menu, _) => ActionChip(
-            shape: const StadiumBorder(),
-            // Open, it is in use, as the search is while focused.
-            side: _outline(theme.colorScheme, inUse: menu.isOpen),
-            padding: chipPadding,
+            side: pillOutline(
+              Theme.of(context).colorScheme,
+              inUse: menu.isOpen,
+            ),
             avatar: const Icon(Icons.sort),
             label: Row(
               mainAxisSize: MainAxisSize.min,
@@ -300,19 +232,7 @@ class _TemplatesPageState extends State<TemplatesPage> {
       ],
     );
 
-    if (compact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [search, const SizedBox(height: 8), controls],
-      );
-    }
-    return Row(
-      children: [
-        Expanded(child: search),
-        const SizedBox(width: 16),
-        controls,
-      ],
-    );
+    return PillToolbar(search: search, chips: controls);
   }
 }
 

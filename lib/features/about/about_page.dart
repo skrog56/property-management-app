@@ -66,8 +66,7 @@ class AboutPage extends StatelessWidget {
                     trailing: target.name == current
                         ? Chip(
                             label: const Text('you are here'),
-                            backgroundColor:
-                                theme.colorScheme.primaryContainer,
+                            backgroundColor: theme.colorScheme.primaryContainer,
                             side: BorderSide.none,
                           )
                         : null,
@@ -92,6 +91,22 @@ class AboutPage extends StatelessWidget {
                   style: theme.textTheme.bodyMedium,
                 ),
               ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: const Text('Licences'),
+            subtitle: const Text(
+              'For the fonts, icons and packages this app is built with',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => showLicensePage(
+              context: context,
+              applicationName: 'Property Management App',
             ),
           ),
         ),

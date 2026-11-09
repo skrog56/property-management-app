@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:property_management_app/features/about/about_page.dart';
@@ -43,6 +44,15 @@ void main() {
       await pumpPage(tester, const AboutPage());
 
       expect(find.textContaining('v0.1.0+1'), findsOneWidget);
+    });
+
+    testWidgets('opens the licences', (tester) async {
+      await pumpPage(tester, const AboutPage(), height: 1600);
+
+      await tester.tap(find.text('Licences'));
+      await settle(tester);
+
+      expect(find.byType(LicensePage), findsOneWidget);
     });
   });
 

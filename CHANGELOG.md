@@ -89,6 +89,8 @@ same commit — a deliberate act, never a side effect of another change.
   mob on the paddock page. A tag can be replaced (lost, damaged, or recorded in
   error) or cancelled from its own page. None of these changes a head count, and
   each is kept in the ledger like any movement.
+- **Licences on the About page.** A *Licences* entry lists the licences of the
+  bundled Roboto font, the animal icons and the packages the app uses.
 - **Tags screen.** Every tag recorded, searchable by number, with those still on
   the property first. Each tag has its own page and address, showing where it
   is now and everything that has happened to it. Wide windows show the list
