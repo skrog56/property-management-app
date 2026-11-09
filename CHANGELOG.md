@@ -155,6 +155,7 @@ same commit — a deliberate act, never a side effect of another change.
   deployment is configured.
 
 ### Changed
+- **Built with Flutter 3.47.9**, up from 3.44.9, locally and in CI.
 
 - **A class is named with its template**, as in *Steers (Feeders)*, since
   Feeders and Backgrounders both have steers. Its age band, now optional,

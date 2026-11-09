@@ -298,7 +298,7 @@ widget under it instead.
 
 ## Toolchain
 
-Flutter **3.44.9** stable, pinned in `.github/workflows/ci.yml`. Keep the
+Flutter **3.47.9** stable, pinned in `.github/workflows/ci.yml`. Keep the
 workflow's `FLUTTER_VERSION` in step with any local upgrade.
 
 Flutter compiles natively, so **each target must be built on its own OS**. There

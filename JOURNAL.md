@@ -149,6 +149,11 @@ The pills and insets were rendered the same way: on a phone, also with text at
 130%; at 700 px; at 1440 px in both densities; and at 1920 px in the dark
 theme.
 
+All of today's checks ran on Flutter 3.47.9, which had been installed outside
+the session while CI still pinned 3.44.9. The pin, `CLAUDE.md` and the README
+followed in their own commit, with the lockfile's SDK-pinned packages. That
+closes the upgrade left open on 2026-08-19.
+
 ### Open
 
 - Grouping and sorting reset when the app restarts. They last for the session,

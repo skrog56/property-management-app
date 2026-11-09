@@ -64,7 +64,7 @@ rather than an oversight; see [`JOURNAL.md`](JOURNAL.md).
 
 ### 1. Flutter
 
-Pinned to **3.44.9** stable (Dart 3.12.2) — the same version
+Pinned to **3.47.9** stable (Dart 3.13.7) — the same version
 `.github/workflows/ci.yml` installs. Other versions will likely work, but CI is
 the arbiter, so match it before investigating anything strange. Upgrading is a
 deliberate change: bump `FLUTTER_VERSION` in the workflow in the same commit.
@@ -73,14 +73,14 @@ Use [Flutter's install guide](https://docs.flutter.dev/get-started/install) for
 your OS, or on Linux take the tarball directly:
 
 ```bash
-curl -O https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.44.9-stable.tar.xz
+curl -O https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.9-stable.tar.xz
 mkdir -p ~/development
-tar -xf flutter_linux_3.44.9-stable.tar.xz -C ~/development
+tar -xf flutter_linux_3.47.9-stable.tar.xz -C ~/development
 echo 'export PATH="$HOME/development/flutter/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-`flutter --version` should report `3.44.9 • channel stable`.
+`flutter --version` should report `3.47.9 • channel stable`.
 
 ### 2. The project
 
