@@ -21,6 +21,18 @@ Templates page:
 - search by template name and class;
 - grouping by animal or not, and sorting options.
 
+Once those were built, the user tried the page and asked for changes, a few at
+a time:
+
+- pill-shaped search and chips, and class rows inset from the card's edges;
+- one height and one outline for the search and its chips, with nothing
+  moving as their states change, and the search icon set in further;
+- grouping on and the most head first by default, *Default order* dropped,
+  and *Oldest first* added;
+- the search shared with the Tags page, no hover tint on the chips, and the
+  licences shown on About;
+- the toolbar stacked whenever its search hint wouldn't fit.
+
 ### Decided
 
 - **The animal is a fixed list, stored on the template.** `Species` holds
@@ -141,8 +153,8 @@ Templates page:
 
 ### Verification
 
-Analyze clean, and all 194 tests pass. That includes a v3→v4 data-integrity
-test, which checks every template comes through as cattle, a soft-deleted one
+Analyze clean, and all 201 tests pass at the end of the session. They include a
+v3→v4 data-integrity test, which checks every template comes through as cattle, a soft-deleted one
 among them. `flutter build web` succeeded.
 
 The local Linux database was backed up at v3 as `livestock.v3-backup.sqlite`
@@ -166,12 +178,44 @@ so two columns. The 1920 px window shows four.
 
 The pills and insets were rendered the same way: on a phone, also with text at
 130%; at 700 px; at 1440 px in both densities; and at 1920 px in the dark
-theme.
+theme. Later renders covered each outline state (at rest, hovered, focused,
+the sort menu open, keyboard focus), chips hovered without a tint, the About
+card and licence page, and windows of 640, 700, 760 and 1000 px. 640 and 700
+stack the toolbar; 760 and 1000 keep it in a row with the whole hint.
+
+The new tests were each checked against the code they guard: with the old
+chips put back, the old hover tint, or the toolbar kept in a row whatever its
+width, each fails.
+
+One check misled for a while. The first width sweep of the toolbar never found
+the chips beside the search, and the test hunting for that width looped until
+the run timed out. The test window was 800 px, and the test font draws each
+glyph as a square, so the hint measured far wider than in Roboto. The sweep
+now runs to 1200 px in a 1200 px window, and the hunt stops there.
 
 All of today's checks ran on Flutter 3.47.9, which had been installed outside
 the session while CI still pinned 3.44.9. The pin, `CLAUDE.md` and the README
 followed in their own commit, with the lockfile's SDK-pinned packages. That
 closes the upgrade left open on 2026-08-19.
+
+### Committed
+
+Four commits on `main`, all pushed:
+
+- `9cdb2b2`: the real templates, ready to sell, deaths and the editor (the
+  entry below), with everything above up to the default sort. The two rounds
+  shared files throughout, so they went in together rather than as an
+  intermediate state never tested on its own.
+- `61675af`: Flutter 3.47.9 in CI, `CLAUDE.md` and the README, with the
+  lockfile.
+- `329d9a1`: the shared search, the hover fix, Licences and the stacking
+  toolbar.
+- `ec800eb`: the user's `analysis_options.yaml`, which keeps `build/` and the
+  platform folders out of analysis.
+
+CI passed on all six targets for both pushes: run 42622336211, the first on
+3.47.9, and run 42625004392. GitHub noted that `ubuntu-latest` began moving to
+Ubuntu 26 on 2026-10-19, and the jobs on it passed regardless.
 
 ### Open
 
@@ -180,6 +224,8 @@ closes the upgrade left open on 2026-08-19.
   Settings.
 - The animal icons appear only on the Templates page. Mobs and paddock cards
   could carry them too, once a property runs more than one animal.
+- None of this has been seen on a real phone, on Windows or on an Apple
+  platform; CI only builds them.
 - This resolves the stretched template cards left open this morning.
 
 ## 2026-11-09 — Real templates, ready to sell, deaths, and editing them
