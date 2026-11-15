@@ -7,6 +7,45 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-15 — Home's two loose ends
+
+### What happened
+
+The user asked for both small gaps left open in the entry below.
+
+**The Ready to sell figure had nowhere to go.** It now scrolls its section
+into view with `Scrollable.ensureVisible`, on a key the section carries. On a
+wide window, where the section already sits beside the figures, it doesn't
+need to move. With nothing ready to sell there is no section, and the figure
+can't be tapped.
+
+**The last 30 days never moved on by themselves.** The watch fires only when
+the data changes, so a Home left open overnight kept yesterday's window. Two
+changes:
+- The window is now whole local days, today the last of 30, starting at
+  midnight 29 days back. Before, it was 30 × 24 hours back from the moment
+  of the query, so the first day was cut part way through.
+- Home sets a timer for a second past the next local midnight and watches
+  the overview afresh when it fires. `StreamBuilder` keeps the last figures
+  while the new watch starts, so nothing flickers. The timer is cancelled on
+  dispose.
+
+Both `HomePage` and `watchOverview` take an optional `clock` in place of
+`DateTime.now`, so a test can pass midnight without waiting for it.
+
+### Verification
+
+248 tests, up from 244. A test with the clock just before and just after
+midnight shows an intake from 9 February counted on 10 March and gone on
+11 March. A page test passes the timer and sees *Brought in* go back to a
+dash while the head on hand stays. Removing the timer's callback fails that
+test, and removing the figure's `onTap` fails the scrolling one.
+`flutter build web` passed.
+
+### Open
+
+- Still not clicked through in a running build or on a phone.
+
 ## 2026-11-15 — Home, the page the app opens on
 
 ### What prompted it
