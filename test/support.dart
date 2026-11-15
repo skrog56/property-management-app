@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:property_management_app/app/locale.dart';
 import 'package:property_management_app/app/router.dart';
 import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
@@ -30,7 +31,12 @@ Future<void> pumpPage(
 
   // The scope sits above the navigator, as it does in the real app, so pages
   // pushed by a drill-down can still reach it.
-  final app = MaterialApp(home: Scaffold(body: child));
+  final app = MaterialApp(
+    locale: appLocale,
+    supportedLocales: const [appLocale],
+    localizationsDelegates: appLocalizations,
+    home: Scaffold(body: child),
+  );
 
   await tester.pumpWidget(
     repository == null
@@ -63,7 +69,12 @@ Future<void> pumpRouted(
   await tester.pumpWidget(
     RepositoryScope(
       repository: repository,
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        routerConfig: router,
+        locale: appLocale,
+        supportedLocales: const [appLocale],
+        localizationsDelegates: appLocalizations,
+      ),
     ),
   );
   await settle(tester);

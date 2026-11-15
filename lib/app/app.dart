@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../data/livestock_repository.dart';
 import '../data/repository_scope.dart';
 import '../features/developer/dev_settings.dart';
+import 'locale.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -53,6 +54,9 @@ class _PropertyManagementAppState extends State<PropertyManagementApp> {
       routerConfig: _router,
       title: appTitle,
       debugShowCheckedModeBanner: false,
+      locale: appLocale,
+      supportedLocales: const [appLocale],
+      localizationsDelegates: appLocalizations,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
       // System follows the OS on all six targets, including the browser's

@@ -333,6 +333,16 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Fixed
 
+- **Activity reaches every movement.** It listed only the latest 200, with
+  no way further back. *Show older movements* at the foot of the list now
+  adds 200 more at a time.
+- **A paddock's Deaths and Recently left show more on asking.** Each stopped
+  at ten, even with ended stock kept always. *Show more* now adds ten at a
+  time.
+- **Dates are typed day first.** Typing a date into the death form's
+  calendar expected month first, the US order, unlike every date the app
+  shows. The app now uses Australian English throughout, so the calendar
+  takes dd/mm/yyyy.
 - **Breadcrumbs no longer jump as they become links.** Opening a property or
   paddock turned the crumb before it into a link and nudged its text sideways;
   every crumb now keeps its place.

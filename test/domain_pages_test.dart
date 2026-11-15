@@ -246,6 +246,60 @@ void main() {
     });
   });
 
+  group('ActivityPage paging', () {
+    late String north;
+
+    Future<void> intakes(int count, {String? firstNote}) async {
+      for (var i = 0; i < count; i++) {
+        await repo.record(
+          kind: MovementKind.intake,
+          head: 1,
+          toPaddockId: north,
+          toClassId: 'calves',
+          note: i == 0 ? firstNote : null,
+        );
+      }
+    }
+
+    final older = find.text('Show older movements');
+
+    setUp(() async {
+      north = await repo.createPaddock(
+        await repo.createProperty('Riverbend Downs'),
+        'North Ridge',
+      );
+    });
+
+    testPage('reaches back past the first page', (tester) async {
+      await intakes(ActivityPage.page + 1, firstNote: 'the very first');
+      await pumpPage(tester, const ActivityPage(), repository: repo);
+
+      await tester.scrollUntilVisible(older, 2000);
+      expect(find.textContaining('the very first'), findsNothing);
+
+      await tester.tap(older);
+      await drain(tester);
+      await tester.scrollUntilVisible(
+        find.textContaining('the very first'),
+        2000,
+      );
+      expect(older, findsNothing);
+    });
+
+    testPage('offers nothing older when the page holds everything', (
+      tester,
+    ) async {
+      await intakes(ActivityPage.page, firstNote: 'the very first');
+      await pumpPage(tester, const ActivityPage(), repository: repo);
+
+      await tester.scrollUntilVisible(
+        find.textContaining('the very first'),
+        2000,
+      );
+      expect(older, findsNothing);
+    });
+  });
+
   group('TemplatesPage', () {
     testPage('lists seeded classes and shows the ageing chain', (tester) async {
       await pumpPage(

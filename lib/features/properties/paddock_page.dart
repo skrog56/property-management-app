@@ -67,7 +67,10 @@ class PaddockPage extends StatelessWidget {
 }
 
 const _recentActivity = 25;
-const _recentEnded = 10;
+
+/// How many of the stock that ended here each section shows at first, and
+/// how many more each Show more adds.
+const _endedPage = 10;
 
 const _died = {EndState.died};
 const _left = {
@@ -81,32 +84,35 @@ Future<void> preloadPaddock(LivestockRepository repository, String id) =>
     repository.warm([
       repository.watchPaddockSummary(id),
       repository.watchActivityEntries(paddockId: id, limit: _recentActivity),
-      _watchEnded(repository, id, _died),
-      _watchEnded(repository, id, _left),
+      _watchEnded(repository, id, _died, _endedPage),
+      _watchEnded(repository, id, _left, _endedPage),
       repository.watchTagsIn(id),
     ]);
 
-/// Stock that ended here, as far back as the user keeps it in view.
+/// Stock that ended here, as far back as the user keeps it in view: [limit]
+/// and one more, to know whether there is more to show.
 Stream<List<ActivityEntry>> _watchEnded(
   LivestockRepository repository,
   String paddockId,
   Set<EndState> states,
+  int limit,
 ) => repository.watchActivityEntries(
   paddockId: paddockId,
   endStates: states,
   since: repository.settings.retention.since(DateTime.now()),
-  limit: _recentEnded,
+  limit: limit + 1,
 );
 
 List<ActivityEntry>? _latestEnded(
   LivestockRepository repository,
   String paddockId,
   Set<EndState> states,
+  int limit,
 ) => repository.latestActivityEntries(
   paddockId: paddockId,
   endStates: states,
   since: repository.settings.retention.since(DateTime.now()),
-  limit: _recentEnded,
+  limit: limit + 1,
 );
 
 class _PaddockDetail extends StatelessWidget {
@@ -349,7 +355,7 @@ class _Deaths extends StatelessWidget {
       repository: repository,
       paddock: paddock,
       states: _died,
-      builder: (context, deaths, within) {
+      builder: (context, deaths, within, showMore) {
         if (summary.isEmpty && deaths.isEmpty) return const SizedBox.shrink();
 
         return _EndedSection(
@@ -383,6 +389,7 @@ class _Deaths extends StatelessWidget {
             else
               for (final entry in deaths)
                 ActivityTile(entry: entry, currentPaddockId: paddock.id),
+            ?showMore,
           ],
         );
       },
@@ -404,13 +411,14 @@ class _RecentlyLeft extends StatelessWidget {
       repository: repository,
       paddock: paddock,
       states: _left,
-      builder: (context, left, _) => left.isEmpty
+      builder: (context, left, _, showMore) => left.isEmpty
           ? const SizedBox.shrink()
           : _EndedSection(
               title: 'Recently left',
               children: [
                 for (final entry in left)
                   ActivityTile(entry: entry, currentPaddockId: paddock.id),
+                ?showMore,
               ],
             ),
     );
@@ -418,8 +426,8 @@ class _RecentlyLeft extends StatelessWidget {
 }
 
 /// Watches the stock that ended here in [states], afresh whenever the
-/// duration it is kept in view changes.
-class _Ended extends StatelessWidget {
+/// duration it is kept in view changes, a page at a time.
+class _Ended extends StatefulWidget {
   const _Ended({
     required this.repository,
     required this.paddock,
@@ -432,25 +440,49 @@ class _Ended extends StatelessWidget {
   final Set<EndState> states;
 
   /// [within] ends a sentence saying how far back, or is null for always.
+  /// [showMore] goes after the entries, and is null when they are all shown.
   final Widget Function(
     BuildContext context,
     List<ActivityEntry> entries,
     String? within,
+    Widget? showMore,
   )
   builder;
 
   @override
+  State<_Ended> createState() => _EndedState();
+}
+
+class _EndedState extends State<_Ended> {
+  var _limit = _endedPage;
+
+  @override
   Widget build(BuildContext context) {
+    final _Ended(:repository, :paddock, :states) = widget;
+
     return ListenableBuilder(
       listenable: repository.settings,
       builder: (context, _) => StreamBuilder<List<ActivityEntry>>(
-        initialData: _latestEnded(repository, paddock.id, states),
-        stream: _watchEnded(repository, paddock.id, states),
-        builder: (context, snapshot) => builder(
-          context,
-          snapshot.data ?? const [],
-          repository.settings.retention.within,
-        ),
+        initialData: _latestEnded(repository, paddock.id, states, _limit),
+        stream: _watchEnded(repository, paddock.id, states, _limit),
+        builder: (context, snapshot) {
+          final all = snapshot.data ?? const <ActivityEntry>[];
+          final more = all.length > _limit;
+          return widget.builder(
+            context,
+            more ? all.sublist(0, _limit) : all,
+            repository.settings.retention.within,
+            more
+                ? Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton(
+                      onPressed: () => setState(() => _limit += _endedPage),
+                      child: const Text('Show more'),
+                    ),
+                  )
+                : null,
+          );
+        },
       ),
     );
   }

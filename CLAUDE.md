@@ -281,7 +281,11 @@ and a sync client copying a live SQLite file can corrupt it.
 ### Dependencies
 
 `device_info_plus`, `package_info_plus`, `drift` + `drift_flutter`,
-`path_provider`, `uuid`, `go_router`. Before adding any dependency, verify on pub.dev that it
+`path_provider`, `uuid`, `go_router`, and `flutter_localizations` from the
+SDK, which sets the app in Australian English (`lib/app/locale.dart`) so
+Flutter's own widgets read and write dates dd/mm/yyyy, as the app does. A test
+that opens a date picker needs the same locale, which `pumpPage` and
+`pumpRouted` pass. Before adding any dependency, verify on pub.dev that it
 supports all six targets — a plugin that misses one silently removes a target
 from the matrix.
 

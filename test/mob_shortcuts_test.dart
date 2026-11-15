@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:property_management_app/app/locale.dart';
 import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/app_settings.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
@@ -63,6 +64,9 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        locale: appLocale,
+        supportedLocales: const [appLocale],
+        localizationsDelegates: appLocalizations,
         home: Scaffold(
           body: Builder(
             builder: (context) => TextButton(
@@ -100,12 +104,12 @@ void main() {
       repo.watchActivity(endStates: {EndState.died}).first;
 
   /// Through the picker's typed entry, which does not depend on today.
-  Future<void> enterDate(WidgetTester tester, String usDate) async {
+  Future<void> enterDate(WidgetTester tester, String date) async {
     await tester.tap(find.widgetWithText(TextField, 'Date'));
     await drain(tester);
     await tester.tap(find.byIcon(Icons.edit_outlined));
     await drain(tester);
-    await tester.enterText(find.byType(TextField).last, usDate);
+    await tester.enterText(find.byType(TextField).last, date);
     await tester.tap(find.text('OK'));
     await drain(tester);
   }
@@ -188,7 +192,17 @@ void main() {
         ),
       );
 
-      await enterDate(tester, '01/15/2001');
+      // Asked for day first, as the app writes dates, not the US order.
+      await tester.tap(find.widgetWithText(TextField, 'Date'));
+      await drain(tester);
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await drain(tester);
+      expect(find.text('dd/mm/yyyy'), findsWidgets);
+      // The picker's, above the form's own.
+      await tester.tap(find.text('Cancel').last);
+      await drain(tester);
+
+      await enterDate(tester, '15/01/2001');
       expect(find.text('15/01/2001'), findsOneWidget);
       await tester.tap(record());
       await drain(tester);
@@ -217,7 +231,7 @@ void main() {
       expect(find.text('Tags to remove · 1 of 1'), findsOneWidget);
       expect(recordEnabled(tester), isTrue);
 
-      await enterDate(tester, '01/15/2001');
+      await enterDate(tester, '15/01/2001');
       expect(find.textContaining('after that date'), findsOneWidget);
       expect(isWrong(tester, 'Date'), isTrue);
       expect(recordEnabled(tester), isFalse);
@@ -500,6 +514,40 @@ void main() {
 
         expect(find.text('Deaths'), findsOneWidget);
         expect(find.text('Recently left'), findsNothing);
+      });
+
+      testPage('show ten at a time, and more on asking', (tester) async {
+        await intake('Calves (Breeder)', 40);
+        // More deaths than the recent activity's 25, so the oldest is
+        // nowhere until Deaths shows it.
+        for (var i = 0; i < 30; i++) {
+          await repo.record(
+            kind: MovementKind.endState,
+            head: 1,
+            fromPaddockId: north,
+            fromClassId: classIds['Calves (Breeder)']!,
+            endState: EndState.died,
+            note: i == 0 ? 'the oldest death' : null,
+          );
+        }
+        await openPaddock(tester);
+        // Tall enough that every tile is built, so what is missing is not
+        // merely scrolled out of reach.
+        tester.view.physicalSize = const Size(420, 8000);
+        await settle(tester);
+
+        final more = find.widgetWithText(TextButton, 'Show more');
+        final oldest = find.textContaining('the oldest death');
+        expect(oldest, findsNothing);
+
+        await tester.tap(more);
+        await settle(tester);
+        expect(oldest, findsNothing);
+        await tester.tap(more);
+        await settle(tester);
+
+        expect(oldest, findsOneWidget);
+        expect(more, findsNothing);
       });
     });
   });

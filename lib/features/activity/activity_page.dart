@@ -14,8 +14,19 @@ import '../tags/tag_labels.dart';
 import '../tags/tag_page.dart';
 import '../transfers/movement_dialog.dart';
 
-class ActivityPage extends StatelessWidget {
+/// Every movement, newest first, a page at a time.
+class ActivityPage extends StatefulWidget {
   const ActivityPage({super.key});
+
+  /// How many more each Show older adds.
+  static const page = 200;
+
+  @override
+  State<ActivityPage> createState() => _ActivityPageState();
+}
+
+class _ActivityPageState extends State<ActivityPage> {
+  var _limit = ActivityPage.page;
 
   @override
   Widget build(BuildContext context) {
@@ -38,13 +49,16 @@ class ActivityPage extends StatelessWidget {
         },
       ),
       body: StreamBuilder<List<ActivityEntry>>(
-        stream: repository.watchActivityEntries(),
+        // One past the page, to know whether there is more to show.
+        stream: repository.watchActivityEntries(limit: _limit + 1),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final entries = snapshot.data!;
+          final all = snapshot.data!;
+          final more = all.length > _limit;
+          final entries = more ? all.sublist(0, _limit) : all;
           if (entries.isEmpty) {
             return Center(
               child: Padding(
@@ -62,10 +76,21 @@ class ActivityPage extends StatelessWidget {
 
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            itemCount: entries.length,
+            itemCount: entries.length + (more ? 1 : 0),
             separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, index) =>
-                ActivityTile(entry: entries[index]),
+            itemBuilder: (context, index) => index < entries.length
+                ? ActivityTile(entry: entries[index])
+                : Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.expand_more),
+                        label: const Text('Show older movements'),
+                        onPressed: () =>
+                            setState(() => _limit += ActivityPage.page),
+                      ),
+                    ),
+                  ),
           );
         },
       ),
