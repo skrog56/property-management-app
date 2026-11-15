@@ -34,6 +34,10 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- **A paddock's whole history.** *View all* beside a paddock's Recent
+  activity, which shows its latest 25, opens Activity narrowed to the
+  movements in or out of that paddock. A chip at the top names it, and
+  removing the chip shows everything again.
 - **Settings**, under More on a phone and in the rail elsewhere. Each choice
   is kept on the device and applies at once, and is still there after a
   restart.

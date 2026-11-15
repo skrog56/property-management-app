@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../data/repository_scope.dart';
 import '../features/about/about_page.dart';
 import '../features/activity/activity_page.dart';
+import '../features/activity/paths.dart';
 import '../features/developer/dev_mode.dart';
 import '../features/developer/developer_page.dart';
 import '../features/home/home_page.dart';
@@ -107,8 +108,9 @@ List<HomeDestination> homeDestinations({bool developer = devMode}) {
         selectedIcon: Icons.history,
       ),
       route: GoRoute(
-        path: '/activity',
-        builder: (_, _) => const ActivityPage(),
+        path: activityPath,
+        builder: (_, state) =>
+            ActivityPage(paddockId: state.uri.queryParameters['paddock']),
       ),
     ),
     (

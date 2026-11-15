@@ -13,6 +13,7 @@ import '../../shell/breakpoints.dart';
 import '../../shell/card_grid.dart';
 import '../../shell/tier_route.dart';
 import '../activity/activity_page.dart';
+import '../activity/paths.dart';
 import '../properties/paddock_page.dart';
 import '../properties/paths.dart';
 import '../properties/properties_page.dart';
@@ -712,7 +713,7 @@ class _FlowsSection extends StatelessWidget {
     return _Section(
       title: flows.retention.title,
       link: 'Activity',
-      linkTo: '/activity',
+      linkTo: activityPath,
       child: Column(
         children: [
           for (final (icon, label, head) in lines) _FlowLine(icon, label, head),
@@ -784,7 +785,7 @@ class _RecentActivity extends StatelessWidget {
     return _Section(
       title: 'Recent activity',
       link: 'View all',
-      linkTo: '/activity',
+      linkTo: activityPath,
       child: StreamBuilder<List<ActivityEntry>>(
         initialData: repository.latestActivityEntries(limit: _recentActivity),
         stream: entries,

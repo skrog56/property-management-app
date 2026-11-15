@@ -85,7 +85,8 @@ lib/
     tags/             Tag list and pages (list-detail panes by TagsBrowser),
                       TagField (new tags) and TagPicker (a mob's tags), the
                       add-tags dialog
-    activity/         The ledger, rendered
+    activity/         The ledger, rendered a page at a time, whole or
+                      narrowed to one paddock (`?paddock=` on its URL)
     templates/        The template editor: templates and the animal each
                       counts, their classes, and each class's ready-to-sell
                       twin, searched, grouped, sorted and dragged into

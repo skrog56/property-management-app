@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/app_database.dart';
 import '../../data/livestock_repository.dart';
@@ -13,10 +14,14 @@ import '../tags/paths.dart';
 import '../tags/tag_labels.dart';
 import '../tags/tag_page.dart';
 import '../transfers/movement_dialog.dart';
+import 'paths.dart';
 
-/// Every movement, newest first, a page at a time.
+/// Every movement, newest first, a page at a time, or only those in or out of
+/// one paddock.
 class ActivityPage extends StatefulWidget {
-  const ActivityPage({super.key});
+  const ActivityPage({super.key, this.paddockId});
+
+  final String? paddockId;
 
   /// How many more each Show older adds.
   static const page = 200;
@@ -29,9 +34,14 @@ class _ActivityPageState extends State<ActivityPage> {
   var _limit = ActivityPage.page;
 
   @override
+  void didUpdateWidget(ActivityPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.paddockId != oldWidget.paddockId) _limit = ActivityPage.page;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final repository = RepositoryScope.of(context);
-    final theme = Theme.of(context);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -50,49 +60,110 @@ class _ActivityPageState extends State<ActivityPage> {
       ),
       body: StreamBuilder<List<ActivityEntry>>(
         // One past the page, to know whether there is more to show.
-        stream: repository.watchActivityEntries(limit: _limit + 1),
+        stream: repository.watchActivityEntries(
+          paddockId: widget.paddockId,
+          limit: _limit + 1,
+        ),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final all = snapshot.data!;
-          final more = all.length > _limit;
-          final entries = more ? all.sublist(0, _limit) : all;
-          if (entries.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  'Nothing recorded yet. Every movement you record appears here.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            itemCount: entries.length + (more ? 1 : 0),
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, index) => index < entries.length
-                ? ActivityTile(entry: entries[index])
-                : Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.expand_more),
-                        label: const Text('Show older movements'),
-                        onPressed: () =>
-                            setState(() => _limit += ActivityPage.page),
-                      ),
-                    ),
-                  ),
+          final paddockId = widget.paddockId;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (paddockId != null) _PaddockFilter(paddockId),
+              Expanded(child: _list(snapshot)),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _list(AsyncSnapshot<List<ActivityEntry>> snapshot) {
+    final theme = Theme.of(context);
+    final paddockId = widget.paddockId;
+    if (!snapshot.hasData) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final all = snapshot.data!;
+    final more = all.length > _limit;
+    final entries = more ? all.sublist(0, _limit) : all;
+    if (entries.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            paddockId == null
+                ? 'Nothing recorded yet. Every movement you record '
+                      'appears here.'
+                : 'Nothing has moved in or out of this paddock yet.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: EdgeInsets.fromLTRB(16, paddockId == null ? 16 : 8, 16, 96),
+      itemCount: entries.length + (more ? 1 : 0),
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (context, index) => index < entries.length
+          ? ActivityTile(entry: entries[index], currentPaddockId: paddockId)
+          : Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.expand_more),
+                  label: const Text('Show older movements'),
+                  onPressed: () => setState(() => _limit += ActivityPage.page),
+                ),
+              ),
+            ),
+    );
+  }
+}
+
+/// Names the paddock Activity is narrowed to, and widens it again.
+class _PaddockFilter extends StatelessWidget {
+  const _PaddockFilter(this.paddockId);
+
+  final String paddockId;
+
+  @override
+  Widget build(BuildContext context) {
+    final repository = RepositoryScope.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: StreamBuilder<PaddockSummary?>(
+          initialData: repository.latestPaddockSummary(paddockId),
+          stream: repository.watchPaddockSummary(paddockId),
+          builder: (context, snapshot) {
+            final paddock = snapshot.data?.paddock;
+            // Two properties may each have a North Paddock.
+            return StreamBuilder<Property?>(
+              stream: paddock == null
+                  ? null
+                  : repository.watchProperty(paddock.propertyId),
+              builder: (context, property) => InputChip(
+                avatar: const Icon(Icons.grass),
+                label: Text(
+                  paddock == null
+                      ? 'One paddock'
+                      : [paddock.name, ?property.data?.name].join(' · '),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                deleteButtonTooltipMessage: 'Show all activity',
+                onDeleted: () => context.go(activityPath),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

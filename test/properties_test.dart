@@ -274,6 +274,104 @@ void main() {
     });
   });
 
+  group('A paddock\'s activity', () {
+    late String property;
+    late Paddock north;
+
+    setUp(() async {
+      property = await seedStock();
+      final paddocks = await repo.paddocksIn(property);
+      north = paddocks.firstWhere((p) => p.name == 'North Ridge');
+      await repo.record(
+        kind: MovementKind.intake,
+        head: 6,
+        toPaddockId: paddocks.firstWhere((p) => p.name == 'Woolshed').id,
+        toClassId: 'calves',
+      );
+    });
+
+    final northIntake = findRichText('128 head · intake to North Ridge');
+    final woolshedIntake = findRichText('6 head · intake to Woolshed');
+
+    testPage('View all opens Activity narrowed to the paddock', (tester) async {
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/properties/$property/paddocks/${north.id}',
+      );
+      await tester.tap(find.widgetWithText(TextButton, 'View all'));
+      await settle(tester);
+
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        2,
+      );
+      expect(find.text('North Ridge · Riverbend Downs'), findsOneWidget);
+      expect(northIntake, findsOneWidget);
+      expect(woolshedIntake, findsNothing);
+
+      // Properties kept its place.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Properties'),
+        ),
+      );
+      await settle(tester);
+      expect(find.text('42.4 ha · 1 mob'), findsOneWidget);
+    });
+
+    testPage('its chip widens Activity to everything', (tester) async {
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/activity?paddock=${north.id}',
+      );
+      await tester.tap(find.byTooltip('Show all activity'));
+      await settle(tester);
+
+      expect(find.text('North Ridge · Riverbend Downs'), findsNothing);
+      expect(northIntake, findsOneWidget);
+      expect(woolshedIntake, findsOneWidget);
+    });
+
+    testPage('its chip fits a narrow phone, however long the names', (
+      tester,
+    ) async {
+      final far = await repo.createProperty(
+        'Great Northern Pastoral Company Station',
+      );
+      final paddock = await repo.createPaddock(
+        far,
+        'Lower Creek Flats Holding Paddock',
+      );
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/activity?paddock=$paddock',
+        width: 320,
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byTooltip('Show all activity'), findsOneWidget);
+    });
+
+    testPage('an empty paddock has nothing to view all of', (tester) async {
+      final empty = await repo.createPaddock(property, 'Back Paddock');
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/properties/$property/paddocks/$empty',
+      );
+
+      expect(
+        find.text('Nothing has moved in or out of here yet.'),
+        findsOneWidget,
+      );
+      expect(find.text('View all'), findsNothing);
+    });
+  });
+
   group('Panes and URLs', () {
     Future<({String property, String north})> ids() async {
       final property = await seedStock();

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/app_database.dart';
 import '../../data/livestock_repository.dart';
@@ -8,6 +9,7 @@ import '../../data/tag_numbers.dart';
 import '../../shell/action_button.dart';
 import '../../shell/tier_route.dart';
 import '../activity/activity_page.dart';
+import '../activity/paths.dart';
 import '../tags/add_tags_dialog.dart';
 import '../tags/paths.dart';
 import '../tags/tag_page.dart';
@@ -212,9 +214,6 @@ class _PaddockDetail extends StatelessWidget {
             ],
             _Deaths(summary: summary, repository: repository),
             _RecentlyLeft(paddock: paddock, repository: repository),
-            const SizedBox(height: 16),
-            Text('Recent activity', style: theme.textTheme.titleMedium),
-            const Divider(),
             StreamBuilder<List<ActivityEntry>>(
               initialData: repository.latestActivityEntries(
                 paddockId: paddock.id,
@@ -226,23 +225,38 @@ class _PaddockDetail extends StatelessWidget {
               ),
               builder: (context, snapshot) {
                 final entries = snapshot.data;
-                if (entries == null) return const SizedBox(height: 48);
-                if (entries.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Text(
-                      'Nothing has moved in or out of here yet.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  );
-                }
-                return Column(
+                return _HeadedSection(
+                  title: 'Recent activity',
+                  action: entries == null || entries.isEmpty
+                      ? null
+                      : TextButton(
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          onPressed: () =>
+                              context.go(paddockActivityPath(paddock.id)),
+                          child: const Text('View all'),
+                        ),
                   children: [
-                    for (final entry in entries)
-                      ActivityTile(entry: entry, currentPaddockId: paddock.id),
+                    if (entries == null)
+                      const SizedBox(height: 48)
+                    else if (entries.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Text(
+                          'Nothing has moved in or out of here yet.',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      )
+                    else
+                      for (final entry in entries)
+                        ActivityTile(
+                          entry: entry,
+                          currentPaddockId: paddock.id,
+                        ),
                   ],
                 );
               },
@@ -358,7 +372,7 @@ class _Deaths extends StatelessWidget {
       builder: (context, deaths, within, showMore) {
         if (summary.isEmpty && deaths.isEmpty) return const SizedBox.shrink();
 
-        return _EndedSection(
+        return _HeadedSection(
           title: 'Deaths',
           action: summary.isEmpty
               ? null
@@ -413,7 +427,7 @@ class _RecentlyLeft extends StatelessWidget {
       states: _left,
       builder: (context, left, _, showMore) => left.isEmpty
           ? const SizedBox.shrink()
-          : _EndedSection(
+          : _HeadedSection(
               title: 'Recently left',
               children: [
                 for (final entry in left)
@@ -488,8 +502,9 @@ class _EndedState extends State<_Ended> {
   }
 }
 
-class _EndedSection extends StatelessWidget {
-  const _EndedSection({
+/// A section's title, with an action beside it, over a rule.
+class _HeadedSection extends StatelessWidget {
+  const _HeadedSection({
     required this.title,
     this.action,
     required this.children,
