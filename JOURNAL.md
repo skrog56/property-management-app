@@ -7,6 +7,98 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-15 — Templates and classes in an order of their own
+
+### What prompted it
+
+Templates and classes both had a sort order, which the seeding set and nothing
+could change. A new class always went to the end of its template, and a new
+template after the others. That order is more than cosmetic: through
+`StockClass.compare` it decides where mobs sit on a paddock page and how the
+movement form lists classes.
+
+The first pass added Move up and Move down to each class's menu. The user then
+asked for drag and drop, for classes within a card and for whole templates. The
+default sort was to reflect the order the user had set.
+
+### Decided
+
+- **Custom order is the default sort, and first in its menu.** It is the order
+  `templates()` already returns. The other sorts still break ties with it.
+  This reverses the 2026-11-09 call to drop "Default order" for Most head. That
+  was right while the order couldn't be changed, and stopped being right once
+  it could.
+- **Templates move only in Custom order, and only while nothing is searched
+  for.** Under any other sort, a dropped card would land in a place the page
+  doesn't show. With a search, the cards between two that show are hidden. So
+  the handles and menu steps disappear rather than doing something
+  surprising. Grouped by animal, a template moves only among its own animal's,
+  since the groups come from the animal and can't be crossed.
+- **A dropped card takes the place of the one beneath it**, the cards between
+  shifting along. The cards are of uneven height in a grid, so they don't
+  slide aside live, as a list's rows do: moving one would move what is under
+  the pointer, and the order would flicker. The target gets an outline, and
+  the card being dragged dims where it was.
+- **Classes use `ReorderableListView`**, whose rows do slide aside, nested in
+  each card. Only a template's own classes are in it. The ready-to-sell twins
+  are listed after it, in their classes' order, since a twin's place follows
+  from its class.
+- **A handle beside each ⋮, not a long press.** Dragging from anywhere on a
+  card would fight scrolling on a phone, and a long press can't be discovered.
+  The handle goes at the trailing end, so the class inset the user set on
+  2026-11-09 is untouched.
+- **The menu steps stay**, as Move earlier and later for templates and Move up
+  and down for classes, for anyone who can't drag: keyboard and screen reader
+  users.
+- **The page scrolls while a card is held near either end**, using Flutter's
+  `EdgeDraggingAutoScroller`, the one its reorderable lists use. Without it, a
+  phone couldn't drag Breeder below Fats.
+- **The repository takes the whole order** (`reorderTemplates`,
+  `reorderClasses`), rather than moves. It refuses an order that leaves a live
+  row out or names another, which is what an order taken from a stale view
+  would do. Twins take their class's number, retired twins included, so one
+  restored comes back in its place.
+- **A drop shows at once.** The page keeps the dropped order until the
+  database reports a new list, so the card doesn't snap back for the frames in
+  between.
+
+### Verification
+
+210 tests. They drag a card into place both ways, and refuse a sheep card among
+cattle while grouped but not after. Others cover the menu steps, where handles
+show, scrolling while held, and dragging a class with its twin following. For
+the repository, they check orders and refuse bad ones. With the same-animal
+rule removed, its test fails, and with auto-scroll removed, its test fails. The
+first repository test passed even with twins not following their class, since
+its twins ended up in their original order anyway, so it was rewritten until
+they couldn't. `flutter build web` passed.
+
+Renders with Roboto and real shadows showed the handles at 400 px and
+1000 px, a card lifted where it was picked up with its old place dimmed, and a
+dragged class leaving a gap. The drop target's outline showed only from a
+second frame on, because Material animates a change of shape.
+
+CI run 43675969457 passed on all six targets for `0d44a34`.
+
+### Noticed
+
+`dart format`, now the one from Flutter 3.47.9, lays out several older files
+differently, among them `repository_scope.dart`, `paddock_page.dart` and two
+queries in the repository. Formatting the edited files kept reflowing those
+untouched spots, so they were put back each time to keep the diff to the
+change.
+
+### Open
+
+- Not yet dragged in the running app with a mouse or a finger. That needs
+  trying, most of all on a phone, for the handles and scrolling while held.
+- A commit of formatting alone would end the reflow noise for every later
+  change.
+- Templates still can't move while the page is sorted or searched. If that
+  proves annoying, a drag there could switch back to Custom order first.
+- Template order is ordering only. It doesn't yet decide anything else, such
+  as which templates a property uses.
+
 ## 2026-11-15 — Ubuntu CI runners pinned to 24.04
 
 ### What happened
