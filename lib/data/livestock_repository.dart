@@ -370,11 +370,12 @@ class LivestockRepository {
     String propertyId,
     List<QueryRow> rows,
   ) async {
-    final paddocks = await (db.select(db.paddocks)
-          ..where((p) => p.propertyId.equals(propertyId))
-          ..where((p) => p.deletedAt.isNull())
-          ..orderBy([(p) => OrderingTerm(expression: p.name)]))
-        .get();
+    final paddocks =
+        await (db.select(db.paddocks)
+              ..where((p) => p.propertyId.equals(propertyId))
+              ..where((p) => p.deletedAt.isNull())
+              ..orderBy([(p) => OrderingTerm(expression: p.name)]))
+            .get();
 
     final classes = await _classesById();
 
@@ -1139,13 +1140,11 @@ class LivestockRepository {
     return id;
   }
 
-  Future<List<Property>> properties() => (db.select(
-    db.properties,
-  )..where((p) => p.deletedAt.isNull())).get();
+  Future<List<Property>> properties() =>
+      (db.select(db.properties)..where((p) => p.deletedAt.isNull())).get();
 
-  Stream<List<Property>> watchProperties() => (db.select(
-    db.properties,
-  )..where((p) => p.deletedAt.isNull())).watch();
+  Stream<List<Property>> watchProperties() =>
+      (db.select(db.properties)..where((p) => p.deletedAt.isNull())).watch();
 
   /// Emits null for an unknown or deleted property, which a deep link can name.
   Stream<Property?> watchProperty(String id) => _remembered(

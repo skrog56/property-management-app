@@ -14,8 +14,7 @@ class RepositoryScope extends InheritedWidget {
   final LivestockRepository repository;
 
   static LivestockRepository of(BuildContext context) {
-    final scope = context
-        .dependOnInheritedWidgetOfExactType<RepositoryScope>();
+    final scope = context.dependOnInheritedWidgetOfExactType<RepositoryScope>();
     assert(scope != null, 'No RepositoryScope above this widget');
     return scope!.repository;
   }

@@ -206,9 +206,8 @@ class _MovementDialogState extends State<_MovementDialog> {
     // A property without paddocks has nothing to record against.
     final properties = widget.propertyId == null
         ? [
-            for (final s in await widget.repository
-                .watchPropertySummaries()
-                .first)
+            for (final s
+                in await widget.repository.watchPropertySummaries().first)
               if (s.paddockCount > 0) s.property,
           ]
         : const <Property>[];
@@ -464,9 +463,7 @@ class _MovementDialogState extends State<_MovementDialog> {
     } on LedgerConflict catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 

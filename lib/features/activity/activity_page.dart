@@ -32,7 +32,8 @@ class ActivityPage extends StatelessWidget {
           return ActionButton(
             icon: Icons.swap_horiz,
             label: 'Record movement',
-            onPressed: () => showMovementDialog(context, repository: repository),
+            onPressed: () =>
+                showMovementDialog(context, repository: repository),
           );
         },
       ),

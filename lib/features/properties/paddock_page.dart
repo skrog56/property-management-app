@@ -57,10 +57,7 @@ class PaddockPage extends StatelessWidget {
               child: CircularProgressIndicator(),
             ),
             (_, null) => const Center(child: Text('This paddock is gone.')),
-            (_, final s?) => _PaddockDetail(
-              summary: s,
-              repository: repository,
-            ),
+            (_, final s?) => _PaddockDetail(summary: s, repository: repository),
           },
         );
       },
