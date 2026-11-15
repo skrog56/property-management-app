@@ -228,7 +228,7 @@ class PropertyStock {
 /// A mob and where it stands.
 typedef PlacedMob = ({Property property, Paddock paddock, MobLine mob});
 
-/// The head that came in and left over a stretch of days.
+/// The head that came in and left over a stretch of days, today the last.
 class Flows {
   const Flows({required this.days, this.broughtIn = 0, this.ended = const {}});
 
@@ -493,8 +493,8 @@ class LivestockRepository {
   }
 
   /// Every property with its paddocks and their mobs, the tags on hand, and
-  /// what came in and left over the last [days].
-  Stream<Overview> watchOverview({int days = 30}) {
+  /// what came in and left over the last [days], whole days by [clock].
+  Stream<Overview> watchOverview({int days = 30, DateTime Function()? clock}) {
     return db
         .customSelect(
           '''
@@ -537,7 +537,7 @@ class LivestockRepository {
                 ),
             ],
             activeTags: await _activeTags(),
-            flows: await _flows(days),
+            flows: await _flows(days, (clock ?? DateTime.now)()),
           );
         });
   }
@@ -556,8 +556,11 @@ class LivestockRepository {
     return row.read<int>('c');
   }
 
-  /// Counted by when each movement happened, not when it was entered.
-  Future<Flows> _flows(int days) async {
+  /// Counted by when each movement happened, not when it was entered, from
+  /// the local midnight that starts the first of the [days].
+  Future<Flows> _flows(int days, DateTime now) async {
+    final local = now.toLocal();
+    final from = DateTime(local.year, local.month, local.day - (days - 1));
     final rows = await db
         .customSelect(
           '''
@@ -569,11 +572,7 @@ class LivestockRepository {
           ''',
           // In UTC, as every movement's time is stored, so the two compare
           // as text.
-          variables: [
-            Variable<DateTime>(
-              DateTime.now().toUtc().subtract(Duration(days: days)),
-            ),
-          ],
+          variables: [Variable<DateTime>(from.toUtc())],
           readsFrom: {db.movements},
         )
         .get();

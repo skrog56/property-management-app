@@ -149,6 +149,25 @@ void main() {
       expect(flows.endedAs(EndState.meatworks), 0);
     });
 
+    test('counts whole days, today the last of them', () async {
+      final property = await repo.createProperty('Riverbend Downs');
+      final north = await repo.createPaddock(property, 'North Ridge');
+      // Just after the midnight that starts the 30 days to 10 March.
+      await repo.record(
+        kind: MovementKind.intake,
+        head: 37,
+        toPaddockId: north,
+        toClassId: 'calves',
+        occurredAt: DateTime(2026, 2, 9, 0, 30),
+      );
+
+      Future<int> broughtIn(DateTime now) async =>
+          (await repo.watchOverview(clock: () => now).first).flows.broughtIn;
+
+      expect(await broughtIn(DateTime(2026, 3, 10, 23, 59)), 37);
+      expect(await broughtIn(DateTime(2026, 3, 11, 0, 1)), 0);
+    });
+
     test('a class edited in the template editor reaches it', () async {
       await seed();
       final labels = repo.watchOverview().map(
@@ -275,6 +294,60 @@ void main() {
 
       expect(find.text('160'), findsOneWidget);
       expect(find.text('8 head'), findsOneWidget);
+    });
+
+    testPage('moves its 30 days on at midnight', (tester) async {
+      final property = await repo.createProperty('Riverbend Downs');
+      final north = await repo.createPaddock(property, 'North Ridge');
+      await repo.record(
+        kind: MovementKind.intake,
+        head: 37,
+        toPaddockId: north,
+        toClassId: 'calves',
+        occurredAt: DateTime(2026, 2, 9, 0, 30),
+      );
+
+      var now = DateTime(2026, 3, 10, 23);
+      await pumpPage(
+        tester,
+        HomePage(clock: () => now),
+        repository: repo,
+        height: 3000,
+      );
+      expect(find.text('37 head'), findsOneWidget);
+
+      now = DateTime(2026, 3, 11, 0, 0, 2);
+      await tester.pump(const Duration(hours: 1, seconds: 2));
+      await drain(tester);
+
+      expect(find.text('37 head'), findsNothing);
+      expect(find.text('1 paddock · 37 head'), findsOneWidget);
+    });
+
+    testPage('Ready to sell scrolls its mobs into view', (tester) async {
+      await seed();
+      await pumpPage(tester, const HomePage(), repository: repo, height: 500);
+
+      final row = find.text('Back Paddock · River Block');
+      expect(tester.getRect(row).top, greaterThanOrEqualTo(500));
+
+      // The figure, which comes before the section of the same name.
+      await tester.tap(find.text('Ready to sell').first);
+      await drain(tester);
+
+      expect(tester.getRect(row).bottom, lessThan(500));
+    });
+
+    testPage('Ready to sell does nothing while nothing is', (tester) async {
+      final property = await repo.createProperty('Riverbend Downs');
+      await repo.createPaddock(property, 'North Ridge');
+      await pumpPage(tester, const HomePage(), repository: repo);
+
+      final tile = find.ancestor(
+        of: find.text('Ready to sell'),
+        matching: find.byType(InkWell),
+      );
+      expect(tester.widget<InkWell>(tile).onTap, isNull);
     });
 
     testPage('offers to record a movement once there is a paddock', (

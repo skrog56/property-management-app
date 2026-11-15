@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -22,7 +24,10 @@ const _recentActivity = 6;
 /// Everything at once: what is on hand and where, what is ready to sell, and
 /// what has come and gone lately, each leading to where it is worked on.
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, this.clock});
+
+  /// Stands in for [DateTime.now], so a test can pass midnight.
+  final DateTime Function()? clock;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -32,6 +37,10 @@ class _HomePageState extends State<HomePage> {
   LivestockRepository? _repository;
   late Stream<Overview> _overview;
   late Stream<List<ActivityEntry>> _activity;
+  Timer? _midnight;
+  final _readyToSell = GlobalKey();
+
+  DateTime _now() => (widget.clock ?? DateTime.now)();
 
   @override
   void didChangeDependencies() {
@@ -39,8 +48,38 @@ class _HomePageState extends State<HomePage> {
     final repository = RepositoryScope.of(context);
     if (repository != _repository) {
       _repository = repository;
-      _overview = repository.watchOverview();
+      _watchOverview();
       _activity = repository.watchActivityEntries(limit: _recentActivity);
+    }
+  }
+
+  @override
+  void dispose() {
+    _midnight?.cancel();
+    super.dispose();
+  }
+
+  /// The overview fires only when the data changes, so its days are moved on
+  /// at each midnight by watching afresh.
+  void _watchOverview() {
+    _overview = _repository!.watchOverview(clock: widget.clock);
+    _midnight?.cancel();
+    final now = _now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    // A moment past, so the new day has surely begun when it fires.
+    _midnight = Timer(
+      tomorrow.difference(now) + const Duration(seconds: 1),
+      () => setState(_watchOverview),
+    );
+  }
+
+  void _showReadyToSell() {
+    if (_readyToSell.currentContext case final section?) {
+      Scrollable.ensureVisible(
+        section,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+      );
     }
   }
 
@@ -85,10 +124,10 @@ class _HomePageState extends State<HomePage> {
 
   Widget _layout(Overview overview, int columns) {
     final hero = _Hero(overview);
-    final tiles = _Tiles(overview);
+    final tiles = _Tiles(overview, onReadyToSell: _showReadyToSell);
     final ready = overview.readyToSell.isEmpty
         ? null
-        : _ReadyToSell(overview.readyToSell);
+        : _ReadyToSell(overview.readyToSell, key: _readyToSell);
     final properties = _Properties(overview);
     final livestock = _Livestock(overview.classes);
     final flows = _FlowsSection(overview.flows);
@@ -215,9 +254,12 @@ class _Hero extends StatelessWidget {
 }
 
 class _Tiles extends StatelessWidget {
-  const _Tiles(this.overview);
+  const _Tiles(this.overview, {required this.onReadyToSell});
 
   final Overview overview;
+
+  /// Brings the mobs ready to sell into view, further down or beside.
+  final VoidCallback onReadyToSell;
 
   @override
   Widget build(BuildContext context) {
@@ -248,6 +290,7 @@ class _Tiles extends StatelessWidget {
             label: 'Ready to sell',
             value: ready.fold(0, (sum, r) => sum + r.mob.head),
             note: ready.isEmpty ? null : counted(ready.length, 'mob'),
+            onTap: ready.isEmpty ? null : onReadyToSell,
           ),
           _Tile(
             icon: Icons.sell_outlined,
@@ -384,7 +427,7 @@ class _Heading extends StatelessWidget {
 }
 
 class _ReadyToSell extends StatelessWidget {
-  const _ReadyToSell(this.mobs);
+  const _ReadyToSell(this.mobs, {super.key});
 
   final List<PlacedMob> mobs;
 

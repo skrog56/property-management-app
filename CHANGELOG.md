@@ -41,7 +41,9 @@ same commit — a deliberate act, never a side effect of another change.
   card for each property, the head in each class with a bar against the
   largest, what was brought in, sold, sent to the meatworks or died in the
   last 30 days, and the latest movements. Each opens the page it summarises,
-  and *Record movement* is on Home as on Activity. With no properties yet, it
+  and the head ready to sell scrolls to the mobs. The 30 days are whole days,
+  today the last, and move on at midnight even with Home left open.
+  *Record movement* is on Home as on Activity. With no properties yet, it
   offers to create one.
 
 - **The real livestock templates.** Breeder (cows, calves and weaners),
