@@ -7,6 +7,50 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-15 — Three fixes from the settings sweep
+
+### What prompted it
+
+The settings sweep, earlier the same day, turned up three things that were
+not settings. The user asked to clear all three.
+
+### Decided
+
+- **Activity pages, 200 at a time.** It asked for the latest 200 movements
+  and stopped there, so the Settings page's "Activity always keeps
+  everything" was true of the ledger but not of the page. *Show older
+  movements* at the foot adds another 200. It is a button rather than
+  loading on scroll, so nothing loads that wasn't asked for.
+- **A paddock's Deaths and Recently left page ten at a time**, with *Show
+  more*, where they stopped at ten even under *Always*.
+- **Both ask for one more than they show**, so the button appears only when
+  there is something older, without a count query.
+- **The app is set in Australian English.** With no locale set, Flutter's
+  date picker took typed dates month first, unlike every date the app
+  shows. `flutter_localizations` comes with the SDK and covers all six
+  targets. The locale is fixed, not the device's, because the app's own
+  dates are written dd/mm/yyyy by hand. Following the device would mean
+  formatting those through the locale too, and nobody outside Australia uses
+  the app yet.
+
+### Verification
+
+323 tests, up from 319. New ones page Activity past 200 and show no button
+when one page holds everything, page a paddock's Deaths from ten to thirty
+with the oldest appearing only at the last, check that the real app's
+`MaterialApp` uses the locale and formats a date day first, and check that
+the death form's calendar asks for dd/mm/yyyy. The two death-date tests now
+type `15/01/2001`, which the US order would refuse. `pumpPage` and
+`pumpRouted` pass the app's locale, so tests see what the app shows.
+`flutter build web` passed.
+
+### Open
+
+- Not tried in a running build. The calendar's look in Australian English,
+  such as which day starts the week, has only been seen in tests.
+- A paddock's *Recent activity* still stops at 25, with no link to the
+  rest. Activity has no filter by paddock to send it to.
+
 ## 2026-11-15 — Six more settings: tags, movement defaults, area unit
 
 ### What prompted it
@@ -108,7 +152,7 @@ chosen. They were deleted afterwards. `flutter build web` passed.
 - Not tried in a running build or on a phone.
 - A paddock's area cannot be edited, in either unit.
 - The three findings above: Activity's 200, the paddock's ten, and the date
-  picker's locale.
+  picker's locale. All three were fixed the same day.
 - The Data actions, not taken up: Export, erase all data, and restore default
   templates.
 
