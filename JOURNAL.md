@@ -7,6 +7,67 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-15 — One breadcrumb trail on every page
+
+### What prompted it
+
+With Home in place, the user asked for the page titles to become one
+breadcrumb system across the board, with icons. Before this, there were three
+kinds of title:
+- the shell's bar named the destination, with no icon;
+- Properties drew breadcrumbs on a wide window, and a back arrow and the
+  current name on a narrow one;
+- Tags showed *Tags*, or a back arrow and the tag number, and no trail.
+
+### Decided
+
+- **Every trail starts at Home**, the user's choice over starting at the
+  destination: *Home › Activity*, *Home › Tags › 999 000000000001*.
+- **A phone shows the page alone**, also the user's choice, over keeping the
+  parent beside it or scrolling the whole trail sideways. A back arrow shows
+  below a destination's top. Home and the destination are each a tap away in
+  the bottom bar, so a top-level page has none. The full trail shows wherever
+  the bar is wider than compact, `usesFullTrail`, measured on the bar, which
+  spans the content area as the panes do.
+- **One widget, `TrailBar`**, for every page. A `Crumb` is an icon, a label
+  widget (so a browser's crumb can watch a name) and a path. The router builds
+  a flat destination's trail from its `AppDestination`, so a crumb's icon and
+  label are the rail's. The Properties and Tags browsers take the trail to
+  their destination and add their tiers: a property by `home_work`, as on its
+  card, a paddock by `grass`, a tag by `sell`. `AdaptiveScaffold` takes the
+  bar it is given rather than titling one itself, and `showAppBar` and the
+  unused `actions` are gone.
+- **Where a trail is short of room, the steps before the page give way
+  first**, the widest first, each down to 96 px, which leaves its icon and a
+  few letters. Only then does the page's own crumb shorten. A row of
+  `Flexible`s gives every crumb an equal share and doesn't pass on what a short
+  one leaves, so *Home* would keep room it doesn't need while the page's own
+  name was cut. `_RenderTrail` measures each crumb and finds the one width cap
+  that fits the ancestors into the room left. A test that swaps in equal
+  shares fails.
+- **A crumb keeps its place as it turns into a link**: a link and the current
+  page share their inset and content, as the old Properties breadcrumbs did,
+  and that test still passes. The current page's icon is in the primary
+  colour, the steps before it muted.
+- **The back arrow pops where it can**, and otherwise goes to the crumb
+  above, as both browsers did for deep links. That logic now lives once, in
+  `TrailBar`.
+
+### Verification
+
+257 tests, up from 248. New ones cover the full trail and its links, a phone
+showing the page alone, back from a deep link, no back arrow at a
+destination's top, which crumb gives way, no overflow down to 320 dp, every
+destination's trail starting at Home, each step's icon, and Home in a trail
+going home. Three shell tests now pass the shell a bar. A throwaway render
+with real fonts showed a paddock's trail at 1900, 1000, 700 and 360 dp, and
+Activity and a tag at 1000 and 1300. At 700, *Home* and *North Flat* stayed
+whole while *Properties* and *Riverbend Downs* shortened.
+
+### Open
+
+- Still not clicked through in a running build or on a phone.
+
 ## 2026-11-15 — Home on a new install
 
 ### What happened
