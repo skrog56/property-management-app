@@ -6,6 +6,7 @@ import '../../data/repository_scope.dart';
 import '../../shell/action_button.dart';
 import '../../shell/breakpoints.dart';
 import '../../shell/tier_route.dart';
+import '../templates/class_line.dart';
 import 'name_dialog.dart';
 import 'paddock_page.dart';
 import 'paths.dart';
@@ -235,13 +236,14 @@ class _PaddockCard extends StatelessWidget {
                       )
                     else
                       for (final mob in summary.mobs)
-                        Text(
-                          '${mob.head} × ${mob.label}',
+                        ClassLine(
+                          mob.stockClass,
+                          text: '${mob.head} × ${mob.label}',
+                          iconSize: 16,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                           maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                     const Spacer(),
                     Text(

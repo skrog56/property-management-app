@@ -319,7 +319,7 @@ void main() {
       );
       await tester.tap(find.byTooltip('Age'));
       await drain(tester);
-      await tester.tap(find.text('Choose…').first);
+      await tester.tap(find.widgetWithText(TextField, 'Mob'));
       await drain(tester);
       await tester.tap(find.text('10 × Steers (Backgrounders)').last);
       await drain(tester);

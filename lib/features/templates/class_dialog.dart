@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../data/app_database.dart';
 import '../../data/livestock_repository.dart';
 import '../../shell/form_dialog.dart';
+import '../../shell/search_picker.dart';
+import 'class_line.dart';
 
 /// Adds a class to [template], or edits [editing]. [classes] is every live
 /// class, for the ageing chain and for names already taken. [twinHead] is
@@ -182,16 +184,12 @@ class _ClassDialogState extends State<_ClassDialog> {
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String?>(
-          initialValue: _agesInto,
-          isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Ages into'),
-          hint: const Text('Nothing'),
-          items: [
-            const DropdownMenuItem<String?>(child: Text('Nothing')),
-            for (final c in _targets)
-              DropdownMenuItem(value: c.id, child: Text(c.label)),
-          ],
+        SearchPicker<String>(
+          label: 'Ages into',
+          entries: [for (final c in _targets) classEntry(c)],
+          value: _agesInto,
+          hint: 'Nothing',
+          emptyHint: 'Nothing',
           onChanged: (id) => setState(() => _agesInto = id),
         ),
         const SizedBox(height: 4),

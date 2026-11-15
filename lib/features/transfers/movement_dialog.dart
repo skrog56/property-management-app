@@ -7,6 +7,8 @@ import '../../data/tag_numbers.dart';
 import '../../shell/form_dialog.dart';
 import '../tags/tag_field.dart';
 import '../tags/tag_labels.dart';
+import '../templates/class_line.dart';
+import '../../shell/search_picker.dart';
 
 Future<void> showMovementDialog(
   BuildContext context, {
@@ -240,13 +242,14 @@ class _MovementDialogState extends State<_MovementDialog> {
   bool get _death => widget.shortcut == _Shortcut.death;
 
   Future<void> _selectProperty(String? id) async {
-    if (id == null || id == _propertyId) return;
+    if (id == _propertyId) return;
     setState(() {
       _propertyId = id;
       _paddocks = const [];
       _toPaddockId = null;
     });
     await _selectFromPaddock(null);
+    if (id == null) return;
     final paddocks = await widget.repository.paddocksIn(id);
     if (!mounted || _propertyId != id) return;
     setState(() => _paddocks = paddocks);
@@ -495,13 +498,13 @@ class _MovementDialogState extends State<_MovementDialog> {
       blocker: blocker?.reason,
       children: [
         if (widget.propertyId == null) ...[
-          _Dropdown<String>(
+          SearchPicker<String>(
             label: 'Property',
             value: _propertyId,
             onChanged: _selectProperty,
-            items: [
+            entries: [
               for (final p in _properties)
-                DropdownMenuItem(value: p.id, child: Text(p.name)),
+                SearchEntry(p.id, p.name, alsoFoundBy: p.pic),
             ],
             emptyHint: 'No paddocks yet',
           ),
@@ -537,15 +540,15 @@ class _MovementDialogState extends State<_MovementDialog> {
             const SizedBox(height: 12),
           ],
           if (shortcut != _Shortcut.readyToSell) ...[
-            _Dropdown<String>(
+            SearchPicker<String>(
               label: 'Mob',
               value: _fromClassId,
               onChanged: _selectFromClass,
-              items: [
+              entries: [
                 for (final mob in _mobs)
-                  DropdownMenuItem(
-                    value: mob.stockClass.id,
-                    child: Text('${mob.head} × ${mob.label}'),
+                  classEntry(
+                    mob.stockClass,
+                    label: '${mob.head} × ${mob.label}',
                   ),
               ],
               emptyHint: _fromPaddockId == null
@@ -557,16 +560,17 @@ class _MovementDialogState extends State<_MovementDialog> {
         ],
 
         if (_kind == MovementKind.intake || _kind == MovementKind.age) ...[
-          _Dropdown<String>(
+          SearchPicker<String>(
+            key: ValueKey(_kind),
             label: _kind == MovementKind.age ? 'Ages into' : 'Class',
+            entries: [
+              for (final c
+                  in _kind == MovementKind.age ? _ageTargets : _classes)
+                classEntry(c),
+            ],
             value: _toClassId,
             wrong: wrong.contains(_Field.toClass),
             onChanged: (id) => setState(() => _toClassId = id),
-            items: [
-              for (final c
-                  in _kind == MovementKind.age ? _ageTargets : _classes)
-                DropdownMenuItem(value: c.id, child: Text(c.label)),
-            ],
             emptyHint: 'No classes yet: add one in Templates',
           ),
           const SizedBox(height: 12),
@@ -584,15 +588,15 @@ class _MovementDialogState extends State<_MovementDialog> {
         ],
 
         if (_kind == MovementKind.endState && shortcut == null) ...[
-          _Dropdown<EndState>(
-            label: 'Destination',
-            value: _endState,
+          DropdownButtonFormField<EndState>(
+            initialValue: _endState,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Destination'),
             onChanged: (v) => setState(() => _endState = v!),
             items: [
               for (final state in EndState.values)
                 DropdownMenuItem(value: state, child: Text(state.name)),
             ],
-            emptyHint: '',
           ),
           const SizedBox(height: 12),
         ],
@@ -671,49 +675,13 @@ class _PaddockField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Dropdown<String>(
+    return SearchPicker<String>(
       label: label,
       value: value,
       onChanged: onChanged,
-      items: [
-        for (final p in paddocks)
-          DropdownMenuItem(value: p.id, child: Text(p.name)),
-      ],
+      entries: [for (final p in paddocks) SearchEntry(p.id, p.name)],
       emptyHint: 'No paddocks yet',
       wrong: wrong,
-    );
-  }
-}
-
-class _Dropdown<T> extends StatelessWidget {
-  const _Dropdown({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-    required this.items,
-    required this.emptyHint,
-    this.wrong = false,
-  });
-
-  final String label;
-  final T? value;
-  final ValueChanged<T?> onChanged;
-  final List<DropdownMenuItem<T>> items;
-  final String emptyHint;
-  final bool wrong;
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<T>(
-      initialValue: value,
-      isExpanded: true,
-      decoration: InputDecoration(
-        labelText: label,
-        error: wrong ? wrongField : null,
-      ),
-      hint: Text(items.isEmpty ? emptyHint : 'Choose…'),
-      items: items,
-      onChanged: items.isEmpty ? null : onChanged,
     );
   }
 }

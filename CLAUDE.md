@@ -66,9 +66,10 @@ lib/
                the route every drill-down tier is built as — FormDialog,
                which every form and confirmation is built as and opened by
                showFormDialog, CardGrid, rows of cards as tall as the
-               tallest in each, and PillToolbar, a PillSearchField and the
+               tallest in each, PillToolbar, a PillSearchField and the
                PillChips beside it at one height and outline, stacked when
-               the search's hint wouldn't fit
+               the search's hint wouldn't fit, and SearchPicker, a field
+               that narrows a long list as you type
   data/        Drift schema, repository, platform-specific connection
   features/
     properties/       Three tiers: properties → paddocks → one paddock's livestock,
@@ -84,7 +85,9 @@ lib/
                       counts, their classes, and each class's ready-to-sell
                       twin, searched, grouped, sorted and dragged into
                       order on one page;
-                      SpeciesIcon, each animal's icon
+                      SpeciesIcon, each animal's icon; ClassLine, a class
+                      led by it, and classEntry, the same to choose in a
+                      SearchPicker
     developer/        Debug-only tools; hosts platform_proof as a tab
     platform_proof/   The evidence screen and fact gathering
     about/            Target checklist and build identity
@@ -195,6 +198,12 @@ blocker is about that field: over a limit, clashing with another field, already
 recorded elsewhere. If two fields clash, mark both. A field that is only
 *empty* is not wrong and stays as it is, or a new form would open in red. A
 field's own validation message still goes in `errorText`.
+
+**A choice from a list that grows is a `SearchPicker`**: properties, paddocks,
+mobs and classes, which a station adds to without limit. A short fixed list,
+such as end states or tag reasons, stays a `DropdownButtonFormField`, where
+typing would only slow the choice. A class or mob is a `classEntry`, so it is
+led and found by its animal.
 
 ## Data layer
 

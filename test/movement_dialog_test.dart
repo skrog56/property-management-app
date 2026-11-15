@@ -5,6 +5,7 @@ import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/tables.dart';
 import 'package:property_management_app/data/tag_numbers.dart';
+import 'package:property_management_app/shell/search_picker.dart';
 import 'package:property_management_app/features/transfers/movement_dialog.dart';
 
 import 'support.dart';
@@ -67,7 +68,9 @@ void main() {
       find
           .ancestor(
             of: find.text(fieldLabel),
-            matching: find.byType(DropdownButtonFormField<String>),
+            matching: find.byWidgetPredicate(
+              (w) => w is DropdownButtonFormField<String> || w is SearchPicker,
+            ),
           )
           .first,
     );
@@ -145,6 +148,46 @@ void main() {
     expect(find.text('This paddock is empty'), findsOne);
   });
 
+  testPage('shows each class\'s animal in the mob and class lists', (
+    tester,
+  ) async {
+    final flock = await repo.createTemplate('Flock', species: Species.sheep);
+    final ewes = await repo.createClass(flock, kind: 'Ewes');
+    for (final (head, classId) in [(40, 'calves'), (300, ewes)]) {
+      await repo.record(
+        kind: MovementKind.intake,
+        head: head,
+        toPaddockId: north,
+        toClassId: classId,
+      );
+    }
+
+    /// Whether the field labelled [label] shows [animal]'s icon.
+    void expectAnimal(String label, String animal) => expect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text(label),
+          matching: find.byType(InputDecorator),
+        ),
+        matching: find.byTooltip(animal),
+      ),
+      findsWidgets,
+      reason: label,
+    );
+
+    await openForm(tester);
+    await pick(tester, 'From paddock', 'North Ridge');
+    await pick(tester, 'Mob', '300 × Ewes (Flock)');
+    expectAnimal('Mob', 'Sheep');
+    await pick(tester, 'Mob', '40 × Calves (Beef) · under 6 months');
+    expectAnimal('Mob', 'Cattle');
+
+    await tester.tap(find.byTooltip('Intake'));
+    await drain(tester);
+    await pick(tester, 'Class', 'Ewes (Flock)');
+    expectAnimal('Class', 'Sheep');
+  });
+
   testPage('records an intake and closes', (tester) async {
     await openForm(tester);
 
@@ -198,18 +241,79 @@ void main() {
     await repo.createProperty('Bare Hill');
 
     await openForm(tester, anyProperty: true);
-    await tester.tap(
-      find.ancestor(
-        of: find.text('Property'),
-        matching: find.byType(DropdownButtonFormField<String>),
-      ),
-    );
+    await tester.tap(find.widgetWithText(TextField, 'Property'));
     await drain(tester);
 
     expect(find.text('Bare Hill'), findsNothing);
     // The only property left is chosen already.
     expect(find.text('Riverbend Downs'), findsWidgets);
     expect(find.text('Choose a property'), findsNothing);
+  });
+
+  group('searching', () {
+    List<String> offered(WidgetTester tester) => [
+      for (final text in tester.widgetList<Text>(
+        find.descendant(
+          of: find.byType(MenuItemButton),
+          matching: find.byType(Text),
+        ),
+      ))
+        text.data!,
+    ];
+
+    Future<void> type(WidgetTester tester, String label, String text) async {
+      final field = find.widgetWithText(TextField, label);
+      await tester.tap(field);
+      await drain(tester);
+      await tester.enterText(field, text);
+      await drain(tester);
+    }
+
+    testPage('finds a paddock by part of its name, and Enter takes it', (
+      tester,
+    ) async {
+      await repo.record(
+        kind: MovementKind.intake,
+        head: 12,
+        toPaddockId: creek,
+        toClassId: 'calves',
+      );
+      await openForm(tester);
+
+      await type(tester, 'From paddock', 'cre');
+      expect(offered(tester), ['Creek Flat']);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await drain(tester);
+
+      // The paddock is chosen, so its mob is there to pick.
+      await type(tester, 'Mob', 'calv');
+      expect(offered(tester), ['12 × Calves (Beef) · under 6 months']);
+    });
+
+    testPage('finds a property by its PIC, and typing over it unchooses it', (
+      tester,
+    ) async {
+      final glen = await repo.createProperty('Glenmore', pic: 'QABC1234');
+      await repo.createPaddock(glen, 'Top Flat');
+      await openForm(tester, anyProperty: true);
+
+      await type(tester, 'Property', 'qabc');
+      expect(offered(tester), ['Glenmore']);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await drain(tester);
+      await type(tester, 'From paddock', '');
+      expect(offered(tester), ['Top Flat']);
+
+      await type(tester, 'Property', 'Glen');
+      expect(find.text('Choose a property'), findsOneWidget);
+      expect(find.text('No paddocks yet'), findsNWidgets(2));
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, 'From paddock'))
+            .enabled,
+        isFalse,
+      );
+    });
   });
 
   testPage('blocks a move of more head than the paddock holds', (tester) async {

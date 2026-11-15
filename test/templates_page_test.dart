@@ -269,7 +269,7 @@ void main() {
 
       expect(order(), ['Breeder', 'Backgrounders', 'Feeders', 'Fats', 'Angus']);
 
-      await tester.tap(find.text('Custom order'));
+      await tester.tap(find.text('Custom Order'));
       await drain(tester);
       expect(
         [
@@ -279,34 +279,34 @@ void main() {
             (item.child! as Text).data,
         ],
         [
-          'Custom order',
-          'Most head',
-          'Fewest head',
+          'Custom Order',
+          'Most Head',
+          'Fewest Head',
           'Name (A–Z)',
           'Name (Z–A)',
-          'Newest first',
-          'Oldest first',
+          'Newest First',
+          'Oldest First',
         ],
       );
-      await tester.tap(find.text('Most head').last);
+      await tester.tap(find.text('Most Head').last);
       await drain(tester);
       // Ties keep their own order.
       expect(order(), ['Fats', 'Feeders', 'Breeder', 'Backgrounders', 'Angus']);
       expect(find.text('Cattle · 10 head'), findsOneWidget);
 
-      await sortBy(tester, 'Most head', 'Fewest head');
+      await sortBy(tester, 'Most Head', 'Fewest Head');
       expect(order(), ['Breeder', 'Backgrounders', 'Angus', 'Feeders', 'Fats']);
 
-      await sortBy(tester, 'Fewest head', 'Name (A–Z)');
+      await sortBy(tester, 'Fewest Head', 'Name (A–Z)');
       expect(order(), ['Angus', 'Backgrounders', 'Breeder', 'Fats', 'Feeders']);
 
       await sortBy(tester, 'Name (A–Z)', 'Name (Z–A)');
       expect(order(), ['Feeders', 'Fats', 'Breeder', 'Backgrounders', 'Angus']);
 
-      await sortBy(tester, 'Name (Z–A)', 'Newest first');
+      await sortBy(tester, 'Name (Z–A)', 'Newest First');
       expect(order().first, 'Angus');
 
-      await sortBy(tester, 'Newest first', 'Oldest first');
+      await sortBy(tester, 'Newest First', 'Oldest First');
       expect(order().last, 'Angus');
     });
 
@@ -361,14 +361,14 @@ void main() {
           await drain(tester);
           expect(controls(), before);
 
-          var current = 'Custom order';
+          var current = 'Custom Order';
           for (final by in [
-            'Most head',
-            'Fewest head',
+            'Most Head',
+            'Fewest Head',
             'Name (A–Z)',
             'Name (Z–A)',
-            'Newest first',
-            'Oldest first',
+            'Newest First',
+            'Oldest First',
           ]) {
             await sortBy(tester, current, by);
             current = by;
@@ -584,23 +584,34 @@ void main() {
         await drain(tester);
       });
 
-      testPage('moves templates only while showing all, in that order', (
-        tester,
-      ) async {
+      testPage('moves templates only while showing all, in that order, '
+          'saying why not', (tester) async {
         await openPage(tester);
         expect(handles(), findsNWidgets(4));
 
-        await sortBy(tester, 'Custom order', 'Most head');
+        await sortBy(tester, 'Custom Order', 'Most Head');
         expect(handles(), findsNothing);
+        expect(
+          find.byTooltip('Set sorting to Custom Order to drag and drop'),
+          findsNWidgets(4),
+        );
         await tester.tap(find.byTooltip('Actions for Breeder'));
         await drain(tester);
         expect(find.text('Move later'), findsNothing);
         await tester.tapAt(Offset.zero);
         await drain(tester);
 
-        await sortBy(tester, 'Most head', 'Custom order');
+        await sortBy(tester, 'Most Head', 'Custom Order');
         await search(tester, 'steers');
         expect(handles(), findsNothing);
+        expect(
+          find.byTooltip('Set sorting to Custom Order to drag and drop'),
+          findsNothing,
+        );
+        expect(
+          find.byTooltip('Clear the search to drag and drop'),
+          findsWidgets,
+        );
         // A class keeps its handle: the classes are all there regardless.
         expect(find.byType(ReorderableDragStartListener), findsWidgets);
       });
@@ -730,6 +741,38 @@ void main() {
         [for (final c in await repo.allClasses()) c.row.kind],
         ['Calves', 'Weaners', 'Heifers', 'Steers', 'Heifers', 'Steers'],
       );
+    });
+
+    testPage('searches for what a class ages into, and clears it', (
+      tester,
+    ) async {
+      Future<String?> agesInto() async => (await repo.allClasses())
+          .firstWhere((c) => c.id == 'calves')
+          .row
+          .agesIntoClassId;
+      final field = find.widgetWithText(TextField, 'Ages into');
+
+      await openPage(tester);
+      await tester.tap(find.text('Calves'));
+      await drain(tester);
+      expect(find.text('Weaners (Beef) · 6-12 months'), findsOneWidget);
+      await tester.enterText(field, '');
+      await drain(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await drain(tester);
+      expect(await agesInto(), isNull);
+
+      await tester.tap(find.text('Calves'));
+      await drain(tester);
+      await tester.tap(field);
+      await drain(tester);
+      await tester.enterText(field, 'wean 6');
+      await drain(tester);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await drain(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await drain(tester);
+      expect(await agesInto(), 'weaners');
     });
 
     testPage('waits for a class to empty before removing it', (tester) async {

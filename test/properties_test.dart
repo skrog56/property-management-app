@@ -115,6 +115,45 @@ void main() {
       );
     });
 
+    testPage('each mob shows its animal, on its paddock card and in it', (
+      tester,
+    ) async {
+      final property = await seedStock();
+      final north = (await repo.paddocksIn(
+        property,
+      )).firstWhere((p) => p.name == 'North Ridge');
+      final flock = await repo.createTemplate('Flock', species: Species.sheep);
+      final ewes = await repo.createClass(flock, kind: 'Ewes');
+      await repo.record(
+        kind: MovementKind.intake,
+        head: 300,
+        toPaddockId: north.id,
+        toClassId: ewes,
+      );
+      await pumpRouted(tester, repository: repo);
+
+      await tester.tap(find.text('Riverbend Downs'));
+      await settle(tester);
+      expect(find.byTooltip('Cattle'), findsOneWidget);
+      expect(find.byTooltip('Sheep'), findsOneWidget);
+
+      await tester.tap(find.text('North Ridge'));
+      await settle(tester);
+      for (final (animal, label) in [
+        ('Cattle', 'Calves (Beef) · under 6 months'),
+        ('Sheep', 'Ewes (Flock)'),
+      ]) {
+        final tile = find.ancestor(
+          of: find.text(label),
+          matching: find.byType(ListTile),
+        );
+        expect(
+          find.descendant(of: tile, matching: find.byTooltip(animal)),
+          findsOneWidget,
+        );
+      }
+    });
+
     testPage('an empty paddock says so rather than showing zero head', (
       tester,
     ) async {

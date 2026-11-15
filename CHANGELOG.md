@@ -62,16 +62,27 @@ same commit — a deliberate act, never a side effect of another change.
   class.
 - **Each template is for one animal**: cattle, sheep, goats, pigs, horses,
   alpacas, deer, poultry or other. A new template has to be given one, and its
-  card shows that animal's icon. The four defaults are cattle.
+  card shows that animal's icon. So does each mob on a paddock card and a
+  paddock page, and each mob and class to choose from when recording a
+  movement or editing a class. The four defaults are cattle.
+- **Search as you choose.** The property, paddock, mob and class lists in
+  Record movement, Record death and Mark ready to sell, and Ages into in the
+  class editor, narrow as you type: every word typed must appear in what is
+  listed, in any order, so "feed hei" finds Heifers (Feeders). A class or mob
+  is found by its animal too, and a property by its PIC. Enter takes the first
+  match. Each list shows about seven at a time and scrolls, rather than
+  filling the window as a station's paddocks and templates grow. Ages into is
+  cleared by emptying it. Short fixed lists, such as where stock ended up,
+  are still plain dropdowns.
 - **Search, group and sort templates.** The Templates page finds templates by
   their name or by any of their classes, and picks out the words that matched.
   Its cards are grouped under a heading for each animal, which can be turned
   off, and shown in their own order, or sorted by most or fewest head, by name
   either way, or newest or oldest first. Templates can be moved only in their
   own order and while nothing is searched for, as only then is it clear where
-  one will land. They sit in a grid, from one column on a
-  phone to four on a wide screen, and the cards in a row share one height, so
-  their Add class buttons line up.
+  one will land; otherwise a card's handle is greyed out, and says why. They
+  sit in a grid, from one column on a phone to four on a wide screen, and the
+  cards in a row share one height, so their Add class buttons line up.
 - **Wrong values are outlined in red.** In Record movement and Add tags, the
   field at fault turns red: more head than the mob has, a destination that is
   the paddock being left, a class that ages into itself, a tag already

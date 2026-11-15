@@ -25,13 +25,13 @@ class TemplatesPage extends StatefulWidget {
 }
 
 enum _Sort {
-  custom('Custom order'),
-  mostHead('Most head'),
-  fewestHead('Fewest head'),
+  custom('Custom Order'),
+  mostHead('Most Head'),
+  fewestHead('Fewest Head'),
   nameAscending('Name (A–Z)'),
   nameDescending('Name (Z–A)'),
-  newest('Newest first'),
-  oldest('Oldest first');
+  newest('Newest First'),
+  oldest('Oldest First');
 
   const _Sort(this.label);
 
@@ -156,7 +156,11 @@ class _TemplatesPageState extends State<TemplatesPage> {
         if (_matches(t, terms)) t,
     ]..sort(_sort.compare);
     // Only the whole list, in its own order, shows where a template will go.
-    final reorderable = _sort == _Sort.custom && terms.isEmpty;
+    final fixedBecause = _sort != _Sort.custom
+        ? 'Set sorting to Custom Order to drag and drop'
+        : terms.isNotEmpty
+        ? 'Clear the search to drag and drop'
+        : null;
 
     Widget card(TemplateSummary summary, List<TemplateSummary> group) {
       final id = summary.template.id;
@@ -178,7 +182,8 @@ class _TemplatesPageState extends State<TemplatesPage> {
             templates: templates,
             terms: terms,
             dropTarget: over.isNotEmpty,
-            moves: reorderable
+            fixedBecause: fixedBecause,
+            moves: fixedBecause == null
                 ? _TemplateMoves(
                     earlier: at == 0 ? null : () => moveTo(at - 1),
                     later: at == group.length - 1 ? null : () => moveTo(at + 1),
@@ -431,6 +436,7 @@ class _TemplateCard extends StatelessWidget {
     required this.templates,
     required this.terms,
     this.moves,
+    this.fixedBecause,
     this.dropTarget = false,
     this.lifted = false,
   });
@@ -441,6 +447,9 @@ class _TemplateCard extends StatelessWidget {
 
   /// Null where the card can't move, as while the page is searched or sorted.
   final _TemplateMoves? moves;
+
+  /// Why the card can't be moved, shown on a handle that does nothing.
+  final String? fixedBecause;
 
   /// Outlined, as a card dragged over it would be dropped there.
   final bool dropTarget;
@@ -506,7 +515,9 @@ class _TemplateCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (moves != null)
+                    if (fixedBecause case final reason?)
+                      _DragHandle(disabledBecause: reason)
+                    else if (moves != null)
                       _CardHandle(
                         id: template.id,
                         card: context,
@@ -614,19 +625,30 @@ class _TemplateCard extends StatelessWidget {
 }
 
 class _DragHandle extends StatelessWidget {
-  const _DragHandle();
+  const _DragHandle({this.disabledBecause});
+
+  final String? disabledBecause;
 
   @override
-  Widget build(BuildContext context) => const MouseRegion(
-    cursor: SystemMouseCursors.grab,
-    child: Tooltip(
-      message: 'Drag to reorder',
-      child: Padding(
-        padding: EdgeInsets.all(12),
-        child: Icon(Icons.drag_indicator),
+  Widget build(BuildContext context) {
+    final reason = disabledBecause;
+    final disabled = Theme.of(context).colorScheme.onSurface;
+    return MouseRegion(
+      cursor: reason == null ? SystemMouseCursors.grab : MouseCursor.defer,
+      child: Tooltip(
+        message: reason ?? 'Drag to reorder',
+        // A tap, too, since a handle that does nothing invites one.
+        triggerMode: reason == null ? null : TooltipTriggerMode.tap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Icon(
+            Icons.drag_indicator,
+            color: reason == null ? null : disabled.withValues(alpha: 0.38),
+          ),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// Drags a template's whole [card], lifted from under the pointer, and

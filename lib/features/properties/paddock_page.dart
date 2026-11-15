@@ -11,6 +11,7 @@ import '../activity/activity_page.dart';
 import '../tags/add_tags_dialog.dart';
 import '../tags/paths.dart';
 import '../tags/tag_page.dart';
+import '../templates/class_line.dart';
 import '../transfers/movement_dialog.dart';
 
 /// The bottom tier: everything standing in one paddock, and how it got there.
@@ -246,7 +247,7 @@ class _MobTile extends StatelessWidget {
           ),
         ),
       ),
-      title: Text(mob.label),
+      title: ClassLine(stockClass),
       subtitle: tagged > 0 ? Text('$tagged tagged') : null,
       trailing: PopupMenuButton<_MobAction>(
         tooltip: 'Actions for ${mob.label}',
