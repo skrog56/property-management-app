@@ -7,6 +7,134 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-15 — Searching long lists, and every mob shown with its animal
+
+### What prompted it
+
+The user picked up three of the open items: the formatting commit (its own
+entry, below), animal icons on mobs, and what a template's drag handle should
+do while the page is sorted some other way. On seeing icons on paddock cards,
+they asked for them in the movement form's Mob list too. A screenshot of that
+list then raised the real question, how it overflows and when it scrolls, with
+the class list in mind as templates are added.
+
+Flutter's dropdown source gives the rules. Each entry is 48 px. The menu grows
+until it comes within 48 px of the top or bottom of the window, then scrolls.
+It is measured against the whole window, not the dialog, so it spills past a
+dialog's edges. Four templates already list 13 classes, twins included, and
+twenty would list over 60 that differ by a word. The user chose search over
+two dropdowns, template and then class, and then asked for it wherever else
+it made sense.
+
+### Decided
+
+- **A drag handle that can't drag is greyed out, not hidden, and says why.**
+  "Set sorting to Custom Order to drag and drop" shows on hover, long press or
+  tap. While a search is typed it says "Clear the search to drag and drop"
+  instead. This is the user's call over letting a drag switch the sort back.
+  The menu's Move earlier and later stay hidden, since a menu item can't say
+  why it is off.
+- **Sort options are in title case**, at the user's request. Only the sort
+  menu, which they named. Other menus are unchanged.
+- **Every mob and every class in a list is led by its animal**, on paddock
+  cards, mob tiles and in every picker, through one widget, `ClassAnimal`,
+  which names the animal on hover or long press. The icon shows even where a
+  property runs only one animal, so a mob looks the same wherever it appears.
+- **`SearchPicker` is built on Flutter's own `DropdownMenu`**, not on a dialog
+  or bottom sheet of our own. It brings keyboard handling, highlighting and
+  the menu's placement. Ours adds:
+  - matching every typed word, in any order, against the label and an extra
+    `alsoFoundBy` text: a class's animal, a property's PIC;
+  - Enter taking the first match;
+  - a 360 px menu, about seven entries with the eighth cut through, so the
+    list plainly scrolls;
+  - entries keyed by their position, so no value can be confused with the
+    menu's own null for "no choice".
+- **Typing on a phone too.** `DropdownMenu` only lets you choose on phones by
+  default. Search was the point, so tapping a picker there brings up the
+  keyboard. That is a trade-off to watch.
+- **The field never disagrees with the form.** Editing a chosen label unchooses
+  it, and typing another label exactly chooses that one. The field's text is
+  reset only when the form itself changes the value, as Age does when it
+  preselects where a class ages into.
+- **Lists that grow search; short fixed lists don't.** Property, paddocks, mob
+  and class use the picker. Destination, tag reasons and tag scheme stay plain
+  dropdowns. CLAUDE.md now says so, under Forms.
+- **Ages into in the class editor has no "Nothing" entry.** An empty field
+  means nothing, and its hint says so.
+
+### Dead ends and bugs
+
+- The first icon test tapped the dropdown's hint, which is offstage, and then
+  found menu items among the copies a `DropdownButton` keeps offstage for
+  sizing. It passed without opening the menu, so it was rewritten to choose
+  items and check the field.
+- The first picker, for classes only, reset its text whenever its value
+  changed. Typing over a chosen class reported null, and the picker then
+  cleared the field to match, wiping what was typed. Generalising it brought
+  this to light. The test that should have caught it checked the value but
+  not the text, and now checks both.
+- `late T? _reported = widget.value` runs on first read, which was in
+  `didUpdateWidget`, so it read the new value and saw no change. It is set in
+  `initState` now.
+- The movement form ignored a property being unchosen. While the property was
+  a plain dropdown, that could never happen; with typing it can, and the form
+  went on holding the old property and its paddocks.
+
+### Verification
+
+223 tests. Each of these was removed in turn, and a test failed every time:
+- word matching in any order;
+- finding by animal;
+- Enter taking the top match;
+- unchoosing on edit;
+- keeping the typed text;
+- the menu height;
+- the property being cleared;
+- the icon in the Mob and Class fields.
+
+Renders with Roboto in the dark theme showed:
+- the class list open, narrowed to "feed" at 1000 px and to "hei" at 420 px;
+- a filled Move form, its chosen mob led by a sheep;
+- nine paddocks narrowed to the four Flats on a phone;
+- greyed handles under Name (A–Z).
+
+`flutter build web` passed.
+
+### Noticed
+
+- **Another session was working in the same tree.** `test/zz_repro_test.dart`
+  appeared, and probed whether typing still narrows after the menu is closed
+  with its arrow. It imports `ClassPicker`, which this work replaced, so it
+  no longer compiles. The same steps against `SearchPicker` narrow correctly.
+  It is left uncommitted for whoever wrote it.
+- `DropdownMenu` draws its entries in the Material menu style, a little bolder
+  than a `DropdownButton`'s.
+
+### Open
+
+- Try the pickers on a phone: the keyboard on tap, and where the menu goes
+  with the keyboard up.
+- Whether the menu entries should match the plain dropdowns' weight.
+- Delete `test/zz_repro_test.dart`, or point it at `SearchPicker`.
+- Dragging still hasn't been tried in the running app.
+
+## 2026-11-15 — Formatted with the 3.47.9 formatter
+
+### What happened
+
+`ce2feba` reformats the five files the Flutter 3.47.9 formatter lays out
+differently: `livestock_repository.dart`, `repository_scope.dart`,
+`activity_page.dart`, `paddock_page.dart` and `movement_dialog.dart`. Nothing
+else changed, and `dart format --set-exit-if-changed .` now passes on the
+whole repo. Every change since has formatted cleanly, without putting
+untouched lines back by hand.
+
+### Decided
+
+- **A commit of its own**, so it holds only layout and blame can see past it.
+- **No changelog entry.** Nothing observable changes.
+
 ## 2026-11-15 — Templates and classes in an order of their own
 
 ### What prompted it
