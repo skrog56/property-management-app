@@ -141,6 +141,68 @@ void main() {
       );
     });
 
+    test('reorders classes, their twins with them', () async {
+      final steers = await repo.createClass(
+        'beef',
+        kind: 'Steers',
+        readyToSell: true,
+      );
+      final heifers = await repo.createClass(
+        'beef',
+        kind: 'Heifers',
+        readyToSell: true,
+      );
+
+      await repo.reorderClasses('beef', [heifers, 'calves', 'weaners', steers]);
+
+      expect(
+        [for (final c in await repo.allClasses()) c.label],
+        [
+          'Heifers (Beef)',
+          'Calves (Beef) · under 6 months',
+          'Weaners (Beef) · 6-12 months',
+          'Steers (Beef)',
+          'Heifers (Beef) · ready to sell',
+          'Steers (Beef) · ready to sell',
+        ],
+      );
+    });
+
+    test(
+      'refuses an order that leaves out a class, or names another',
+      () async {
+        await expectLater(
+          repo.reorderClasses('beef', ['calves']),
+          throwsArgumentError,
+        );
+        await expectLater(
+          repo.reorderClasses('beef', ['calves', 'weaners', 'heifers']),
+          throwsArgumentError,
+        );
+        await expectLater(
+          repo.reorderClasses('beef', ['calves', 'calves']),
+          throwsArgumentError,
+        );
+      },
+    );
+
+    test('reorders templates, and every class list with them', () async {
+      final sheep = await repo.createTemplate(
+        'Merinos',
+        species: Species.sheep,
+      );
+      await repo.createClass(sheep, kind: 'Ewes');
+
+      await repo.reorderTemplates([sheep, 'beef']);
+
+      expect(
+        [for (final t in await repo.templates()) t.name],
+        ['Merinos', 'Beef'],
+      );
+      expect((await repo.allClasses()).first.label, 'Ewes (Merinos)');
+      await expectLater(repo.reorderTemplates(['beef']), throwsArgumentError);
+    });
+
     test(
       'turning ready to sell off and on again keeps the same twin',
       () async {

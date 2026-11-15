@@ -54,14 +54,22 @@ same commit — a deliberate act, never a side effect of another change.
   band, the class it ages into, and whether it can be marked ready to sell.
   Nothing with head still in it can be removed until they are moved or aged
   out, and each class shows the head standing in it.
+- **Put templates and classes in your own order.** Drag a template's card by
+  its handle into another's place, or a class within its card, or move either
+  a step at a time from its menu. Grouped by animal, a template moves among
+  that animal's. The order sets where mobs sit on a paddock page and where
+  classes appear in the movement form, and a ready-to-sell twin moves with its
+  class.
 - **Each template is for one animal**: cattle, sheep, goats, pigs, horses,
   alpacas, deer, poultry or other. A new template has to be given one, and its
   card shows that animal's icon. The four defaults are cattle.
 - **Search, group and sort templates.** The Templates page finds templates by
   their name or by any of their classes, and picks out the words that matched.
   Its cards are grouped under a heading for each animal, which can be turned
-  off, and sorted with the most head first, or by fewest head, by name either
-  way, or newest or oldest first. They sit in a grid, from one column on a
+  off, and shown in their own order, or sorted by most or fewest head, by name
+  either way, or newest or oldest first. Templates can be moved only in their
+  own order and while nothing is searched for, as only then is it clear where
+  one will land. They sit in a grid, from one column on a
   phone to four on a wide screen, and the cards in a row share one height, so
   their Add class buttons line up.
 - **Wrong values are outlined in red.** In Record movement and Add tags, the

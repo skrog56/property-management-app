@@ -1450,6 +1450,54 @@ class LivestockRepository {
     await _retireClasses(ids, DateTime.now().toUtc());
   });
 
+  /// Puts the live templates in the order of [ids], which names each once.
+  Future<void> reorderTemplates(List<String> ids) => db.transaction(() async {
+    final order = {for (final t in await templates()) t.id: t.sortOrder};
+    _checkNamesEach(ids, order.keys);
+    final now = DateTime.now().toUtc();
+    for (final (i, id) in ids.indexed) {
+      if (order[id] == i) continue;
+      await (db.update(db.templates)..where((t) => t.id.equals(id))).write(
+        TemplatesCompanion(sortOrder: Value(i), updatedAt: Value(now)),
+      );
+    }
+  });
+
+  /// Puts a template's live classes in the order of [ids], which names each
+  /// once, and their ready-to-sell twins in the same order after them.
+  Future<void> reorderClasses(String templateId, List<String> ids) =>
+      db.transaction(() async {
+        final classes =
+            await (db.select(db.livestockClasses)
+                  ..where((c) => c.templateId.equals(templateId))
+                  ..where((c) => c.readyToSellOfClassId.isNull())
+                  ..where((c) => c.deletedAt.isNull()))
+                .get();
+        final order = {for (final c in classes) c.id: c.sortOrder};
+        _checkNamesEach(ids, order.keys);
+        final now = DateTime.now().toUtc();
+        for (final (i, id) in ids.indexed) {
+          if (order[id] == i) continue;
+          // Retired twins too, so one restored comes back in its place.
+          await (db.update(db.livestockClasses)..where(
+                (c) => c.id.equals(id) | c.readyToSellOfClassId.equals(id),
+              ))
+              .write(
+                LivestockClassesCompanion(
+                  sortOrder: Value(i),
+                  updatedAt: Value(now),
+                ),
+              );
+        }
+      });
+
+  /// A list reordered from a stale view would leave something out.
+  static void _checkNamesEach(List<String> ids, Iterable<String> live) {
+    if (ids.length != live.length || !ids.toSet().containsAll(live)) {
+      throw ArgumentError.value(ids, 'ids', 'Must name each of $live once');
+    }
+  }
+
   /// [base] under a new id, holding its head that are ready to sell.
   Future<void> _insertTwin(LivestockClassesCompanion base) => db
       .into(db.livestockClasses)

@@ -82,7 +82,8 @@ lib/
     activity/         The ledger, rendered
     templates/        The template editor: templates and the animal each
                       counts, their classes, and each class's ready-to-sell
-                      twin, searched, grouped and sorted on one page;
+                      twin, searched, grouped, sorted and dragged into
+                      order on one page;
                       SpeciesIcon, each animal's icon
     developer/        Debug-only tools; hosts platform_proof as a tab
     platform_proof/   The evidence screen and fact gathering

@@ -239,7 +239,7 @@ void main() {
       expect(find.text('Merinos'), findsOneWidget);
     });
 
-    testPage('sorts by most head first, then as chosen', (tester) async {
+    testPage('sorts in their own order first, then as chosen', (tester) async {
       final property = await repo.createProperty('Riverbend Downs');
       final north = await repo.createPaddock(property, 'North Flat');
       final classes = await repo.allClasses();
@@ -267,11 +267,9 @@ void main() {
         return names..sort((a, b) => top(tester, a).compareTo(top(tester, b)));
       }
 
-      // Ties keep the order the templates were added in.
-      expect(order(), ['Fats', 'Feeders', 'Breeder', 'Backgrounders', 'Angus']);
-      expect(find.text('Cattle · 10 head'), findsOneWidget);
+      expect(order(), ['Breeder', 'Backgrounders', 'Feeders', 'Fats', 'Angus']);
 
-      await tester.tap(find.text('Most head'));
+      await tester.tap(find.text('Custom order'));
       await drain(tester);
       expect(
         [
@@ -281,6 +279,7 @@ void main() {
             (item.child! as Text).data,
         ],
         [
+          'Custom order',
           'Most head',
           'Fewest head',
           'Name (A–Z)',
@@ -289,8 +288,13 @@ void main() {
           'Oldest first',
         ],
       );
-      await tester.tap(find.text('Fewest head').last);
+      await tester.tap(find.text('Most head').last);
       await drain(tester);
+      // Ties keep their own order.
+      expect(order(), ['Fats', 'Feeders', 'Breeder', 'Backgrounders', 'Angus']);
+      expect(find.text('Cattle · 10 head'), findsOneWidget);
+
+      await sortBy(tester, 'Most head', 'Fewest head');
       expect(order(), ['Breeder', 'Backgrounders', 'Angus', 'Feeders', 'Fats']);
 
       await sortBy(tester, 'Fewest head', 'Name (A–Z)');
@@ -357,8 +361,9 @@ void main() {
           await drain(tester);
           expect(controls(), before);
 
-          var current = 'Most head';
+          var current = 'Custom order';
           for (final by in [
+            'Most head',
             'Fewest head',
             'Name (A–Z)',
             'Name (Z–A)',
@@ -446,6 +451,160 @@ void main() {
         await drain(tester);
       }
     });
+
+    group('in their own order', () {
+      const cattle = ['Breeder', 'Backgrounders', 'Feeders', 'Fats'];
+
+      Finder card(String name) =>
+          find.ancestor(of: find.text(name), matching: find.byType(Card));
+      Finder handles() => find.byWidgetPredicate((w) => w is Draggable);
+
+      /// In reading order, along each row of cards and then down.
+      List<String> order(WidgetTester tester, List<String> names) {
+        Offset at(String name) => tester.getTopLeft(find.text(name));
+        return [...names]..sort((a, b) {
+          final byRow = at(a).dy.compareTo(at(b).dy);
+          return byRow != 0 ? byRow : at(a).dx.compareTo(at(b).dx);
+        });
+      }
+
+      Future<void> dragOnto(
+        WidgetTester tester,
+        String moved,
+        String target,
+      ) async {
+        final gesture = await tester.startGesture(
+          tester.getCenter(
+            find.descendant(of: card(moved), matching: handles()),
+          ),
+        );
+        await gesture.moveBy(const Offset(0, 20));
+        await tester.pump();
+        await gesture.moveTo(tester.getCenter(card(target)));
+        await tester.pump();
+        await gesture.up();
+        await drain(tester);
+      }
+
+      Future<void> openPage(WidgetTester tester) => pumpPage(
+        tester,
+        const TemplatesPage(),
+        width: 900,
+        height: 2400,
+        repository: repo,
+      );
+
+      testPage('drags a template into another\'s place, within its animal', (
+        tester,
+      ) async {
+        await repo.createTemplate('Merinos', species: Species.sheep);
+        await openPage(tester);
+
+        await dragOnto(tester, 'Fats', 'Breeder');
+        expect(order(tester, cattle), [
+          'Fats',
+          'Breeder',
+          'Backgrounders',
+          'Feeders',
+        ]);
+        await dragOnto(tester, 'Fats', 'Feeders');
+        expect(order(tester, cattle), [
+          'Breeder',
+          'Backgrounders',
+          'Feeders',
+          'Fats',
+        ]);
+
+        // Grouped, a sheep template has no place among the cattle.
+        await dragOnto(tester, 'Merinos', 'Breeder');
+        expect(order(tester, [...cattle, 'Merinos']).last, 'Merinos');
+
+        await tester.tap(find.text('Group by animal'));
+        await drain(tester);
+        await dragOnto(tester, 'Merinos', 'Breeder');
+        expect(order(tester, [...cattle, 'Merinos']).first, 'Merinos');
+        expect(
+          [for (final t in await repo.templates()) t.name],
+          ['Merinos', ...cattle],
+        );
+      });
+
+      testPage('moves a template a step at a time from its menu', (
+        tester,
+      ) async {
+        await openPage(tester);
+        await tester.tap(find.byTooltip('Actions for Breeder'));
+        await drain(tester);
+
+        bool offered(String action) => tester
+            .widget<PopupMenuItem<Object?>>(
+              find.ancestor(
+                of: find.text(action),
+                matching: find.byWidgetPredicate((w) => w is PopupMenuItem),
+              ),
+            )
+            .enabled;
+        expect(offered('Move earlier'), isFalse);
+        expect(offered('Move later'), isTrue);
+        await tester.tap(find.text('Move later'));
+        await drain(tester);
+
+        expect(order(tester, cattle), [
+          'Backgrounders',
+          'Breeder',
+          'Feeders',
+          'Fats',
+        ]);
+      });
+
+      testPage('scrolls the page while a card is held near its foot', (
+        tester,
+      ) async {
+        await pumpPage(tester, const TemplatesPage(), repository: repo);
+        final gesture = await tester.startGesture(
+          tester.getCenter(
+            find.descendant(of: card('Breeder'), matching: handles()),
+          ),
+        );
+        await gesture.moveBy(const Offset(0, 20));
+        await tester.pump();
+        await gesture.moveTo(const Offset(200, 890));
+        await drain(tester);
+
+        final list = tester.state<ScrollableState>(
+          find
+              .ancestor(
+                of: find.text('Breeder'),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        );
+        expect(list.position.pixels, greaterThan(0));
+        await gesture.up();
+        await drain(tester);
+      });
+
+      testPage('moves templates only while showing all, in that order', (
+        tester,
+      ) async {
+        await openPage(tester);
+        expect(handles(), findsNWidgets(4));
+
+        await sortBy(tester, 'Custom order', 'Most head');
+        expect(handles(), findsNothing);
+        await tester.tap(find.byTooltip('Actions for Breeder'));
+        await drain(tester);
+        expect(find.text('Move later'), findsNothing);
+        await tester.tapAt(Offset.zero);
+        await drain(tester);
+
+        await sortBy(tester, 'Most head', 'Custom order');
+        await search(tester, 'steers');
+        expect(handles(), findsNothing);
+        // A class keeps its handle: the classes are all there regardless.
+        expect(find.byType(ReorderableDragStartListener), findsWidgets);
+      });
+    });
   });
 
   group('editing a class', () {
@@ -506,6 +665,71 @@ void main() {
 
       await fill(tester, 'Age band (optional)', '6-12 months');
       expect(enabled(tester, 'Create'), isTrue);
+    });
+
+    testPage('moves a class up and down, but not past either end', (
+      tester,
+    ) async {
+      await openPage(tester);
+      bool offered(String action) => tester
+          .widget<PopupMenuItem<Object?>>(
+            find.ancestor(
+              of: find.text(action),
+              matching: find.byWidgetPredicate((w) => w is PopupMenuItem),
+            ),
+          )
+          .enabled;
+      Future<void> menu(String label) async {
+        await tester.tap(find.byTooltip('Actions for $label'));
+        await drain(tester);
+      }
+
+      await menu('Calves (Beef) · under 6 months');
+      expect(offered('Move up'), isFalse);
+      expect(offered('Move down'), isTrue);
+      await tester.tap(find.text('Move down'));
+      await drain(tester);
+      expect(top(tester, 'Weaners'), lessThan(top(tester, 'Calves')));
+
+      await menu('Calves (Beef) · under 6 months');
+      expect(offered('Move up'), isTrue);
+      expect(offered('Move down'), isFalse);
+      await tester.tap(find.text('Move up'));
+      await drain(tester);
+      expect(top(tester, 'Calves'), lessThan(top(tester, 'Weaners')));
+    });
+
+    testPage('drags a class into place, its twin following', (tester) async {
+      await repo.createClass('beef', kind: 'Steers', readyToSell: true);
+      await repo.createClass('beef', kind: 'Heifers', readyToSell: true);
+      await openPage(tester);
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(
+          find.descendant(
+            of: find.widgetWithText(ListTile, 'Heifers'),
+            matching: find.byType(ReorderableDragStartListener),
+          ),
+        ),
+      );
+      await gesture.moveBy(const Offset(0, -20));
+      await tester.pump();
+      await gesture.moveBy(
+        Offset(0, top(tester, 'Steers') - top(tester, 'Heifers')),
+      );
+      await drain(tester);
+      await gesture.up();
+      await drain(tester);
+
+      expect(top(tester, 'Heifers'), lessThan(top(tester, 'Steers')));
+      expect(
+        top(tester, 'Heifers · ready to sell'),
+        lessThan(top(tester, 'Steers · ready to sell')),
+      );
+      expect(
+        [for (final c in await repo.allClasses()) c.row.kind],
+        ['Calves', 'Weaners', 'Heifers', 'Steers', 'Heifers', 'Steers'],
+      );
     });
 
     testPage('waits for a class to empty before removing it', (tester) async {

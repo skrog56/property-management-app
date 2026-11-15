@@ -40,7 +40,8 @@ rather than an oversight; see [`JOURNAL.md`](JOURNAL.md).
   *Steers (Feeders)*. Each template is for one animal, cattle, sheep, goats or
   another, shown by its icon. Templates and classes can be added, edited and
   removed, with optional breeds and age bands, ageing chains, and ready-to-sell
-  twins, and the page searches them, groups them by animal and sorts them.
+  twins, and both put in an order of their own by dragging. The page searches
+  templates, groups them by animal and sorts them.
 
 ## What it demonstrates
 

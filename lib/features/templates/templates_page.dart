@@ -14,7 +14,9 @@ import 'template_dialog.dart';
 
 /// The classes livestock is counted in, grouped by template, all of them
 /// editable. Searchable by template and class, and sortable, with the cards
-/// grouped by animal or not.
+/// grouped by animal or not. Templates and their classes are dragged, or moved
+/// from their menus, into an order of their own, which the page keeps unless
+/// sorted otherwise.
 class TemplatesPage extends StatefulWidget {
   const TemplatesPage({super.key});
 
@@ -23,6 +25,7 @@ class TemplatesPage extends StatefulWidget {
 }
 
 enum _Sort {
+  custom('Custom order'),
   mostHead('Most head'),
   fewestHead('Fewest head'),
   nameAscending('Name (A–Z)'),
@@ -38,6 +41,7 @@ enum _Sort {
     int alphabetical() =>
         a.template.name.toLowerCase().compareTo(b.template.name.toLowerCase());
     final order = switch (this) {
+      custom => 0,
       mostHead => b.totalHead.compareTo(a.totalHead),
       fewestHead => a.totalHead.compareTo(b.totalHead),
       nameAscending => alphabetical(),
@@ -46,8 +50,7 @@ enum _Sort {
       oldest => a.template.createdAt.compareTo(b.template.createdAt),
     };
     if (order != 0) return order;
-    // Ties keep the list's own order, as List.sort is not stable: the order
-    // the defaults were seeded in, then templates as they were added.
+    // The custom order, and ties in the others, as List.sort is not stable.
     final listed = a.template.sortOrder.compareTo(b.template.sortOrder);
     return listed != 0 ? listed : alphabetical();
   }
@@ -56,7 +59,14 @@ enum _Sort {
 class _TemplatesPageState extends State<TemplatesPage> {
   final _search = TextEditingController();
   var _grouped = true;
-  var _sort = _Sort.mostHead;
+  var _sort = _Sort.custom;
+
+  /// The template being dragged, dimmed where it was.
+  String? _dragging;
+
+  /// An order just dropped, and the templates it was dropped on, shown until
+  /// the database reports it.
+  (List<TemplateSummary>, List<String>)? _dropped;
 
   // Watched once rather than per build, which typing triggers on every key.
   LivestockRepository? _repository;
@@ -126,20 +136,64 @@ class _TemplatesPageState extends State<TemplatesPage> {
     );
   }
 
-  Widget _body(List<TemplateSummary> templates, WindowSizeClass sizeClass) {
+  Widget _body(List<TemplateSummary> reported, WindowSizeClass sizeClass) {
+    var templates = reported;
+    if (_dropped case (final on, final order)) {
+      if (identical(on, reported)) {
+        templates = [
+          for (final id in order)
+            reported.firstWhere((t) => t.template.id == id),
+        ];
+      } else {
+        _dropped = null;
+      }
+    }
+
     final query = _search.text.trim();
     final terms = _searchTerms(query);
     final shown = [
       for (final t in templates)
         if (_matches(t, terms)) t,
     ]..sort(_sort.compare);
+    // Only the whole list, in its own order, shows where a template will go.
+    final reorderable = _sort == _Sort.custom && terms.isEmpty;
+
+    Widget card(TemplateSummary summary, List<TemplateSummary> group) {
+      final id = summary.template.id;
+      final at = group.indexOf(summary);
+      void moveTo(int to) =>
+          _moveTemplate(reported, templates, id, group[to].template.id);
+
+      return DragTarget<String>(
+        key: ValueKey(id),
+        // Within its group, the only templates beside it.
+        onWillAcceptWithDetails: (drag) =>
+            drag.data != id && group.any((t) => t.template.id == drag.data),
+        onAcceptWithDetails: (drag) =>
+            _moveTemplate(reported, templates, drag.data, id),
+        builder: (context, over, _) => Opacity(
+          opacity: _dragging == id ? 0.4 : 1,
+          child: _TemplateCard(
+            summary: summary,
+            templates: templates,
+            terms: terms,
+            dropTarget: over.isNotEmpty,
+            moves: reorderable
+                ? _TemplateMoves(
+                    earlier: at == 0 ? null : () => moveTo(at - 1),
+                    later: at == group.length - 1 ? null : () => moveTo(at + 1),
+                    onDragStarted: () => setState(() => _dragging = id),
+                    onDragEnded: () => setState(() => _dragging = null),
+                  )
+                : null,
+          ),
+        ),
+      );
+    }
 
     Widget grid(List<TemplateSummary> summaries) => CardGrid(
       columns: sizeClass.cardColumns,
-      children: [
-        for (final summary in summaries)
-          _TemplateCard(summary: summary, templates: templates, terms: terms),
-      ],
+      children: [for (final summary in summaries) card(summary, summaries)],
     );
 
     return Column(
@@ -170,6 +224,27 @@ class _TemplatesPageState extends State<TemplatesPage> {
         ),
       ],
     );
+  }
+
+  /// Puts [moved] where [target] is, the templates between them making room.
+  Future<void> _moveTemplate(
+    List<TemplateSummary> reported,
+    List<TemplateSummary> templates,
+    String moved,
+    String target,
+  ) async {
+    final order = [for (final t in templates) t.template.id];
+    final to = order.indexOf(target);
+    order
+      ..remove(moved)
+      ..insert(to, moved);
+    setState(() => _dropped = (reported, order));
+    try {
+      await RepositoryScope.of(context).reorderTemplates(order);
+    } catch (_) {
+      if (mounted) setState(() => _dropped = null);
+      rethrow;
+    }
   }
 
   static List<TemplateSummary> _ofSpecies(
@@ -327,23 +402,51 @@ class _GroupHeading extends StatelessWidget {
   }
 }
 
-enum _Action { edit, remove }
+enum _Action { edit, moveUp, moveDown, remove }
 
 /// How far a card's classes sit inside its header, at both ends. At the start
 /// that lines them up with the icon of Add class, which then reads as the last
 /// line of the list.
 const _classInset = 16.0;
 
+/// How a card moves among the others: dragged by its handle, or a step at a
+/// time from its menu, where a step that isn't there is null.
+class _TemplateMoves {
+  const _TemplateMoves({
+    required this.earlier,
+    required this.later,
+    required this.onDragStarted,
+    required this.onDragEnded,
+  });
+
+  final VoidCallback? earlier;
+  final VoidCallback? later;
+  final VoidCallback onDragStarted;
+  final VoidCallback onDragEnded;
+}
+
 class _TemplateCard extends StatelessWidget {
   const _TemplateCard({
     required this.summary,
     required this.templates,
     required this.terms,
+    this.moves,
+    this.dropTarget = false,
+    this.lifted = false,
   });
 
   final TemplateSummary summary;
   final List<TemplateSummary> templates;
   final List<String> terms;
+
+  /// Null where the card can't move, as while the page is searched or sorted.
+  final _TemplateMoves? moves;
+
+  /// Outlined, as a card dragged over it would be dropped there.
+  final bool dropTarget;
+
+  /// The card as it is dragged.
+  final bool lifted;
 
   List<StockClass> get _allClasses => [for (final t in templates) ...t.classes];
 
@@ -353,8 +456,16 @@ class _TemplateCard extends StatelessWidget {
     final repository = RepositoryScope.of(context);
     final template = summary.template;
     final muted = theme.colorScheme.onSurfaceVariant;
+    final moves = this.moves;
 
     return Card(
+      elevation: lifted ? 6 : null,
+      shape: dropTarget
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.primary, width: 2),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 4, 8),
         // Spread, so in a row of cards their Add class buttons line up.
@@ -395,21 +506,52 @@ class _TemplateCard extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (moves != null)
+                      _CardHandle(
+                        id: template.id,
+                        card: context,
+                        moves: moves,
+                        lifted: (size) => SizedBox.fromSize(
+                          size: size,
+                          child: _TemplateCard(
+                            summary: summary,
+                            templates: templates,
+                            terms: terms,
+                            lifted: true,
+                          ),
+                        ),
+                      ),
                     PopupMenuButton<_Action>(
                       tooltip: 'Actions for ${template.name}',
-                      onSelected: (action) => action == _Action.remove
-                          ? _remove(context)
-                          : showTemplateDialog(
-                              context,
-                              repository: repository,
-                              templates: [
-                                for (final t in templates) t.template,
-                              ],
-                              editing: template,
-                            ),
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: _Action.edit, child: Text('Edit')),
-                        PopupMenuItem(
+                      onSelected: (action) => switch (action) {
+                        _Action.edit => showTemplateDialog(
+                          context,
+                          repository: repository,
+                          templates: [for (final t in templates) t.template],
+                          editing: template,
+                        ),
+                        _Action.moveUp => moves?.earlier?.call(),
+                        _Action.moveDown => moves?.later?.call(),
+                        _Action.remove => _remove(context),
+                      },
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: _Action.edit,
+                          child: Text('Edit'),
+                        ),
+                        if (moves != null) ...[
+                          PopupMenuItem(
+                            value: _Action.moveUp,
+                            enabled: moves.earlier != null,
+                            child: const Text('Move earlier'),
+                          ),
+                          PopupMenuItem(
+                            value: _Action.moveDown,
+                            enabled: moves.later != null,
+                            child: const Text('Move later'),
+                          ),
+                        ],
+                        const PopupMenuItem(
                           value: _Action.remove,
                           child: Text('Remove'),
                         ),
@@ -428,10 +570,9 @@ class _TemplateCard extends StatelessWidget {
                       'No classes yet.',
                       style: theme.textTheme.bodyMedium?.copyWith(color: muted),
                     ),
-                  ),
-                for (final c in summary.classes)
-                  _ClassRow(
-                    stockClass: c,
+                  )
+                else
+                  _ClassList(
                     summary: summary,
                     allClasses: _allClasses,
                     terms: terms,
@@ -472,18 +613,194 @@ class _TemplateCard extends StatelessWidget {
   }
 }
 
+class _DragHandle extends StatelessWidget {
+  const _DragHandle();
+
+  @override
+  Widget build(BuildContext context) => const MouseRegion(
+    cursor: SystemMouseCursors.grab,
+    child: Tooltip(
+      message: 'Drag to reorder',
+      child: Padding(
+        padding: EdgeInsets.all(12),
+        child: Icon(Icons.drag_indicator),
+      ),
+    ),
+  );
+}
+
+/// Drags a template's whole [card], lifted from under the pointer, and
+/// scrolls the page while it is held near either end.
+class _CardHandle extends StatefulWidget {
+  const _CardHandle({
+    required this.id,
+    required this.card,
+    required this.moves,
+    required this.lifted,
+  });
+
+  final String id;
+  final BuildContext card;
+  final _TemplateMoves moves;
+  final Widget Function(Size size) lifted;
+
+  @override
+  State<_CardHandle> createState() => _CardHandleState();
+}
+
+class _CardHandleState extends State<_CardHandle> {
+  EdgeDraggingAutoScroller? _scroller;
+  var _size = Size.zero;
+
+  @override
+  void dispose() {
+    _scroller?.stopAutoScroll();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Draggable<String>(
+    data: widget.id,
+    // Held where it was picked up, so the card lifts in place.
+    dragAnchorStrategy: (_, _, position) {
+      final card = widget.card.findRenderObject()! as RenderBox;
+      _size = card.size;
+      return card.globalToLocal(position);
+    },
+    feedback: Builder(builder: (_) => widget.lifted(_size)),
+    onDragStarted: () {
+      _scroller = EdgeDraggingAutoScroller(
+        Scrollable.of(context),
+        velocityScalar: 50,
+      );
+      widget.moves.onDragStarted();
+    },
+    // The pointer, not the card, which may be taller than the page.
+    onDragUpdate: (drag) => _scroller?.startAutoScrollIfNecessary(
+      Rect.fromCenter(center: drag.globalPosition, width: 1, height: 96),
+    ),
+    onDragEnd: (_) {
+      _scroller?.stopAutoScroll();
+      _scroller = null;
+      widget.moves.onDragEnded();
+    },
+    child: const _DragHandle(),
+  );
+}
+
+/// A card's classes, dragged by their handles into the order they are listed
+/// in everywhere. Twins follow their classes, so only the classes move.
+class _ClassList extends StatefulWidget {
+  const _ClassList({
+    required this.summary,
+    required this.allClasses,
+    required this.terms,
+  });
+
+  final TemplateSummary summary;
+  final List<StockClass> allClasses;
+  final List<String> terms;
+
+  @override
+  State<_ClassList> createState() => _ClassListState();
+}
+
+class _ClassListState extends State<_ClassList> {
+  /// An order just dropped, shown until the database reports it.
+  List<StockClass>? _dropped;
+
+  @override
+  void didUpdateWidget(_ClassList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(widget.summary, oldWidget.summary)) _dropped = null;
+  }
+
+  Future<void> _reorder(List<StockClass> order) async {
+    setState(() => _dropped = order);
+    try {
+      await RepositoryScope.of(context).reorderClasses(
+        widget.summary.template.id,
+        [for (final c in order) c.id],
+      );
+    } catch (_) {
+      if (mounted) setState(() => _dropped = null);
+      rethrow;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = widget.summary;
+    final classes =
+        _dropped ??
+        [
+          for (final c in summary.classes)
+            if (!c.isReadyToSell) c,
+        ];
+    int place(StockClass twin) =>
+        classes.indexWhere((c) => c.id == twin.row.readyToSellOfClassId);
+    final twins = [
+      for (final c in summary.classes)
+        if (c.isReadyToSell) c,
+    ]..sort((a, b) => place(a).compareTo(place(b)));
+
+    void move(int from, int to) {
+      final order = [...classes];
+      order.insert(to, order.removeAt(from));
+      _reorder(order);
+    }
+
+    _ClassRow row(StockClass c, {int? index}) => _ClassRow(
+      key: ValueKey(c.id),
+      stockClass: c,
+      summary: summary,
+      allClasses: widget.allClasses,
+      terms: widget.terms,
+      index: index,
+      moveUp: index == null || index == 0 ? null : () => move(index, index - 1),
+      moveDown: index == null || index == classes.length - 1
+          ? null
+          : () => move(index, index + 1),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ReorderableListView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          buildDefaultDragHandles: false,
+          onReorderItem: move,
+          children: [for (final (i, c) in classes.indexed) row(c, index: i)],
+        ),
+        for (final c in twins) row(c),
+      ],
+    );
+  }
+}
+
 class _ClassRow extends StatelessWidget {
   const _ClassRow({
+    super.key,
     required this.stockClass,
     required this.summary,
     required this.allClasses,
     required this.terms,
+    this.index,
+    this.moveUp,
+    this.moveDown,
   });
 
   final StockClass stockClass;
   final TemplateSummary summary;
   final List<StockClass> allClasses;
   final List<String> terms;
+
+  /// Where a class sits in its list, for its handle. Null for a twin.
+  final int? index;
+  final VoidCallback? moveUp;
+  final VoidCallback? moveDown;
 
   @override
   Widget build(BuildContext context) {
@@ -495,7 +812,8 @@ class _ClassRow extends StatelessWidget {
     final head = summary.headIn(stockClass.id);
 
     // Shown, but set from the class it belongs to.
-    if (stockClass.isReadyToSell) {
+    final index = this.index;
+    if (index == null) {
       final muted = theme.colorScheme.onSurfaceVariant;
       return ListTile(
         dense: true,
@@ -547,13 +865,36 @@ class _ClassRow extends StatelessWidget {
               ),
             ),
       onTap: edit,
-      trailing: PopupMenuButton<_Action>(
-        tooltip: 'Actions for ${stockClass.label}',
-        onSelected: (action) =>
-            action == _Action.remove ? _remove(context) : edit(),
-        itemBuilder: (_) => const [
-          PopupMenuItem(value: _Action.edit, child: Text('Edit')),
-          PopupMenuItem(value: _Action.remove, child: Text('Remove')),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ReorderableDragStartListener(
+            index: index,
+            child: const _DragHandle(),
+          ),
+          PopupMenuButton<_Action>(
+            tooltip: 'Actions for ${stockClass.label}',
+            onSelected: (action) => switch (action) {
+              _Action.edit => edit(),
+              _Action.moveUp => moveUp?.call(),
+              _Action.moveDown => moveDown?.call(),
+              _Action.remove => _remove(context),
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: _Action.edit, child: Text('Edit')),
+              PopupMenuItem(
+                value: _Action.moveUp,
+                enabled: moveUp != null,
+                child: const Text('Move up'),
+              ),
+              PopupMenuItem(
+                value: _Action.moveDown,
+                enabled: moveDown != null,
+                child: const Text('Move down'),
+              ),
+              const PopupMenuItem(value: _Action.remove, child: Text('Remove')),
+            ],
+          ),
         ],
       ),
     );
