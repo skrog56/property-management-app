@@ -7,12 +7,14 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
-## 2026-11-15 — Three fixes from the settings sweep
+## 2026-11-15 — Three fixes from the settings sweep, and a paddock's history
 
 ### What prompted it
 
 The settings sweep, earlier the same day, turned up three things that were
-not settings. The user asked to clear all three.
+not settings. The user asked to clear all three. Fixing them left a fourth: a
+paddock's Recent activity stopped at 25 with nowhere to see the rest, and the
+user chose that next.
 
 ### Decided
 
@@ -32,11 +34,24 @@ not settings. The user asked to clear all three.
   dates are written dd/mm/yyyy by hand. Following the device would mean
   formatting those through the locale too, and nobody outside Australia uses
   the app yet.
+- **A paddock's whole history is Activity, narrowed.** *View all* beside a
+  paddock's Recent activity goes to `/activity?paddock=<id>`, so the filter
+  is in the URL like the Tags search, and the browser's back works. A chip
+  names the paddock and its property, since two properties can each have a
+  North Paddock, and removing it shows everything. Activity, not a page of
+  the paddock's own, keeps one ledger view with its paging. The paddock's
+  own movement names it without a link, as on the paddock page.
+- **Going there switches to the Activity tab**, as Home's links switch tabs.
+  The Properties tab keeps its place, so the bar's Properties returns to the
+  paddock.
 
 ### Verification
 
-323 tests, up from 319. New ones page Activity past 200 and show no button
-when one page holds everything, page a paddock's Deaths from ten to thirty
+327 tests, up from 319. New ones page Activity past 200 and show no button
+when one page holds everything, open a paddock's *View all* into Activity
+narrowed to it and come back to the paddock from the bar, widen it again
+from the chip, fit the chip's long names on a
+320 dp phone, offer no *View all* for an empty paddock, page a paddock's Deaths from ten to thirty
 with the oldest appearing only at the last, check that the real app's
 `MaterialApp` uses the locale and formats a date day first, and check that
 the death form's calendar asks for dd/mm/yyyy. The two death-date tests now
@@ -48,8 +63,8 @@ type `15/01/2001`, which the US order would refuse. `pumpPage` and
 
 - Not tried in a running build. The calendar's look in Australian English,
   such as which day starts the week, has only been seen in tests.
-- A paddock's *Recent activity* still stops at 25, with no link to the
-  rest. Activity has no filter by paddock to send it to.
+- Activity can be narrowed to a paddock only by following a link. There is
+  no control on Activity itself to choose one, or a property, or a tag.
 
 ## 2026-11-15 — Six more settings: tags, movement defaults, area unit
 
