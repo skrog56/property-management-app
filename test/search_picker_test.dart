@@ -40,6 +40,7 @@ void main() {
     WidgetTester tester, {
     List<StockClass>? among,
     String? initial,
+    bool optional = false,
   }) async {
     final reported = <String?>[];
     var value = initial;
@@ -53,6 +54,9 @@ void main() {
                 label: 'Class',
                 entries: [for (final c in among ?? classes) classEntry(c)],
                 emptyHint: 'No classes yet: add one in Templates',
+                hint: optional ? 'None' : 'Choose or search…',
+                optional: optional,
+                searchIcon: optional,
                 value: value,
                 onChanged: (id) => setState(() {
                   value = id;
@@ -257,5 +261,80 @@ void main() {
     await pumpPicker(tester, among: const []);
     expect(find.text('No classes yet: add one in Templates'), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
+  });
+
+  group('optional', () {
+    testWidgets('shows what nothing chosen means, and offers no clear', (
+      tester,
+    ) async {
+      await pumpPicker(tester, optional: true);
+
+      expect(find.text('None'), findsOneWidget);
+      expect(find.byIcon(Icons.search), findsOneWidget);
+      expect(find.byTooltip('Clear'), findsNothing);
+    });
+
+    testWidgets('clears back to nothing in one tap', (tester) async {
+      final reported = await pumpPicker(
+        tester,
+        optional: true,
+        initial: idOf('Ewes (Flock)'),
+      );
+      expect(find.byTooltip('Clear'), findsOneWidget);
+      // Its arrow still opens the list beside the clear button.
+      expect(find.byIcon(Icons.arrow_drop_down), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Clear'));
+      await tester.pumpAndSettle();
+
+      expect(reported, [null]);
+      expect(find.text('None'), findsOneWidget);
+      expect(find.byTooltip('Clear'), findsNothing);
+    });
+
+    testWidgets('its arrow opens the list while something is chosen', (
+      tester,
+    ) async {
+      await pumpPicker(tester, optional: true, initial: idOf('Ewes (Flock)'));
+
+      await tester.tap(find.byIcon(Icons.arrow_drop_down));
+      await tester.pumpAndSettle();
+
+      expect(offered(tester), hasLength(classes.length));
+    });
+  });
+
+  testWidgets('shows a value given before its entry has loaded', (
+    tester,
+  ) async {
+    final loaded = ValueNotifier(false);
+    addTearDown(loaded.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ValueListenableBuilder(
+            valueListenable: loaded,
+            builder: (context, loaded, _) => SearchPicker<String>(
+              label: 'Class',
+              entries: [
+                if (loaded)
+                  for (final c in classes) classEntry(c),
+              ],
+              emptyHint: 'Loading',
+              value: idOf('Ewes (Flock)'),
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    loaded.value = true;
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'Ewes (Flock)',
+    );
   });
 }

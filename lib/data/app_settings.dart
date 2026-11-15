@@ -3,6 +3,27 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show ThemeMode;
 
 import 'app_database.dart';
+import 'tables.dart';
+
+/// How an area is shown and entered. It is always stored in hectares.
+enum AreaUnit {
+  hectares('Hectares', 'ha', 1),
+  acres('Acres', 'ac', 0.40468564224);
+
+  const AreaUnit(this.label, this.symbol, this.hectaresEach);
+
+  final String label;
+  final String symbol;
+  final double hectaresEach;
+
+  double fromHectares(double hectares) => hectares / hectaresEach;
+
+  double toHectares(double value) => value * hectaresEach;
+
+  /// [hectares] in this unit, to one decimal place, as `296.5 ac`.
+  String format(double hectares) =>
+      '${fromHectares(hectares).toStringAsFixed(1)} $symbol';
+}
 
 enum RetentionUnit {
   days('day', 'D'),
@@ -124,6 +145,12 @@ class AppSettings extends ChangeNotifier {
 
   static const _retention = 'retention';
   static const _theme = 'theme';
+  static const _usesTags = 'tags.enabled';
+  static const _tagScheme = 'tags.scheme';
+  static const _endState = 'endState';
+  static const _movementKind = 'movements.kind';
+  static const _movementProperty = 'movements.property';
+  static const _areaUnit = 'areaUnit';
   static const _rememberTemplatesView = 'templates.remember';
 
   /// The Templates page's grouping and sort, kept only while
@@ -190,6 +217,43 @@ class AppSettings extends ChangeNotifier {
       ThemeMode.values.asNameMap()[this[_theme]] ?? ThemeMode.system;
 
   Future<void> setThemeMode(ThemeMode mode) => put(_theme, mode.name);
+
+  /// Off, the ways to add tags are hidden. Tags already recorded stay, and
+  /// still move with their mobs.
+  bool get usesTags => this[_usesTags] != 'false';
+
+  Future<void> setUsesTags(bool use) => put(_usesTags, '$use');
+
+  /// The scheme a new tag number is typed under.
+  TagScheme get tagScheme =>
+      TagScheme.values.asNameMap()[this[_tagScheme]] ?? TagScheme.nlis;
+
+  Future<void> setTagScheme(TagScheme scheme) => put(_tagScheme, scheme.name);
+
+  /// The kind the movement form opens on.
+  MovementKind get movementKind =>
+      MovementKind.values.asNameMap()[this[_movementKind]] ?? MovementKind.move;
+
+  Future<void> setMovementKind(MovementKind kind) =>
+      put(_movementKind, kind.name);
+
+  /// The property the movement form starts on when opened from Home or
+  /// Activity, or null to ask each time. It may since have been removed.
+  String? get defaultPropertyId => this[_movementProperty];
+
+  Future<void> setDefaultPropertyId(String? id) =>
+      id == null ? forget(_movementProperty) : put(_movementProperty, id);
+
+  /// Where the movement form's End starts.
+  EndState get endState =>
+      EndState.values.asNameMap()[this[_endState]] ?? EndState.meatworks;
+
+  Future<void> setEndState(EndState state) => put(_endState, state.name);
+
+  AreaUnit get areaUnit =>
+      AreaUnit.values.asNameMap()[this[_areaUnit]] ?? AreaUnit.hectares;
+
+  Future<void> setAreaUnit(AreaUnit unit) => put(_areaUnit, unit.name);
 
   bool get remembersTemplatesView => this[_rememberTemplatesView] != 'false';
 

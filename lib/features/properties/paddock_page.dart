@@ -148,12 +148,20 @@ class _PaddockDetail extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            '${paddock.hectares.toStringAsFixed(1)} ha'
-                            '${summary.isEmpty ? '' : ' · ${summary.mobs.length} '
-                                      '${summary.mobs.length == 1 ? 'mob' : 'mobs'}'}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onPrimaryContainer,
+                          ListenableBuilder(
+                            listenable: repository.settings,
+                            builder: (context, _) => Text(
+                              [
+                                repository.settings.areaUnit.format(
+                                  paddock.hectares,
+                                ),
+                                if (!summary.isEmpty)
+                                  '${summary.mobs.length} '
+                                      '${summary.mobs.length == 1 ? 'mob' : 'mobs'}',
+                              ].join(' · '),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
                             ),
                           ),
                         ],
@@ -311,11 +319,12 @@ class _MobTile extends StatelessWidget {
             value: _MobAction.death,
             child: Text('Record death'),
           ),
-          PopupMenuItem(
-            value: _MobAction.addTags,
-            enabled: tagged < mob.head,
-            child: const Text('Add tags'),
-          ),
+          if (repository.settings.usesTags)
+            PopupMenuItem(
+              value: _MobAction.addTags,
+              enabled: tagged < mob.head,
+              child: const Text('Add tags'),
+            ),
         ],
       ),
     );

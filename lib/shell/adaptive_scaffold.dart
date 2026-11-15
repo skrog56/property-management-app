@@ -39,7 +39,9 @@ class AdaptiveScaffold extends StatelessWidget {
   });
 
   final List<AppDestination> destinations;
-  final int selectedIndex;
+
+  /// Null on a page whose destination is not shown, reached by a link.
+  final int? selectedIndex;
   final ValueChanged<int> onDestinationSelected;
   final Widget body;
 
@@ -118,7 +120,7 @@ class _BottomBar extends StatelessWidget {
   });
 
   final List<AppDestination> destinations;
-  final int selectedIndex;
+  final int? selectedIndex;
   final ValueChanged<int> onDestinationSelected;
 
   @override
@@ -133,7 +135,9 @@ class _BottomBar extends StatelessWidget {
       for (final (i, d) in destinations.indexed)
         if (d.secondary) i,
     ];
-    final slot = primary.indexOf(selectedIndex);
+    // A page without a destination of its own marks More, as one behind it
+    // does.
+    final slot = primary.indexWhere((i) => i == selectedIndex);
 
     return NavigationBar(
       selectedIndex: slot == -1 ? primary.length : slot,
@@ -208,7 +212,7 @@ class ExtendedRail extends StatelessWidget {
   });
 
   final List<AppDestination> destinations;
-  final int selectedIndex;
+  final int? selectedIndex;
   final ValueChanged<int> onDestinationSelected;
 
   @override

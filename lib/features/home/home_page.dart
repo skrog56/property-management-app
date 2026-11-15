@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -67,8 +68,8 @@ class _HomePageState extends State<HomePage> {
 
   void _onSettings() {
     final retention = _repository!.settings.retention;
-    if (retention == _retention) return;
     setState(() {
+      if (retention == _retention) return;
       _retention = retention;
       _watchOverview();
     });
@@ -139,7 +140,11 @@ class _HomePageState extends State<HomePage> {
 
   Widget _layout(Overview overview, int columns) {
     final hero = _Hero(overview);
-    final tiles = _Tiles(overview, onReadyToSell: _showReadyToSell);
+    final tiles = _Tiles(
+      overview,
+      tags: _repository!.settings.usesTags,
+      onReadyToSell: _showReadyToSell,
+    );
     final ready = _ReadyToSell(overview.readyToSell, key: _readyToSell);
     final properties = _Properties(overview);
     final livestock = _Livestock(overview.classes);
@@ -269,9 +274,16 @@ class _Hero extends StatelessWidget {
 }
 
 class _Tiles extends StatelessWidget {
-  const _Tiles(this.overview, {required this.onReadyToSell});
+  const _Tiles(
+    this.overview, {
+    required this.tags,
+    required this.onReadyToSell,
+  });
 
   final Overview overview;
+
+  /// Whether tags are in use, and so counted here.
+  final bool tags;
 
   /// Brings the mobs ready to sell into view, further down or beside.
   final VoidCallback onReadyToSell;
@@ -281,39 +293,46 @@ class _Tiles extends StatelessWidget {
     final ready = overview.readyToSell;
     final empty = overview.emptyPaddocks;
 
+    final tiles = [
+      _Tile(
+        icon: Icons.home_work_outlined,
+        label: 'Properties',
+        value: overview.properties.length,
+        onTap: () => context.go(propertiesPath),
+      ),
+      _Tile(
+        icon: Icons.grass,
+        label: 'Paddocks',
+        value: overview.paddockCount,
+        note: empty == 0 ? null : '$empty empty',
+        onTap: () => context.go(propertiesPath),
+      ),
+      _Tile(
+        icon: Icons.paid_outlined,
+        label: 'Ready to sell',
+        value: ready.fold(0, (sum, r) => sum + r.mob.head),
+        note: ready.isEmpty ? null : counted(ready.length, 'mob'),
+        onTap: onReadyToSell,
+      ),
+      if (tags)
+        _Tile(
+          icon: Icons.sell_outlined,
+          label: 'Tagged',
+          value: overview.activeTags,
+          onTap: () => context.go(tagsPath),
+        ),
+    ];
+
     return LayoutBuilder(
       builder: (context, constraints) => CardGrid(
-        columns: WindowSizeClass.fromWidth(constraints.maxWidth).tileColumns,
+        // Three tiles share a wide row rather than leave a gap.
+        columns: math.min(
+          WindowSizeClass.fromWidth(constraints.maxWidth).tileColumns,
+          tiles.length,
+        ),
         // Each card's own margin makes up the rest of the gap.
         spacing: 4,
-        children: [
-          _Tile(
-            icon: Icons.home_work_outlined,
-            label: 'Properties',
-            value: overview.properties.length,
-            onTap: () => context.go(propertiesPath),
-          ),
-          _Tile(
-            icon: Icons.grass,
-            label: 'Paddocks',
-            value: overview.paddockCount,
-            note: empty == 0 ? null : '$empty empty',
-            onTap: () => context.go(propertiesPath),
-          ),
-          _Tile(
-            icon: Icons.paid_outlined,
-            label: 'Ready to sell',
-            value: ready.fold(0, (sum, r) => sum + r.mob.head),
-            note: ready.isEmpty ? null : counted(ready.length, 'mob'),
-            onTap: onReadyToSell,
-          ),
-          _Tile(
-            icon: Icons.sell_outlined,
-            label: 'Tagged',
-            value: overview.activeTags,
-            onTap: () => context.go(tagsPath),
-          ),
-        ],
+        children: tiles,
       ),
     );
   }

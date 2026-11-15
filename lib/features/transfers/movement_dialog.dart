@@ -83,15 +83,16 @@ enum _Shortcut {
   final MovementKind kind;
 }
 
-/// Tag events and ready to sell start from a mob or a tag instead.
-const _recordable = [
+/// The kinds the movement form records. Tag events and ready to sell start
+/// from a mob or a tag instead.
+const recordableKinds = [
   MovementKind.intake,
   MovementKind.move,
   MovementKind.age,
   MovementKind.endState,
 ];
 
-extension on MovementKind {
+extension MovementKindLabel on MovementKind {
   String get label => switch (this) {
     MovementKind.intake => 'Intake',
     MovementKind.move => 'Move',
@@ -109,7 +110,9 @@ extension on MovementKind {
     MovementKind.tag => Icons.sell_outlined,
     MovementKind.readyToSell => Icons.paid_outlined,
   };
+}
 
+extension on MovementKind {
   String get tagsLabel => switch (this) {
     MovementKind.move => 'Tags to move',
     MovementKind.age => 'Tags to age',
@@ -166,7 +169,12 @@ class _MovementDialogState extends State<_MovementDialog> {
   late final _date = TextEditingController(text: shortDate(_day));
   late final _tags = TagSelection(widget.repository)..addListener(_onTags);
 
-  late MovementKind _kind = widget.shortcut?.kind ?? MovementKind.move;
+  late MovementKind _kind =
+      widget.shortcut?.kind ??
+      switch (widget.repository.settings.movementKind) {
+        final kind when recordableKinds.contains(kind) => kind,
+        _ => MovementKind.move,
+      };
   List<Property> _properties = const [];
   String? _propertyId;
   List<Paddock> _paddocks = const [];
@@ -178,7 +186,9 @@ class _MovementDialogState extends State<_MovementDialog> {
   String? _toPaddockId;
   String? _fromClassId;
   String? _toClassId;
-  late EndState _endState = _death ? EndState.died : EndState.meatworks;
+  late EndState _endState = _death
+      ? EndState.died
+      : widget.repository.settings.endState;
   DateTime _day = DateUtils.dateOnly(DateTime.now());
 
   bool _loading = true;
@@ -213,8 +223,11 @@ class _MovementDialogState extends State<_MovementDialog> {
               if (s.paddockCount > 0) s.property,
           ]
         : const <Property>[];
+    // The default only while it still has paddocks to record against.
+    final preferred = widget.repository.settings.defaultPropertyId;
     final propertyId =
         widget.propertyId ??
+        (properties.any((p) => p.id == preferred) ? preferred : null) ??
         (properties.length == 1 ? properties.single.id : null);
     final paddocks = propertyId == null
         ? const <Paddock>[]
@@ -515,7 +528,7 @@ class _MovementDialogState extends State<_MovementDialog> {
           // in place of the selected icon would hide which kind it is.
           SegmentedButton<MovementKind>(
             segments: [
-              for (final kind in _recordable)
+              for (final kind in recordableKinds)
                 ButtonSegment(
                   value: kind,
                   icon: Icon(kind.icon),
@@ -628,7 +641,9 @@ class _MovementDialogState extends State<_MovementDialog> {
           },
         ),
         const SizedBox(height: 12),
-        if (!_kind.takesFrom) ...[
+        // A mob's tags are still offered with tags off, or its tagged head
+        // could not leave.
+        if (!_kind.takesFrom && widget.repository.settings.usesTags) ...[
           TagField(
             selection: _tags,
             label: 'Tags to add (optional)',

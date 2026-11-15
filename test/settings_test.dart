@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/app_settings.dart';
+import 'package:property_management_app/data/tables.dart';
 
 void main() {
   group('Retention', () {
@@ -85,6 +86,23 @@ void main() {
     });
   });
 
+  group('AreaUnit', () {
+    test('shows hectares in either unit, to one place', () {
+      expect(AreaUnit.hectares.format(120), '120.0 ha');
+      expect(AreaUnit.acres.format(120), '296.5 ac');
+      expect(AreaUnit.acres.format(0), '0.0 ac');
+    });
+
+    test('converts what is entered back to hectares', () {
+      expect(AreaUnit.hectares.toHectares(42.4), 42.4);
+      expect(AreaUnit.acres.toHectares(100), closeTo(40.4686, 0.0001));
+      expect(
+        AreaUnit.acres.fromHectares(AreaUnit.acres.toHectares(250)),
+        closeTo(250, 1e-9),
+      );
+    });
+  });
+
   group('AppSettings', () {
     late AppDatabase db;
 
@@ -97,7 +115,39 @@ void main() {
 
       expect(settings.retention, Retention.standard);
       expect(settings.themeMode, ThemeMode.system);
+      expect(settings.usesTags, isTrue);
+      expect(settings.tagScheme, TagScheme.nlis);
+      expect(settings.endState, EndState.meatworks);
+      expect(settings.movementKind, MovementKind.move);
+      expect(settings.defaultPropertyId, isNull);
+      expect(settings.areaUnit, AreaUnit.hectares);
       expect(settings['templates.sort'], isNull);
+    });
+
+    test('keeps tags, End and area for the next launch', () async {
+      final first = AppSettings(db);
+      await first.setUsesTags(false);
+      await first.setTagScheme(TagScheme.other);
+      await first.setEndState(EndState.sold);
+      await first.setAreaUnit(AreaUnit.acres);
+      await first.setMovementKind(MovementKind.intake);
+      await first.setDefaultPropertyId('glenmore');
+
+      final next = AppSettings(db);
+      await next.load();
+      expect(next.movementKind, MovementKind.intake);
+      expect(next.defaultPropertyId, 'glenmore');
+
+      // Emptied, it asks each time again, after a restart too.
+      await next.setDefaultPropertyId(null);
+      final third = AppSettings(db);
+      await third.load();
+      expect(third.defaultPropertyId, isNull);
+
+      expect(next.usesTags, isFalse);
+      expect(next.tagScheme, TagScheme.other);
+      expect(next.endState, EndState.sold);
+      expect(next.areaUnit, AreaUnit.acres);
     });
 
     test('keeps what is chosen for the next launch', () async {
@@ -157,9 +207,17 @@ void main() {
       final settings = AppSettings(db);
       await settings.put('retention', 'fortnightly');
       await settings.put('theme', 'sepia');
+      await settings.put('tags.scheme', 'barcode');
+      await settings.put('endState', 'auction');
+      await settings.put('movements.kind', 'teleport');
+      await settings.put('areaUnit', 'furlongs');
 
       expect(settings.retention, Retention.standard);
       expect(settings.themeMode, ThemeMode.system);
+      expect(settings.tagScheme, TagScheme.nlis);
+      expect(settings.endState, EndState.meatworks);
+      expect(settings.movementKind, MovementKind.move);
+      expect(settings.areaUnit, AreaUnit.hectares);
     });
   });
 }

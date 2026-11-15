@@ -34,6 +34,8 @@ class SearchPicker<T> extends StatefulWidget {
     required this.emptyHint,
     this.hint = 'Choose or search…',
     this.wrong = false,
+    this.optional = false,
+    this.searchIcon = false,
   });
 
   final String label;
@@ -47,6 +49,13 @@ class SearchPicker<T> extends StatefulWidget {
   /// Shown while nothing is chosen.
   final String hint;
   final bool wrong;
+
+  /// Nothing chosen is a choice of its own, which [hint] names, so it is
+  /// always shown, and a clear button returns to it.
+  final bool optional;
+
+  /// Leads the field with a search icon, where a chosen entry has none.
+  final bool searchIcon;
 
   @override
   State<SearchPicker<T>> createState() => _SearchPickerState<T>();
@@ -80,6 +89,10 @@ class _SearchPickerState<T> extends State<SearchPicker<T>> {
       _reported = widget.value;
       final label = _chosen?.label ?? '';
       if (_text.text != label) _text.text = label;
+    } else if (_text.text.isEmpty && _chosen != null) {
+      // Chosen before its entry had loaded, as a setting is before the list
+      // it is chosen from.
+      _text.text = _chosen!.label;
     }
   }
 
@@ -99,6 +112,12 @@ class _SearchPickerState<T> extends State<SearchPicker<T>> {
     final matches = widget.entries.where((e) => e.label == _text.text);
     if (matches.any((e) => e.value == _reported)) return;
     _report(matches.firstOrNull?.value);
+  }
+
+  void _clear(MenuController menu) {
+    menu.close();
+    // Reported as null through the edit, as emptying it by hand is.
+    _text.clear();
   }
 
   static List<String> _terms(String text) => [
@@ -140,18 +159,48 @@ class _SearchPickerState<T> extends State<SearchPicker<T>> {
       },
       searchCallback: (entries, text) =>
           entries.isEmpty || _terms(text).isEmpty ? null : 0,
-      decorationBuilder: (context, _) => InputDecoration(
+      decorationBuilder: (context, menu) => InputDecoration(
         labelText: widget.label,
         hintText: empty ? widget.emptyHint : widget.hint,
+        floatingLabelBehavior: widget.optional
+            ? FloatingLabelBehavior.always
+            : null,
         error: widget.wrong ? wrongField : null,
         prefixIcon: switch (chosen?.icon) {
           final icon? => Padding(
             padding: const EdgeInsetsDirectional.only(start: 12, end: 8),
             child: icon,
           ),
+          null when widget.searchIcon => const Padding(
+            padding: EdgeInsetsDirectional.only(start: 12, end: 8),
+            child: Icon(Icons.search),
+          ),
           null => null,
         },
         prefixIconConstraints: const BoxConstraints(),
+        // Null leaves the menu its own arrow. A clear button takes the
+        // place of it, so the arrow is drawn again beside it.
+        suffixIcon: widget.optional && chosen != null
+            ? Padding(
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Clear',
+                      icon: const Icon(Icons.close),
+                      onPressed: () => _clear(menu),
+                    ),
+                    IconButton(
+                      isSelected: menu.isOpen,
+                      icon: const Icon(Icons.arrow_drop_down),
+                      selectedIcon: const Icon(Icons.arrow_drop_up),
+                      onPressed: () => menu.isOpen ? menu.close() : menu.open(),
+                    ),
+                  ],
+                ),
+              )
+            : null,
       ),
       onSelected: (i) {
         if (i != null) _report(widget.entries[i].value);

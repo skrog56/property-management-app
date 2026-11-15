@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../data/repository_scope.dart';
 import '../features/about/about_page.dart';
 import '../features/activity/activity_page.dart';
 import '../features/developer/dev_mode.dart';
@@ -196,25 +197,40 @@ GoRouter buildRouter({
     onException: (_, _, router) => router.go(homePath),
     routes: [
       StatefulShellRoute.indexedStack(
-        builder: (context, state, shell) => AdaptiveScaffold(
-          destinations: [for (final e in entries) e.destination],
-          selectedIndex: shell.currentIndex,
-          // Reselecting the current destination returns to its top.
-          onDestinationSelected: (index) => shell.goBranch(
-            index,
-            initialLocation: index == shell.currentIndex,
-          ),
-          appBar: switch (entries[shell.currentIndex]) {
-            (:final route, destination: _)
-                when _drawOwnBar.contains(route.path) =>
-              null,
-            (:final destination, :final route) => TrailBar(
-              _trailTo(destination, route.path),
-            ),
-          },
-          title: appTitle,
-          body: shell,
-        ),
+        builder: (context, state, shell) {
+          final settings = RepositoryScope.of(context).settings;
+          return ListenableBuilder(
+            listenable: settings,
+            builder: (context, _) {
+              // Every branch stays, so a link to a tag still opens its page
+              // while Tags is not offered.
+              final shown = [
+                for (final (i, e) in entries.indexed)
+                  if (settings.usesTags || e.route.path != tagsPath) i,
+              ];
+              final selected = shown.indexOf(shell.currentIndex);
+              return AdaptiveScaffold(
+                destinations: [for (final i in shown) entries[i].destination],
+                selectedIndex: selected == -1 ? null : selected,
+                // Reselecting the current destination returns to its top.
+                onDestinationSelected: (slot) => shell.goBranch(
+                  shown[slot],
+                  initialLocation: shown[slot] == shell.currentIndex,
+                ),
+                appBar: switch (entries[shell.currentIndex]) {
+                  (:final route, destination: _)
+                      when _drawOwnBar.contains(route.path) =>
+                    null,
+                  (:final destination, :final route) => TrailBar(
+                    _trailTo(destination, route.path),
+                  ),
+                },
+                title: appTitle,
+                body: shell,
+              );
+            },
+          );
+        },
         branches: [
           for (final e in entries) StatefulShellBranch(routes: [e.route]),
         ],

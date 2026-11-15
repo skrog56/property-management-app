@@ -51,6 +51,27 @@ same commit — a deliberate act, never a side effect of another change.
   Settings, as it is to begin with, Group by animal and the sort chosen are
   kept between launches. Turned off, Templates opens grouped by animal in
   custom order, and the view kept so far is forgotten.
+- **Tags can be turned off.** With *Use tags* off in Settings, the Tags page
+  leaves the navigation, Home drops its Tagged count, an intake stops asking
+  for tags and a mob's menu stops offering *Add tags*. Tags already recorded
+  are kept: a mob's tags are still asked for when its tagged head moves, and
+  a link to a tag still opens it.
+- **A default tag type**, NLIS or Other ID, in Settings, for a station whose
+  tags are mostly its own.
+- **A default movement type.** Settings chooses whether the movement form
+  opens on intake, move, age or end. It is move to begin with, as before.
+- **A default property.** Recording a movement from Home or Activity starts
+  on the property chosen in Settings, rather than asking which. It is chosen
+  by searching, by name or PIC, and a clear button beside it goes back to
+  *Ask each time*, which is where it starts. The form also asks once that
+  property has no paddocks. Recording from a property or paddock always uses
+  that one.
+- **A default end destination.** Settings chooses the destination the
+  movement form's End opens on: the meatworks, as before, or sold, died, lost
+  or other.
+- **Acres.** Settings shows areas in hectares or acres, on paddock cards and
+  pages, and a new paddock's area is entered in the same unit. Areas are
+  still stored in hectares, so switching changes nothing recorded.
 - **Home**, the page the app now opens on. It shows the head on hand across
   every property, with a count for each animal once there are two, then the
   number of properties, paddocks (and how many are empty), head ready to sell

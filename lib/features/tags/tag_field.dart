@@ -139,7 +139,7 @@ class TagField extends StatefulWidget {
 class _TagFieldState extends State<TagField> {
   final _input = TextEditingController();
 
-  TagScheme _scheme = TagScheme.nlis;
+  late TagScheme _scheme = widget.selection.repository.settings.tagScheme;
   String? _error;
 
   @override

@@ -84,7 +84,7 @@ Future<void> addPaddock(
     context,
     title: 'New paddock',
     hint: 'North Ridge',
-    askForHectares: true,
+    areaIn: repository.settings.areaUnit,
   );
   if (name == null) return;
   await repository.createPaddock(
@@ -183,6 +183,7 @@ class _PaddockCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final empty = summary.isEmpty;
+    final settings = RepositoryScope.of(context).settings;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -246,10 +247,13 @@ class _PaddockCard extends StatelessWidget {
                           maxLines: 1,
                         ),
                     const Spacer(),
-                    Text(
-                      '${summary.paddock.hectares.toStringAsFixed(1)} ha',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    ListenableBuilder(
+                      listenable: settings,
+                      builder: (context, _) => Text(
+                        settings.areaUnit.format(summary.paddock.hectares),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ],

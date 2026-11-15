@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/app_settings.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
+import 'package:property_management_app/data/tables.dart';
 import 'package:property_management_app/shell/form_dialog.dart';
 
 import 'support.dart';
@@ -49,13 +50,49 @@ void main() {
     expect(find.byType(FormDialog), findsOneWidget);
   }
 
+  /// Builds [finder] if it is below the fold, then brings it to the top,
+  /// clear of a phone's bottom bar.
+  Future<void> reveal(WidgetTester tester, Finder finder) async {
+    await tester.scrollUntilVisible(
+      finder,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(finder);
+    await settle(tester);
+  }
+
   FilledButton save(WidgetTester tester) =>
       tester.widget(inDialog(find.widgetWithText(FilledButton, 'Save')));
 
-  testPage('starts at 30 days and the system theme', (tester) async {
+  testPage('starts from the defaults', (tester) async {
     await open(tester);
 
     expect(shownDuration(tester), '30 days');
+    await reveal(tester, find.byType(DropdownButtonFormField<EndState>));
+    expect(find.text('Move'), findsOneWidget);
+    // Nothing to choose from on a new install.
+    expect(find.text('No properties yet'), findsOneWidget);
+    expect(find.text('Meatworks'), findsOneWidget);
+    await reveal(tester, find.byType(DropdownButtonFormField<TagScheme>));
+    expect(
+      tester
+          .widget<SwitchListTile>(
+            find.widgetWithText(SwitchListTile, 'Use tags'),
+          )
+          .value,
+      isTrue,
+    );
+    expect(find.text('NLIS'), findsOneWidget);
+    await reveal(tester, find.byType(SegmentedButton<ThemeMode>));
+    expect(
+      tester
+          .widget<SegmentedButton<AreaUnit>>(
+            find.byType(SegmentedButton<AreaUnit>),
+          )
+          .selected,
+      {AreaUnit.hectares},
+    );
     expect(
       tester
           .widget<SegmentedButton<ThemeMode>>(
@@ -138,6 +175,7 @@ void main() {
     await open(tester);
 
     final toggle = find.widgetWithText(SwitchListTile, 'Remember the view');
+    await reveal(tester, toggle);
     expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
 
     await tester.tap(toggle);
@@ -150,8 +188,7 @@ void main() {
 
   testPage('keeps the theme chosen', (tester) async {
     await open(tester);
-    await tester.drag(find.byType(ListView), const Offset(0, -600));
-    await settle(tester);
+    await reveal(tester, find.text('Dark'));
     await tester.tap(find.text('Dark'));
     await settle(tester);
 
@@ -166,6 +203,98 @@ void main() {
     );
   });
 
+  testPage('keeps the default movement type', (tester) async {
+    await open(tester);
+    final field = find.byType(DropdownButtonFormField<MovementKind>);
+    await reveal(tester, field);
+    await tester.tap(field);
+    await settle(tester);
+    await tester.tap(find.text('Intake').last);
+    await settle(tester);
+
+    expect(repo.settings.movementKind, MovementKind.intake);
+  });
+
+  testPage('keeps a default property, and asks again once cleared', (
+    tester,
+  ) async {
+    final glenmore = await repo.createProperty('Glenmore', pic: 'QGLN0001');
+    await repo.createProperty('Riverbend Downs');
+    await open(tester);
+
+    final field = find.widgetWithText(TextField, 'Default property');
+    await reveal(tester, field);
+    expect(find.text('Ask each time'), findsOneWidget);
+    await tester.tap(field);
+    await settle(tester);
+    await tester.enterText(field, 'qgln');
+    await settle(tester);
+    await tester.tap(find.text('Glenmore').last);
+    await settle(tester);
+    expect(repo.settings.defaultPropertyId, glenmore);
+
+    await tester.tap(find.byTooltip('Clear'));
+    await settle(tester);
+    expect(repo.settings.defaultPropertyId, isNull);
+    expect(find.text('Ask each time'), findsOneWidget);
+  });
+
+  testPage('keeps where End starts', (tester) async {
+    await open(tester);
+    final field = find.byType(DropdownButtonFormField<EndState>);
+    await reveal(tester, field);
+    await tester.tap(field);
+    await settle(tester);
+    await tester.tap(find.text('Sold').last);
+    await settle(tester);
+
+    expect(repo.settings.endState, EndState.sold);
+    expect(
+      find.descendant(of: field, matching: find.text('Sold')),
+      findsOneWidget,
+    );
+  });
+
+  testPage('keeps the tag type, and greys it out with tags off', (
+    tester,
+  ) async {
+    await open(tester);
+    final field = find.byType(DropdownButtonFormField<TagScheme>);
+    await reveal(tester, field);
+    await tester.tap(field);
+    await settle(tester);
+    await tester.tap(find.text('Other ID').last);
+    await settle(tester);
+    expect(repo.settings.tagScheme, TagScheme.other);
+
+    final toggle = find.widgetWithText(SwitchListTile, 'Use tags');
+    await reveal(tester, toggle);
+    await tester.tap(toggle);
+    await settle(tester);
+
+    expect(repo.settings.usesTags, isFalse);
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    expect(
+      tester
+          .widget<DropdownButton<TagScheme>>(
+            find.byType(DropdownButton<TagScheme>),
+          )
+          .onChanged,
+      isNull,
+    );
+    // Kept for when tags are back.
+    expect(repo.settings.tagScheme, TagScheme.other);
+  });
+
+  testPage('keeps the area unit', (tester) async {
+    await open(tester);
+    await reveal(tester, find.text('Acres'));
+    await tester.tap(find.text('Acres'));
+    await settle(tester);
+
+    expect(repo.settings.areaUnit, AreaUnit.acres);
+  });
+
   testPage('a phone reaches it through More', (tester) async {
     await pumpRouted(tester, repository: repo, location: '/', width: 360);
 
@@ -175,7 +304,7 @@ void main() {
     await settle(tester);
 
     expect(find.text('Ended stock'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Appearance'), 200);
+    await reveal(tester, find.text('Appearance'));
     expect(find.text('Appearance'), findsOneWidget);
   });
 

@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../data/app_settings.dart';
+import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
+import '../../data/tables.dart';
+import '../../shell/search_picker.dart';
+import '../tags/tag_labels.dart';
+import '../transfers/movement_dialog.dart';
 import 'retention_dialog.dart';
 
 /// The user's settings, each kept on this device and applied as it changes.
@@ -16,6 +21,20 @@ class _SettingsPageState extends State<SettingsPage> {
   /// Counts the times Custom was opened, so the duration field is rebuilt
   /// from the stored choice afterwards, which a cancel leaves as it was.
   var _customOpened = 0;
+
+  // Watched once rather than per build, which every setting changed triggers.
+  LivestockRepository? _repository;
+  late Stream<List<PropertySummary>> _properties;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final repository = RepositoryScope.of(context);
+    if (repository != _repository) {
+      _repository = repository;
+      _properties = repository.watchPropertySummaries();
+    }
+  }
 
   Future<void> _chooseCustom(AppSettings settings) async {
     final chosen = await showRetentionDialog(
@@ -76,6 +95,163 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 12),
             _Section(
+              title: 'Movements',
+              children: [
+                DropdownButtonFormField<MovementKind>(
+                  key: ValueKey(settings.movementKind),
+                  initialValue: recordableKinds.contains(settings.movementKind)
+                      ? settings.movementKind
+                      : MovementKind.move,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Default movement type',
+                    helperText:
+                        'Chosen to begin with when the movement form opens. '
+                        'Each movement can still choose another.',
+                    helperMaxLines: 3,
+                  ),
+                  onChanged: (kind) => settings.setMovementKind(kind!),
+                  items: [
+                    for (final kind in recordableKinds)
+                      DropdownMenuItem(
+                        value: kind,
+                        child: Row(
+                          spacing: 12,
+                          children: [
+                            Icon(kind.icon, size: 20),
+                            Flexible(child: Text(kind.label)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                StreamBuilder<List<PropertySummary>>(
+                  stream: _properties,
+                  builder: (context, snapshot) => SearchPicker<String>(
+                    label: 'Default property',
+                    hint: 'Ask each time',
+                    optional: true,
+                    searchIcon: true,
+                    value: settings.defaultPropertyId,
+                    onChanged: settings.setDefaultPropertyId,
+                    entries: [
+                      for (final s
+                          in snapshot.data ?? const <PropertySummary>[])
+                        SearchEntry(
+                          s.property.id,
+                          s.property.name,
+                          alsoFoundBy: s.property.pic,
+                        ),
+                    ],
+                    emptyHint: 'No properties yet',
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                  child: Text(
+                    'Chosen to begin with when recording from Home or '
+                    'Activity. Cleared, the form asks which property each '
+                    'time. '
+                    'Recording from a property or paddock always uses that '
+                    'one.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<EndState>(
+                  key: ValueKey(settings.endState),
+                  initialValue: settings.endState,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Default end destination',
+                    helperText:
+                        'Chosen to begin with when ending stock in the '
+                        'movement form. Each movement can still choose '
+                        'another.',
+                    helperMaxLines: 3,
+                  ),
+                  onChanged: (state) => settings.setEndState(state!),
+                  items: [
+                    for (final state in EndState.values)
+                      DropdownMenuItem(
+                        value: state,
+                        child: Text(_capitalised(state.name)),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _Section(
+              title: 'Tags',
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Use tags'),
+                  subtitle: const Text(
+                    "Off, the Tags page, Home's Tagged count and the ways to "
+                    'add tags are hidden. Tags already recorded are kept, and '
+                    'still move with their mobs.',
+                  ),
+                  value: settings.usesTags,
+                  onChanged: settings.setUsesTags,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<TagScheme>(
+                  key: ValueKey(settings.tagScheme),
+                  initialValue: settings.tagScheme,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Default tag type',
+                    helperText:
+                        'Chosen to begin with when typing or scanning a new '
+                        'tag. Each tag can still be given the other.',
+                    helperMaxLines: 3,
+                  ),
+                  onChanged: settings.usesTags
+                      ? (scheme) => settings.setTagScheme(scheme!)
+                      : null,
+                  items: [
+                    for (final scheme in TagScheme.values)
+                      DropdownMenuItem(
+                        value: scheme,
+                        child: Text(scheme.label),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _Section(
+              title: 'Units',
+              children: [
+                Text(
+                  'Paddock areas are shown in this unit, and a new '
+                  "paddock's area is entered in it. They are kept in "
+                  'hectares, so switching converts what is shown and '
+                  'changes nothing recorded.',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                const Text('Area unit'),
+                const SizedBox(height: 8),
+                SegmentedButton<AreaUnit>(
+                  showSelectedIcon: false,
+                  segments: [
+                    for (final unit in AreaUnit.values)
+                      ButtonSegment(value: unit, label: Text(unit.label)),
+                  ],
+                  selected: {settings.areaUnit},
+                  onSelectionChanged: (unit) =>
+                      settings.setAreaUnit(unit.single),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _Section(
               title: 'Templates',
               children: [
                 SwitchListTile(
@@ -120,6 +296,9 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
+
+String _capitalised(String word) =>
+    '${word[0].toUpperCase()}${word.substring(1)}';
 
 class _Section extends StatelessWidget {
   const _Section({required this.title, required this.children});

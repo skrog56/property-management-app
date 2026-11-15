@@ -69,7 +69,8 @@ lib/
                tallest in each, PillToolbar, a PillSearchField and the
                PillChips beside it at one height and outline, stacked when
                the search's hint wouldn't fit, SearchPicker, a field
-               that narrows a long list as you type, and TrailBar, every
+               that narrows a long list as you type, and can leave it
+               unchosen with one tap where nothing is a choice too, and TrailBar, every
                page's bar: the Crumbs from Home to the page, each led by
                its icon, or on a phone the page alone
   data/        Drift schema, repository, platform-specific connection
@@ -93,7 +94,10 @@ lib/
                       led by it, and classEntry, the same to choose in a
                       SearchPicker
     settings/         The user's settings: how long ended stock stays
-                      visible, and the theme
+                      visible, the default movement type, property and
+                      end destination, whether tags
+                      are used and the default tag type, the area unit,
+                      the Templates view and the theme
     developer/        Debug-only tools; hosts platform_proof as a tab
     platform_proof/   The evidence screen and fact gathering
     about/            Target checklist and build identity
@@ -246,6 +250,14 @@ them in memory and writes each change through. It hangs off the repository as
 `repository.settings`, a `ChangeNotifier`, so a page with the repository has
 them and listens for changes. A feature keeps its own with `settings['name']`
 and `put`. The developer reset leaves them alone.
+
+**An area is stored in hectares** whatever `AreaUnit` the user chose. Show it
+with `settings.areaUnit.format`, and convert what is typed with `toHectares`.
+
+**Tags turned off hide only the ways in**: the Tags destination, Home's tile,
+an intake's tag field and a mob's *Add tags*. Anything that shows tags already
+recorded, or asks for a mob's tags when its tagged head moves, stays, or the
+ledger would refuse the movement.
 
 **How long ended stock stays visible is a `Retention`**, and a page reads its
 cutoff from `retention.since(now)`, null for always. It hides old end states
