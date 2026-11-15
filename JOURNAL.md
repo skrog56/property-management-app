@@ -7,6 +7,111 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-15 — Six more settings: tags, movement defaults, area unit
+
+### What prompted it
+
+The user asked for a sweep of the app for anything else that belongs in
+Settings, to approve one at a time. The sweep put eleven candidates in three
+groups. *Worth building now*: turning tags off, the default tag type and where
+End starts. *Reasonable, but waiting for someone to ask*: a default property,
+the area unit, the start page, Home's sections and the phone's bar. *Actions
+for a Data section*: Export, erase all data and restore the default
+templates. The user approved the first group and the area unit, then, from a
+second list, a default movement type and the default property.
+
+The sweep also found three things that are not settings: Activity stops at
+200 movements with no way further back, a paddock's Deaths and Recently left
+stop at ten even under *Always*, and the death date picker sets no locale.
+Flutter's default locale should make it type dates as mm/dd/yyyy. That last
+point was read from the code, not seen in a running build.
+
+### Decided
+
+- **Six settings, in three cards.** *Movements* holds the default movement
+  type, default property and default end destination. *Tags* holds *Use
+  tags* and the default tag type. *Units* holds the area unit.
+- **The user dropped the start page, Home's sections and the phone's bar**
+  for good. The app sets those, and they are not settings. The Data actions
+  are still open.
+- **Named as defaults.** The first labels were *End destination* and *New
+  tags start as*. The user asked for *Default end destination* and *Default
+  tag type*, and for the area unit to explain itself. Its card now says what
+  it changes, and that areas are kept in hectares.
+- **Turning tags off hides the ways in and nothing else.** The Tags
+  destination leaves the rail, the bar and More, Home's Tagged tile goes, an
+  intake asks for no tags and a mob's menu drops *Add tags*. A mob's tags are
+  still asked for when its tagged head moves. Without them the ledger would
+  refuse the movement or leave tags stranded. A link to a tag from Activity
+  still opens its page, since every branch stays in the router and only the
+  destination list is filtered.
+- **With three tiles, Home shares the row between them** on wide windows,
+  rather than leaving a quarter empty. A phone keeps two columns, where three
+  would cut "Ready to sell" short.
+- **The default tag type is greyed out while tags are off**, and kept for
+  when they come back. A replacement tag still starts as the type of the tag
+  it replaces.
+- **The default end destination can be any end state**, died included,
+  though deaths have their own shortcut. It is meatworks to begin with, as
+  before. The default movement type is move, as before, and only covers the
+  four kinds the form records.
+- **The default property applies only where the form would ask**, from Home
+  or Activity. From a property or paddock the form already knows which. A
+  default that no longer has paddocks, or has been removed, falls back to
+  asking, so the setting can't leave the form stuck. It is chosen with a
+  `SearchPicker`, as properties are everywhere else.
+- **Clearing it is one tap.** The user asked for an easy way back to *Ask
+  each time* and for the field to look searchable. Offered a separate search
+  view as well, they kept the same field. `SearchPicker` gained `optional`,
+  which keeps the hint saying what nothing means always visible and puts a
+  clear button beside the arrow while something is chosen, and `searchIcon`.
+  Only this setting uses them so far. *Ages into* in the class editor is
+  still cleared by emptying it.
+- **Areas are stored in hectares whatever the unit**, shown to one decimal
+  place and converted on entry, so switching units changes nothing recorded.
+  Only creating a paddock asks for an area. There is no edit form yet.
+
+### A bug found on the way
+
+A render of the default property caught a `SearchPicker` bug. A value chosen
+before the list had loaded never showed its name, so the field read *Ask each
+time* beside a clear button. The movement form loads its lists before
+drawing, so it never hit this, but the Settings page draws first. The picker
+now fills in the name when the entry arrives.
+
+### Verification
+
+319 tests, up from 293. New ones cover the six settings' defaults,
+persistence and fallbacks, the area conversion both ways, the Settings page's
+new controls, and each setting's effect:
+
+- Tags gone from the rail, the bar and More, and back again; a tag's page
+  still reached by its link; no tag field on an intake, but a tagged mob's
+  tags still offered on a move; no *Add tags*;
+- NLIS or Other ID in the tag field;
+- the form opening on the chosen type, and on the default property from Home
+  but not from a paddock, nor once the property has no paddocks;
+- End opening on the chosen destination;
+- acres on a paddock and its card, following a change, and a paddock entered
+  in acres stored in hectares;
+- the picker's clear button, its arrow beside it, its search icon, and a
+  value chosen before its list has loaded.
+
+Three Settings page tests changed to scroll to controls now below the fold.
+
+Throwaway renders with the bundled Roboto showed the Settings page at 360 and
+1200 dp, the Movements card on a phone, and the default property empty and
+chosen. They were deleted afterwards. `flutter build web` passed.
+
+### Open
+
+- Not tried in a running build or on a phone.
+- A paddock's area cannot be edited, in either unit.
+- The three findings above: Activity's 200, the paddock's ten, and the date
+  picker's locale.
+- The Data actions, not taken up: Export, erase all data, and restore default
+  templates.
+
 ## 2026-11-15 — Settings, and how long ended stock stays visible
 
 ### What prompted it
