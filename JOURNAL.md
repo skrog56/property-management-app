@@ -7,6 +7,56 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-15 — Pickers in a plain dropdown's text, and loose ends
+
+### What happened
+
+Two items from the last entry's Open list, then a decision on a third.
+
+**The picker's text.** In the same form, picker entries looked bolder than a
+plain dropdown's. Measuring the styles showed the weight was the same, Medium,
+in both. The size was not:
+- a plain `DropdownButton` uses the theme's `titleMedium`, 16 px, for its
+  entries, its chosen value and its hint;
+- `DropdownMenu` draws its entries in Material's menu text, `labelLarge`,
+  14 px with a tighter line, and Medium at the smaller size reads heavier;
+- the picker's field is a text field, so its value and hint were in
+  `bodyLarge`, Regular with wider spacing.
+
+Entries (`a9fb698`), then the value and hint, now use `titleMedium`. A
+`textStyle` on the field carries to the hint too, and the hint keeps the M3
+hint colour, so it needed no style of its own. The first version set one, and
+removing it failed no test, which is how it showed up as redundant.
+
+**The other session's repro.** `test/zz_repro_test.dart` was deleted at the
+user's request. It was never committed.
+
+### Decided
+
+- **Pickers match plain dropdowns throughout**, in their entries, their chosen
+  value and their hint, so the two kinds read alike in one form. Text typed
+  into a picker is Medium too, since it is the same field.
+- **Template order stays an order and nothing more.** The last two entries
+  left open whether it should also decide which templates a property uses.
+  The user is happy with it as it is, so that is no longer open.
+
+### Verification
+
+224 tests. One test opens a plain dropdown and a picker side by side and
+compares their entries, chosen values and hints: size, weight, letter spacing
+and line height. Removing the entry style fails it, and so does removing the
+field's. A render of the End form showed "North Flat" in a picker and
+"meatworks" in the plain Destination dropdown in the same text.
+`flutter build web` passed, and CI run 43680527585 passed on all six targets
+for `a9fb698`.
+
+### Open
+
+- Try the pickers and dragging on a phone: the keyboard on tap, where the menu
+  goes with the keyboard up, and scrolling while a card is held.
+- Settings, in a session of their own.
+- Export.
+
 ## 2026-11-15 — Searching long lists, and every mob shown with its animal
 
 ### What prompted it
