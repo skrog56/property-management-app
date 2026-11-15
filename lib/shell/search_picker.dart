@@ -108,13 +108,11 @@ class _SearchPickerState<T> extends State<SearchPicker<T>> {
 
   @override
   Widget build(BuildContext context) {
-    // As a DropdownButton's entries, not the smaller menu text, so a picker
-    // and a plain dropdown in one form read alike.
-    final entryStyle = ButtonStyle(
-      textStyle: WidgetStatePropertyAll(
-        Theme.of(context).textTheme.titleMedium,
-      ),
-    );
+    // A DropdownButton's text throughout, rather than the menu's smaller
+    // labels and a text field's lighter weight, so a picker and a plain
+    // dropdown in one form read alike.
+    final text = Theme.of(context).textTheme.titleMedium;
+    final entryStyle = ButtonStyle(textStyle: WidgetStatePropertyAll(text));
     final searched = [
       for (final e in widget.entries)
         '${e.label} ${e.alsoFoundBy ?? ''}'.toLowerCase(),
@@ -127,6 +125,7 @@ class _SearchPickerState<T> extends State<SearchPicker<T>> {
       enabled: !empty,
       expandedInsets: EdgeInsets.zero,
       menuHeight: _menuHeight,
+      textStyle: text,
       // On a phone too, where the default is to only choose.
       requestFocusOnTap: true,
       enableFilter: true,

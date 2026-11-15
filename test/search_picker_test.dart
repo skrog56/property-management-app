@@ -180,7 +180,7 @@ void main() {
     expect(tester.getSize(menu.first).height, lessThanOrEqualTo(360));
   });
 
-  testWidgets('lists entries in the same text as a plain dropdown', (
+  testWidgets('reads as a plain dropdown: its entries, value and hint', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -190,16 +190,32 @@ void main() {
           body: Column(
             children: [
               DropdownButtonFormField<String>(
+                initialValue: 'x',
                 isExpanded: true,
                 items: const [
-                  DropdownMenuItem(value: 'x', child: Text('Plain entry')),
+                  DropdownMenuItem(value: 'x', child: Text('Plain value')),
+                  DropdownMenuItem(value: 'y', child: Text('Plain entry')),
                 ],
                 onChanged: (_) {},
               ),
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                hint: const Text('Plain hint'),
+                items: const [DropdownMenuItem(value: 'x', child: Text('x'))],
+                onChanged: (_) {},
+              ),
               SearchPicker<String>(
-                label: 'Class',
+                label: 'Chosen',
+                entries: const [SearchEntry('x', 'Picker value')],
+                value: 'x',
+                onChanged: (_) {},
+                emptyHint: '',
+              ),
+              SearchPicker<String>(
+                label: 'Open',
                 entries: const [SearchEntry('y', 'Picker entry')],
                 value: null,
+                hint: 'Picker hint',
                 onChanged: (_) {},
                 emptyHint: '',
               ),
@@ -213,20 +229,28 @@ void main() {
         .lastWhere((r) => r.text.toPlainText() == text)
         .text
         .style!;
+    void expectAlike(TextStyle picker, TextStyle plain, String what) {
+      expect(picker.fontSize, plain.fontSize, reason: what);
+      expect(picker.fontWeight, plain.fontWeight, reason: what);
+      expect(picker.letterSpacing, plain.letterSpacing, reason: what);
+      expect(picker.height, plain.height, reason: what);
+    }
 
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
-    final plain = shown('Plain entry');
-    await tester.tap(find.text('Plain entry').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byType(TextField));
-    await tester.pumpAndSettle();
-    final picker = shown('Picker entry');
+    expectAlike(
+      tester.widget<EditableText>(find.byType(EditableText).first).style,
+      shown('Plain value'),
+      'value',
+    );
+    expectAlike(shown('Picker hint'), shown('Plain hint'), 'hint');
 
-    expect(picker.fontSize, plain.fontSize);
-    expect(picker.fontWeight, plain.fontWeight);
-    expect(picker.letterSpacing, plain.letterSpacing);
-    expect(picker.height, plain.height);
+    await tester.tap(find.text('Plain value'));
+    await tester.pumpAndSettle();
+    final plainEntry = shown('Plain entry');
+    await tester.tap(find.text('Plain value').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(TextField).last);
+    await tester.pumpAndSettle();
+    expectAlike(shown('Picker entry'), plainEntry, 'entry');
   });
 
   testPage('says when there is nothing to choose', (tester) async {
