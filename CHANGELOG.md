@@ -189,6 +189,14 @@ same commit — a deliberate act, never a side effect of another change.
   deployment is configured.
 
 ### Changed
+- **Every page's bar is a breadcrumb trail from Home**, each step led by its
+  icon, as in *Home › Properties › Riverbend Downs › North Ridge*. Each step
+  before the page is a link back to it. Where the trail is short of room, the
+  longest steps before the page shorten first, so the page's own name stays
+  whole. On a phone the bar shows the page alone, with a back arrow below a
+  destination's top. Tags now shows the trail to a tag, where it showed only
+  *Tags* on a wide window.
+
 - **The app opens on Home**, not Properties, and so does an address it doesn't
   know. On a phone the bottom bar holds Home, Properties, Activity, Tags and
   More, every label still whole on a 320 dp screen.

@@ -34,8 +34,7 @@ class AdaptiveScaffold extends StatelessWidget {
     required this.selectedIndex,
     required this.onDestinationSelected,
     required this.body,
-    this.actions = const <Widget>[],
-    this.showAppBar = true,
+    this.appBar,
     this.title,
   });
 
@@ -43,10 +42,10 @@ class AdaptiveScaffold extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
   final Widget body;
-  final List<Widget> actions;
 
-  /// Off for a destination whose body draws its own bar.
-  final bool showAppBar;
+  /// The page's bar, beside the rail. Null for a destination whose body draws
+  /// its own.
+  final PreferredSizeWidget? appBar;
 
   /// The app's name, in a header across the rail layouts. Phones go without:
   /// the page's own bar already holds the top of a small screen.
@@ -57,13 +56,6 @@ class AdaptiveScaffold extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final sizeClass = WindowSizeClass.fromWidth(constraints.maxWidth);
-
-        final appBar = showAppBar
-            ? AppBar(
-                title: Text(destinations[selectedIndex].label),
-                actions: actions,
-              )
-            : null;
 
         if (sizeClass.usesBottomBar) {
           return Scaffold(

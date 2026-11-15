@@ -68,8 +68,10 @@ lib/
                showFormDialog, CardGrid, rows of cards as tall as the
                tallest in each, PillToolbar, a PillSearchField and the
                PillChips beside it at one height and outline, stacked when
-               the search's hint wouldn't fit, and SearchPicker, a field
-               that narrows a long list as you type
+               the search's hint wouldn't fit, SearchPicker, a field
+               that narrows a long list as you type, and TrailBar, every
+               page's bar: the Crumbs from Home to the page, each led by
+               its icon, or on a phone the page alone
   data/        Drift schema, repository, platform-specific connection
   features/
     home/             Where the app opens: the head on hand, headline
@@ -113,6 +115,11 @@ treatment, and they only do if width is the sole input.
 
 Never branch layout on `defaultTargetPlatform`. If you find yourself wanting to,
 the breakpoint model is the thing to extend.
+
+**Every page's bar is a `TrailBar`.** The router builds it for a flat
+destination from the destination's rail icon and label, and the Properties
+and Tags browsers extend the same trail with their tiers. Don't give a page a
+bare `AppBar` title, or its trail stops matching the rest.
 
 The same goes for drill-downs: how many tiers sit side by side is
 `WindowSizeClass.panes`, measured on the content area beside the rail, not the

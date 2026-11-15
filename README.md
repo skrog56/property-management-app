@@ -380,7 +380,8 @@ None of that is worth building until there is something to ship.
 ```
 lib/
   app/          MaterialApp, theme, shell wiring
-  shell/        Adaptive scaffold, Material 3 breakpoints, the drill-down route
+  shell/        Adaptive scaffold, Material 3 breakpoints, the drill-down route,
+                the breadcrumb bar every page uses
   data/         Drift schema, repository, platform-specific connection
   features/
     home/             Where the app opens: everything at a glance

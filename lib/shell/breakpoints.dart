@@ -55,6 +55,10 @@ enum WindowSizeClass {
     WindowSizeClass.extraLarge => 4,
   };
 
+  /// A page's bar names every step from Home to the page, rather than only the
+  /// page, once there is room.
+  bool get usesFullTrail => this != WindowSizeClass.compact;
+
   /// Figures as small as a label and a number, which need less width than a
   /// card holding a list.
   int get tileColumns => this == WindowSizeClass.compact ? 2 : 4;

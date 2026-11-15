@@ -1,13 +1,13 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../data/app_database.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../shell/breakpoints.dart';
 import '../../shell/tier_route.dart';
+import '../../shell/trail_bar.dart';
 import 'paddock_page.dart';
 import 'paths.dart';
 import 'properties_page.dart';
@@ -16,8 +16,15 @@ import 'property_page.dart';
 /// The three tiers as list-detail panes: the deepest tier alone on a narrow
 /// window, with its parents beside it as the window widens.
 class PropertiesBrowser extends StatelessWidget {
-  const PropertiesBrowser({super.key, this.propertyId, this.paddockId})
-    : assert(paddockId == null || propertyId != null);
+  const PropertiesBrowser({
+    super.key,
+    required this.trail,
+    this.propertyId,
+    this.paddockId,
+  }) : assert(paddockId == null || propertyId != null);
+
+  /// The steps to Properties, which the property and paddock extend.
+  final List<Crumb> trail;
 
   final String? propertyId;
   final String? paddockId;
@@ -55,15 +62,21 @@ class PropertiesBrowser extends StatelessWidget {
         }
 
         return Scaffold(
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            leading: panes == 1 && depth > 0
-                ? BackButton(onPressed: () => _up(context))
-                : null,
-            title: panes == 1
-                ? _title(depth)
-                : _Breadcrumbs(propertyId: propertyId, paddockId: paddockId),
-          ),
+          appBar: TrailBar([
+            ...trail,
+            if (propertyId case final pid?)
+              Crumb(
+                icon: Icons.home_work_outlined,
+                label: _PropertyName(pid),
+                path: propertyPath(pid),
+              ),
+            if (paddockId case final kid?)
+              Crumb(
+                icon: Icons.grass,
+                label: _PaddockName(kid),
+                path: paddockPath(propertyId!, kid),
+              ),
+          ]),
           body: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -77,71 +90,6 @@ class PropertiesBrowser extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _title(int depth) => switch (depth) {
-    0 => const Text('Properties'),
-    1 => _PropertyName(propertyId!),
-    _ => _PaddockName(paddockId!),
-  };
-
-  /// A deep link arrives with nothing beneath it to pop back to.
-  void _up(BuildContext context) {
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go(
-        paddockId == null ? propertiesPath : propertyPath(propertyId!),
-      );
-    }
-  }
-}
-
-class _Breadcrumbs extends StatelessWidget {
-  const _Breadcrumbs({this.propertyId, this.paddockId});
-
-  final String? propertyId;
-  final String? paddockId;
-
-  // Shared by links and the current crumb, so a crumb keeps its place as it
-  // turns into a link.
-  static const _inset = EdgeInsets.symmetric(horizontal: 8);
-
-  @override
-  Widget build(BuildContext context) {
-    final crumbs = <(Widget, String?)>[
-      (const Text('Properties'), propertiesPath),
-      if (propertyId case final pid?) (_PropertyName(pid), propertyPath(pid)),
-      if (paddockId case final kid?) (_PaddockName(kid), null),
-    ];
-
-    final theme = Theme.of(context);
-    final linkStyle = TextButton.styleFrom(
-      foregroundColor: theme.colorScheme.onSurfaceVariant,
-      textStyle: theme.appBarTheme.titleTextStyle ?? theme.textTheme.titleLarge,
-      padding: _inset,
-    );
-
-    return Row(
-      children: [
-        for (final (i, (label, _)) in crumbs.indexed) ...[
-          if (i > 0)
-            Icon(
-              Icons.chevron_right,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          Flexible(
-            child: i == crumbs.length - 1
-                ? Padding(padding: _inset, child: label)
-                : TextButton(
-                    style: linkStyle,
-                    onPressed: () => context.go(crumbs[i].$2!),
-                    child: label,
-                  ),
-          ),
-        ],
-      ],
     );
   }
 }

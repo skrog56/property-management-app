@@ -56,6 +56,7 @@ Future<void> _pumpAtWidth(
         selectedIndex: selectedIndex,
         onDestinationSelected: onDestinationSelected ?? (_) {},
         body: const Center(child: Text('body')),
+        appBar: AppBar(title: Text(destinations[selectedIndex].label)),
         title: 'App',
       ),
     ),
@@ -124,9 +125,7 @@ void main() {
       expect(tapped, [2]);
     });
 
-    testWidgets('titles the app bar with the selected destination', (
-      tester,
-    ) async {
+    testWidgets('shows the page bar it is given on a phone', (tester) async {
       await _pumpAtWidth(tester, 420);
 
       expect(
