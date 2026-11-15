@@ -28,7 +28,7 @@ class PropertiesPage extends StatelessWidget {
         }
 
         final summaries = snapshot.data!;
-        if (summaries.isEmpty) return FirstRun(repository: repository);
+        if (summaries.isEmpty) return _FirstRun(repository: repository);
 
         return Scaffold(
           backgroundColor: Colors.transparent,
@@ -151,8 +151,8 @@ class PropertyCard extends StatelessWidget {
 
 /// The quick-start from the specification, reduced to its one unskippable
 /// step: without a property there is nowhere to put a paddock.
-class FirstRun extends StatelessWidget {
-  const FirstRun({super.key, required this.repository});
+class _FirstRun extends StatelessWidget {
+  const _FirstRun({required this.repository});
 
   final LivestockRepository repository;
 

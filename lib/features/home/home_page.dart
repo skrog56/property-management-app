@@ -94,9 +94,6 @@ class _HomePageState extends State<HomePage> {
         if (overview == null) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (overview.properties.isEmpty) {
-          return FirstRun(repository: repository);
-        }
 
         return Scaffold(
           backgroundColor: Colors.transparent,
@@ -125,9 +122,7 @@ class _HomePageState extends State<HomePage> {
   Widget _layout(Overview overview, int columns) {
     final hero = _Hero(overview);
     final tiles = _Tiles(overview, onReadyToSell: _showReadyToSell);
-    final ready = overview.readyToSell.isEmpty
-        ? null
-        : _ReadyToSell(overview.readyToSell, key: _readyToSell);
+    final ready = _ReadyToSell(overview.readyToSell, key: _readyToSell);
     final properties = _Properties(overview);
     final livestock = _Livestock(overview.classes);
     final flows = _FlowsSection(overview.flows);
@@ -135,15 +130,15 @@ class _HomePageState extends State<HomePage> {
 
     final dealt = switch (columns) {
       1 => [
-        [hero, tiles, ?ready, properties, livestock, flows, activity],
+        [hero, tiles, ready, properties, livestock, flows, activity],
       ],
       2 => [
         [hero, tiles, properties, livestock],
-        [?ready, flows, activity],
+        [ready, flows, activity],
       ],
       _ => [
         [hero, tiles, properties],
-        [?ready, livestock],
+        [ready, livestock],
         [flows, activity],
       ],
     };
@@ -209,8 +204,10 @@ class _Hero extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'in ${counted(overview.paddockCount, 'paddock')} on '
-                      '${counted(overview.properties.length, 'property', 'properties')}',
+                      overview.properties.isEmpty
+                          ? 'across every property, once stock is recorded'
+                          : 'in ${counted(overview.paddockCount, 'paddock')} on '
+                                '${counted(overview.properties.length, 'property', 'properties')}',
                       style: theme.textTheme.bodyMedium?.copyWith(color: ink),
                     ),
                     // An animal's share only tells anything beside another's.
@@ -290,7 +287,7 @@ class _Tiles extends StatelessWidget {
             label: 'Ready to sell',
             value: ready.fold(0, (sum, r) => sum + r.mob.head),
             note: ready.isEmpty ? null : counted(ready.length, 'mob'),
-            onTap: ready.isEmpty ? null : onReadyToSell,
+            onTap: onReadyToSell,
           ),
           _Tile(
             icon: Icons.sell_outlined,
@@ -438,7 +435,13 @@ class _ReadyToSell extends StatelessWidget {
     return _Section(
       title: 'Ready to sell',
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (mobs.isEmpty)
+            const _Quiet(
+              'Nothing yet. Mark a mob ready to sell from its paddock to '
+              'list it here.',
+            ),
           for (final (:property, :paddock, :mob) in mobs)
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -489,19 +492,75 @@ class _Properties extends StatelessWidget {
             linkTo: propertiesPath,
           ),
         ),
-        LayoutBuilder(
-          builder: (context, constraints) => CardGrid(
-            columns: WindowSizeClass.fromWidth(
-              constraints.maxWidth,
-            ).cardColumns,
-            spacing: 4,
-            children: [
-              for (final stock in overview.properties)
-                PropertyCard(summary: stock.summary),
-            ],
+        if (overview.properties.isEmpty)
+          const _NoProperties()
+        else
+          LayoutBuilder(
+            builder: (context, constraints) => CardGrid(
+              columns: WindowSizeClass.fromWidth(
+                constraints.maxWidth,
+              ).cardColumns,
+              spacing: 4,
+              children: [
+                for (final stock in overview.properties)
+                  PropertyCard(summary: stock.summary),
+              ],
+            ),
           ),
-        ),
       ],
+    );
+  }
+}
+
+/// Where the property cards will be, and the first step towards them.
+class _NoProperties extends StatelessWidget {
+  const _NoProperties();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              backgroundColor: colors.primaryContainer,
+              child: Icon(
+                Icons.home_work_outlined,
+                color: colors.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('No properties yet', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Create a property, add its paddocks, then record '
+                    'movements between them.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Create a property'),
+                    onPressed: () =>
+                        addProperty(context, RepositoryScope.of(context)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -524,7 +583,10 @@ class _Livestock extends StatelessWidget {
       link: 'Templates',
       linkTo: '/templates',
       child: classes.isEmpty
-          ? _Quiet('Nothing on hand. Record an intake to start counting.')
+          ? const _Quiet(
+              'Nothing on hand yet. Each class is counted here once an '
+              'intake brings stock in.',
+            )
           : Column(
               spacing: 12,
               children: [
@@ -691,7 +753,10 @@ class _RecentActivity extends StatelessWidget {
         stream: entries,
         builder: (context, snapshot) => switch (snapshot.data) {
           null => const SizedBox(height: 48),
-          [] => _Quiet('Nothing recorded yet.'),
+          [] => const _Quiet(
+            'Nothing recorded yet. The latest movements show here as they '
+            'are recorded.',
+          ),
           final entries => Column(
             children: [for (final entry in entries) ActivityTile(entry: entry)],
           ),

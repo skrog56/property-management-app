@@ -43,8 +43,9 @@ same commit — a deliberate act, never a side effect of another change.
   last 30 days, and the latest movements. Each opens the page it summarises,
   and the head ready to sell scrolls to the mobs. The 30 days are whole days,
   today the last, and move on at midnight even with Home left open.
-  *Record movement* is on Home as on Activity. With no properties yet, it
-  offers to create one.
+  *Record movement* is on Home as on Activity. On a new install every section
+  is already there, at zero or saying what it will hold, and Properties offers
+  to create the first property.
 
 - **The real livestock templates.** Breeder (cows, calves and weaners),
   Backgrounders (steers and heifers), Feeders (steers and heifers) and Fats

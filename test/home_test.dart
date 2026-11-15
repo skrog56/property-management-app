@@ -215,11 +215,37 @@ void main() {
   });
 
   group('HomePage', () {
-    testPage('offers to create a property when there are none', (tester) async {
-      await pumpPage(tester, const HomePage(), repository: repo);
+    testPage('a new install shows every section, and where to start', (
+      tester,
+    ) async {
+      await pumpPage(tester, const HomePage(), repository: repo, height: 3000);
 
+      expect(find.text('Head on hand'), findsOneWidget);
+      expect(
+        find.text('across every property, once stock is recorded'),
+        findsOneWidget,
+      );
+      for (final heading in [
+        'Properties',
+        'Paddocks',
+        'Tagged',
+        'Livestock',
+        'Last 30 days',
+        'Recent activity',
+      ]) {
+        expect(find.text(heading), findsWidgets, reason: heading);
+      }
+      // The figure and its section.
+      expect(find.text('Ready to sell'), findsNWidgets(2));
+      expect(find.textContaining('Mark a mob ready to sell'), findsOneWidget);
+      expect(find.textContaining('Nothing on hand yet'), findsOneWidget);
+      expect(find.textContaining('Nothing recorded yet'), findsOneWidget);
       expect(find.text('No properties yet'), findsOneWidget);
-      expect(find.text('Create a property'), findsOneWidget);
+      expect(find.bySemanticsLabel('Record movement'), findsNothing);
+
+      await tester.tap(find.text('Create a property'));
+      await drain(tester);
+      expect(find.text('New property'), findsOneWidget);
     });
 
     testPage('shows the total, the figures and every section', (tester) async {
@@ -244,7 +270,7 @@ void main() {
       );
     });
 
-    testPage('leaves out Ready to sell while nothing is', (tester) async {
+    testPage('says so while nothing is ready to sell', (tester) async {
       final property = await repo.createProperty('Riverbend Downs');
       final north = await repo.createPaddock(property, 'North Ridge');
       await repo.record(
@@ -255,8 +281,9 @@ void main() {
       );
       await pumpPage(tester, const HomePage(), repository: repo);
 
-      // The tile, and no section.
-      expect(find.text('Ready to sell'), findsOneWidget);
+      expect(find.text('Ready to sell'), findsNWidgets(2));
+      expect(find.textContaining('Mark a mob ready to sell'), findsOneWidget);
+      expect(find.text('No properties yet'), findsNothing);
     });
 
     testPage('names each animal only when there are two', (tester) async {
@@ -338,18 +365,6 @@ void main() {
       expect(tester.getRect(row).bottom, lessThan(500));
     });
 
-    testPage('Ready to sell does nothing while nothing is', (tester) async {
-      final property = await repo.createProperty('Riverbend Downs');
-      await repo.createPaddock(property, 'North Ridge');
-      await pumpPage(tester, const HomePage(), repository: repo);
-
-      final tile = find.ancestor(
-        of: find.text('Ready to sell'),
-        matching: find.byType(InkWell),
-      );
-      expect(tester.widget<InkWell>(tile).onTap, isNull);
-    });
-
     testPage('offers to record a movement once there is a paddock', (
       tester,
     ) async {
@@ -419,6 +434,15 @@ void main() {
         await pumpRouted(tester, repository: repo, location: '/');
         await tapShown(tester, find.widgetWithText(TextButton, link));
         expect(selected(tester), index, reason: link);
+      }
+    });
+
+    testPage('an empty install lays out without overflow at every width', (
+      tester,
+    ) async {
+      for (final width in [320.0, 360.0, 700.0, 1000.0, 1300.0, 1900.0]) {
+        await pumpRouted(tester, repository: repo, location: '/', width: width);
+        expect(tester.takeException(), isNull, reason: 'at ${width}px');
       }
     });
 
