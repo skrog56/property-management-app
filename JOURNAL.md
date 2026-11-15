@@ -7,6 +7,92 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-15 — Settings, and how long ended stock stays visible
+
+### What prompted it
+
+The user started on the Settings item of Phase 2. The specification has one
+setting: "configurable end-state duration, how long sold cattle sort of stick
+around in the app". Stock is counted by class, so sold head leaves its
+paddock's count the moment it is recorded. What "sticks around" is only what
+the app chooses to keep showing, so the question was which places that is.
+
+### Decided
+
+- **The duration governs four places**, all chosen by the user: Home's
+  totals of what came and went, which were a fixed 30 days; a paddock's
+  Deaths, which listed the latest ten however old; the Tags list, which kept a
+  sold or dead animal's tag greyed out forever; and a new *Recently left*
+  section on each paddock, for stock sold, sent to the meatworks, lost or
+  otherwise ended. Activity is the ledger and always shows everything.
+- **Presets or a custom length.** The user asked for 7, 30 and 90 days, a
+  year and always, plus a custom number of days, weeks, months or years. 30
+  days is the default because it is what Home already showed. A custom
+  length in use is listed beside the presets until another is chosen.
+- **A stretch is whole local days, today the last**, as Home's 30 days were.
+  Weeks are seven days each; months and years are calendar ones, and a month
+  back from the 31st stops at the end of a shorter month.
+- **Two more settings came in the same round**, both the user's choice: the
+  theme (system, light or dark), and the Templates page keeping *Group by
+  animal* and its sort, which the 2026-11-09 entry left for Settings. The
+  Developer page's theme override went, so there is one control and it is
+  kept.
+- **Remembering the Templates view is a toggle.** It was first built to
+  always remember. The user then asked for a setting, and chose a toggle
+  over Settings picking the grouping and sort itself, or a default the page
+  falls back to. It is on to begin with, as it already behaved. Turning it
+  off forgets the stored view, so turning it back on starts from the
+  defaults rather than a view left from before.
+- **Settings are a table, not `shared_preferences`.** Drift is already on all
+  six targets, runs in memory in tests, and will travel with export and sync.
+  A row's id is the setting's name, not a UUID, so two devices that set the
+  same one will meet in one row rather than two. Schema v5 adds the table and
+  discards nothing.
+- **`AppSettings` hangs off the repository**, read once at launch before the
+  first frame so the app opens in the chosen theme, kept in memory, each
+  change written through. Every page that has the repository has it, so tests
+  needed no new scope. Pages listen to it, so a change shows at once on a
+  page already open.
+- **A tag on its own page still says how it left.** The Tags list hides only
+  tags whose animal ended before the cutoff, says how many and that a search
+  finds them, and a search looks through every tag. Cancelled and replaced
+  tags are not ended stock, so they stay listed.
+- **The developer reset keeps settings.** It resets the farm, not the
+  person's preferences.
+
+### Verification
+
+293 tests, up from 261. New ones cover each unit's start and the month-end
+clamp, labels, the stored code read back and bad codes refused, settings
+kept for the next launch in one row each, Home's totals and title following
+the setting while open, Deaths and Recently left in and out of the window,
+under always and after a change while open, the Tags list hiding, counting,
+searching and restoring, the Templates view coming back on a fresh
+repository or not when the toggle is off, the toggle forgetting the stored
+view, the developer reset keeping settings, the Settings page's list,
+custom dialog, cancel, toggle, theme and More on a phone, and a v4 farm
+reaching v5 untouched. Five existing tests changed with the new wording,
+parameters and destination.
+
+A throwaway render with the bundled Roboto showed Settings at 360 and 1200
+dp, the custom dialog on a phone, and the sample farm's paddocks and Tags
+under six weeks. It caught *System* breaking over two lines on a phone, so
+the theme buttons dropped their check mark and show the choice by fill. A
+widget test caught the unit list overflowing a 320 dp dialog. The render was
+deleted afterwards, and came before the Templates toggle, which has only
+been seen in widget tests. `flutter build web` passed.
+
+### Open
+
+- Not yet tried in a running build or on a phone, and not restarted to see
+  the settings kept outside tests.
+- A paddock's and the Tags list's cutoff moves on at their next rebuild after
+  midnight. Only Home has a midnight timer.
+- Whether the end-state duration should also apply anywhere Activity is
+  filtered, if Activity ever gains filters.
+- Export, the last Phase 2 item.
+- *One animal or many* (Phase 5) could later be another row in the same table.
+
 ## 2026-11-15 — One breadcrumb trail on every page
 
 ### What prompted it
