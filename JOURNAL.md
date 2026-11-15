@@ -7,6 +7,35 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-15 — Ubuntu CI runners pinned to 24.04
+
+### What happened
+
+The 2026-11-09 runs carried GitHub's notice that `ubuntu-latest` began moving
+to Ubuntu 26 on 2026-10-19. Analyze and test, Linux, Android and Web all ran on
+that label. They passed, but a label that moves underneath the workflow can
+fail a build with nothing in the repo having changed. `e5ffd7a` pins all four
+to `ubuntu-24.04`. Windows and macOS keep their `-latest` labels, which carried
+no notice.
+
+### Decided
+
+- **Pinned now, not after a failure.** The cost is one line per job and a
+  deliberate bump later. The alternative is debugging a red build caused by a
+  runner change.
+- **No changelog entry.** Nothing in the app changes.
+
+### Verification
+
+CI run 43672065492 passed on all six targets. The Ubuntu notice is gone from
+its annotations; only the macOS arm64 queue warning remains.
+
+### Open
+
+- Moving to Ubuntu 26 is now a decision to make, not something that happens
+  on its own. GitHub retires runner images on its own schedule, so 24.04 will
+  eventually need bumping too.
+
 ## 2026-11-09 — Templates by animal, with search, sorting and a grid
 
 ### What prompted it
