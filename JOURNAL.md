@@ -7,6 +7,41 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-15 — Home on a new install
+
+### What happened
+
+The user opened a fresh install in Chrome and found Home almost blank: the
+whole-page *No properties yet* prompt that Properties uses, centred in the
+content area. They wanted to see what Home will hold even before anything is
+recorded.
+
+Home now draws every section whatever the data:
+- the head on hand reads 0, *across every property, once stock is recorded*;
+- the four figures read 0;
+- Ready to sell is always shown, and says to mark a mob from its paddock. It
+  was hidden when empty, which the entry below decided. A section that comes
+  and goes also left its figure with nowhere to scroll to, so that figure can
+  now always be tapped;
+- Properties holds a *No properties yet* card with *Create a property*, the
+  same first step as before, now in the place the property cards will fill;
+- Livestock and Recent activity say what will appear in them;
+- Last 30 days shows its lines with dashes, as it already did.
+
+*Record movement* still waits for a paddock, since the form has nothing to
+offer before one exists. `FirstRun` went back to being private to the
+Properties page, its only user again.
+
+### Verification
+
+248 tests: one replaced (the figure that couldn't be tapped), one added (an
+empty install with no overflow from 320 to 1900 dp). The new-install test
+checks every section heading and empty line, and that *Create a property*
+opens its dialog. A throwaway render of an empty install at 1920 dp in dark,
+as in the user's screenshot, and 360 dp in light showed every section. It also
+showed the Ready to sell line centred out of line with the others, since its
+column centred short children. It is stretched now.
+
 ## 2026-11-15 — Home's two loose ends
 
 ### What happened
