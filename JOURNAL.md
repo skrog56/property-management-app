@@ -7,6 +7,83 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-15 — Home, the page the app opens on
+
+### What prompted it
+
+With Properties, Activity, Tags and Templates all built, the user asked for a
+homepage as the default route: a high-level view of everything going on that
+looks good, is easy to read, and leads to the pages where the work is done.
+Until now `/` only redirected to Properties.
+
+### Decided
+
+- **Sections, chosen by the user.** The total head on hand, four figures
+  (properties, paddocks, head ready to sell, tags in use), the mobs ready to
+  sell, a card per property, the head in each class, the last 30 days, and
+  recent activity. They turned down a getting-started checklist for a new
+  install. With no properties, Home shows the same *Create a property*
+  prompt as Properties.
+- **Five slots in the phone's bar**: Home, Properties, Activity, Tags, More.
+  The other option was to move Tags under More. Measured in the bundled Roboto
+  Medium, "Properties" needs 60.8 dp and a slot at 320 dp is 64.
+  `bottom_bar_labels_test.dart` now checks five labels, and they fit.
+- **Home's icon is a dashboard, not a house.** A house beside Properties'
+  `home_work` would read as the same place.
+- **Unknown addresses land on Home**, the new default, rather than
+  Properties.
+- **One watch, still derived.** `watchOverview` runs the same balance query
+  as the paddock tier for every paddock, groups the paddocks under their live
+  properties, and folds the totals, per-class sums, ready-to-sell mobs and
+  head per animal from those. Nothing new is stored. `_assemble` was split so
+  both share the rows-to-mobs step. It also reads the label tables, so a
+  rename in the template editor reaches an open Home, and a test checks that.
+- **The last 30 days are by when things happened**, `occurred_at`, not by
+  when they were entered. Brought in, to the meatworks, sold and died always
+  show; lost and other only once they happen. The window is worked out each
+  time the watch fires, so a Home left open for days does not move it on
+  until something changes.
+- **Livestock by class is a meter list in one hue**: the class with its
+  animal, the exact figure, and an 8 px bar against the largest class
+  beneath. `primary` on `surfaceContainerHighest`, so there is no palette to
+  tune, and the bar is hidden from screen readers since the figure says it.
+- **One large figure.** The total uses `displayLarge` and scales down to fit
+  rather than wrapping. A six-figure herd at 320 dp wrapped, and the overflow
+  test caught the per-animal line beside it running 3 px over. The count per
+  animal shows only once two animals have head, since one animal's share says
+  nothing.
+- **Layout follows `contentColumns` of the content area**: one column, then
+  two from 840 dp, then three from 1600 dp. The figures sit two across on a
+  phone and four elsewhere, a new `tileColumns`. Property cards reuse
+  `PropertyCard`, made public along with `FirstRun`.
+
+### Verification
+
+244 tests, up from 224. New ones cover the overview's totals, sums across
+properties, ready-to-sell mobs, the 30-day window (a 40-day-old intake is left
+out), a class rename reaching the stream, every section on screen, Ready to
+sell hiding when empty, the count updating after a movement, each link landing
+on the right destination, and no overflow from 320 to 1900 dp. Seven existing
+tests moved with the new first slot.
+
+A throwaway widget test rendered Home on the sample farm through the real
+shell and theme, with the bundled Roboto and the SDK's icon font, at 360, 1000
+and 1900 dp in light and dark. It was deleted afterwards. With
+`debugDisableShadows` on, as `flutter_test` sets it, every card and the action
+button draw a solid black outline. Turning it off showed them as they are. The
+arrows in activity entries draw as missing glyphs in these renders because
+Roboto has no `→` and tests have no fallback font. The app has a fallback.
+`flutter build web` passed.
+
+### Open
+
+- Not yet clicked through in a running build or on a phone. The links are
+  covered by routed widget tests only.
+- Whether the 30-day window should be a setting, alongside the end-state
+  duration Settings is meant to hold.
+- The Ready to sell tile has nowhere to go. Its section on the same page lists
+  the mobs.
+
 ## 2026-11-15 — Pickers in a plain dropdown's text, and loose ends
 
 ### What happened
