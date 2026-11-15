@@ -66,7 +66,10 @@ whole while *Properties* and *Riverbend Downs* shortened.
 
 ### Open
 
-- Still not clicked through in a running build or on a phone.
+- The user then tried Home and the trail in a running build, which closes
+  that item for this entry and the Home entries below it. None of it has
+  been tried on a phone: the five-slot bar, the back arrow and page alone,
+  and Home's layout, with the search pickers and dragging from earlier.
 
 ## 2026-11-15 — Home on a new install
 
