@@ -209,6 +209,99 @@ class PropertySummary {
   final int head;
 }
 
+/// A property and what stands in each of its paddocks.
+class PropertyStock {
+  const PropertyStock({required this.property, required this.paddocks});
+
+  final Property property;
+  final List<PaddockSummary> paddocks;
+
+  int get head => paddocks.fold(0, (sum, paddock) => sum + paddock.head);
+
+  PropertySummary get summary => PropertySummary(
+    property: property,
+    paddockCount: paddocks.length,
+    head: head,
+  );
+}
+
+/// A mob and where it stands.
+typedef PlacedMob = ({Property property, Paddock paddock, MobLine mob});
+
+/// The head that came in and left over a stretch of days.
+class Flows {
+  const Flows({required this.days, this.broughtIn = 0, this.ended = const {}});
+
+  final int days;
+  final int broughtIn;
+  final Map<EndState, int> ended;
+
+  int endedAs(EndState state) => ended[state] ?? 0;
+}
+
+/// Every property's stock at once. Its totals are folded from the paddocks'
+/// mobs, which are folded from the ledger.
+class Overview {
+  const Overview({
+    required this.properties,
+    required this.activeTags,
+    required this.flows,
+  });
+
+  final List<PropertyStock> properties;
+
+  /// Tags on animals still standing in a paddock.
+  final int activeTags;
+  final Flows flows;
+
+  Iterable<PaddockSummary> get _paddocks =>
+      properties.expand((property) => property.paddocks);
+
+  int get head => properties.fold(0, (sum, property) => sum + property.head);
+
+  int get paddockCount => _paddocks.length;
+
+  int get emptyPaddocks => _paddocks.where((paddock) => paddock.isEmpty).length;
+
+  /// The head in each class across every paddock, in template order.
+  List<MobLine> get classes {
+    final lines = <String, MobLine>{};
+    for (final paddock in _paddocks) {
+      for (final mob in paddock.mobs) {
+        lines.update(
+          mob.stockClass.id,
+          (line) =>
+              MobLine(stockClass: line.stockClass, head: line.head + mob.head),
+          ifAbsent: () => mob,
+        );
+      }
+    }
+    return lines.values.toList()
+      ..sort((a, b) => StockClass.compare(a.stockClass, b.stockClass));
+  }
+
+  List<PlacedMob> get readyToSell => [
+    for (final stock in properties)
+      for (final paddock in stock.paddocks)
+        for (final mob in paddock.mobs)
+          if (mob.stockClass.isReadyToSell)
+            (property: stock.property, paddock: paddock.paddock, mob: mob),
+  ];
+
+  /// The head of each animal on hand, in the order animals are listed.
+  Map<Species, int> get headBySpecies {
+    final head = <Species, int>{};
+    for (final line in classes) {
+      final species = line.stockClass.template.species;
+      head[species] = (head[species] ?? 0) + line.head;
+    }
+    return {
+      for (final species in Species.values)
+        if (head[species] case final count? when count != 0) species: count,
+    };
+  }
+}
+
 /// Every head count in the app comes out of here, folded from [Movements].
 class LivestockRepository {
   LivestockRepository(this.db);
@@ -369,14 +462,14 @@ class LivestockRepository {
   Future<List<PaddockSummary>> _assemble(
     String propertyId,
     List<QueryRow> rows,
-  ) async {
-    final paddocks =
-        await (db.select(db.paddocks)
-              ..where((p) => p.propertyId.equals(propertyId))
-              ..where((p) => p.deletedAt.isNull())
-              ..orderBy([(p) => OrderingTerm(expression: p.name)]))
-            .get();
+  ) async => _summaries(await paddocksIn(propertyId), rows);
 
+  /// Each of [paddocks] with its mobs, from [rows] of a paddock, a class and
+  /// the head of it there.
+  Future<List<PaddockSummary>> _summaries(
+    List<Paddock> paddocks,
+    List<QueryRow> rows,
+  ) async {
     final classes = await _classesById();
 
     final mobs = <String, List<MobLine>>{};
@@ -397,6 +490,106 @@ class LivestockRepository {
       for (final paddock in paddocks)
         PaddockSummary(paddock: paddock, mobs: mobs[paddock.id] ?? const []),
     ];
+  }
+
+  /// Every property with its paddocks and their mobs, the tags on hand, and
+  /// what came in and left over the last [days].
+  Stream<Overview> watchOverview({int days = 30}) {
+    return db
+        .customSelect(
+          '''
+          SELECT p.id AS pid, b.class_id AS cid, SUM(b.delta) AS head
+            FROM paddocks p
+            LEFT JOIN ($_balances) b ON b.paddock_id = p.id
+           WHERE p.deleted_at IS NULL
+           GROUP BY p.id, b.class_id
+          HAVING b.class_id IS NULL OR SUM(b.delta) <> 0
+          ''',
+          readsFrom: {
+            db.properties,
+            db.paddocks,
+            db.movements,
+            db.movementTags,
+            db.livestockTags,
+            ..._labelTables,
+          },
+        )
+        .watch()
+        .asyncMap((rows) async {
+          final paddocks =
+              await (db.select(db.paddocks)
+                    ..where((p) => p.deletedAt.isNull())
+                    ..orderBy([(p) => OrderingTerm(expression: p.name)]))
+                  .get();
+          final summaries = await _summaries(paddocks, rows);
+          final properties = await this.properties()
+            ..sort((a, b) => a.name.compareTo(b.name));
+
+          return Overview(
+            properties: [
+              for (final property in properties)
+                PropertyStock(
+                  property: property,
+                  paddocks: [
+                    for (final summary in summaries)
+                      if (summary.paddock.propertyId == property.id) summary,
+                  ],
+                ),
+            ],
+            activeTags: await _activeTags(),
+            flows: await _flows(days),
+          );
+        });
+  }
+
+  Future<int> _activeTags() async {
+    final row = await db
+        .customSelect(
+          '''
+          SELECT COUNT(*) AS c
+            FROM livestock_tags t JOIN ($_tagLatest) l ON l.tag_id = t.id
+           WHERE t.deleted_at IS NULL AND $_isActive
+          ''',
+          readsFrom: {db.livestockTags, db.movementTags, db.movements},
+        )
+        .getSingle();
+    return row.read<int>('c');
+  }
+
+  /// Counted by when each movement happened, not when it was entered.
+  Future<Flows> _flows(int days) async {
+    final rows = await db
+        .customSelect(
+          '''
+          SELECT kind, end_state, SUM(head) AS head FROM movements
+           WHERE deleted_at IS NULL AND occurred_at >= ?1
+             AND kind IN ('${MovementKind.intake.name}',
+                          '${MovementKind.endState.name}')
+           GROUP BY kind, end_state
+          ''',
+          // In UTC, as every movement's time is stored, so the two compare
+          // as text.
+          variables: [
+            Variable<DateTime>(
+              DateTime.now().toUtc().subtract(Duration(days: days)),
+            ),
+          ],
+          readsFrom: {db.movements},
+        )
+        .get();
+
+    var broughtIn = 0;
+    final ended = <EndState, int>{};
+    for (final row in rows) {
+      final head = row.read<int>('head');
+      final state = _byName(EndState.values, row.read<String?>('end_state'));
+      if (row.read<String>('kind') == MovementKind.intake.name) {
+        broughtIn += head;
+      } else if (state != null) {
+        ended[state] = head;
+      }
+    }
+    return Flows(days: days, broughtIn: broughtIn, ended: ended);
   }
 
   /// The bottom tier: one paddock and the mobs standing in it. Emits null once

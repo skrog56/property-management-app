@@ -192,7 +192,7 @@ void main() {
 
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-      2,
+      3,
     );
     expect(findRichText('In North Ridge, Riverbend Downs'), findsOneWidget);
   });

@@ -62,7 +62,7 @@ void main() {
       for (final e in homeDestinations(developer: true)) e.destination,
     ]);
 
-    expect(labels, hasLength(4));
+    expect(labels, hasLength(5));
     for (final p in labels) {
       final text = p.text.toPlainText();
       expect(

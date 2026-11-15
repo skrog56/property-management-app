@@ -34,6 +34,16 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- **Home**, the page the app now opens on. It shows the head on hand across
+  every property, with a count for each animal once there are two, then the
+  number of properties, paddocks (and how many are empty), head ready to sell
+  and tags in use. Below are the mobs ready to sell and where they stand, a
+  card for each property, the head in each class with a bar against the
+  largest, what was brought in, sold, sent to the meatworks or died in the
+  last 30 days, and the latest movements. Each opens the page it summarises,
+  and *Record movement* is on Home as on Activity. With no properties yet, it
+  offers to create one.
+
 - **The real livestock templates.** Breeder (cows, calves and weaners),
   Backgrounders (steers and heifers), Feeders (steers and heifers) and Fats
   (bullocks and cows) replace the provisional Beef and Dairy lists, in that
@@ -176,6 +186,10 @@ same commit — a deliberate act, never a side effect of another change.
   deployment is configured.
 
 ### Changed
+- **The app opens on Home**, not Properties, and so does an address it doesn't
+  know. On a phone the bottom bar holds Home, Properties, Activity, Tags and
+  More, every label still whole on a 320 dp screen.
+
 - **Built with Flutter 3.47.9**, up from 3.44.9, locally and in CI.
 
 - **A class is named with its template**, as in *Steers (Feeders)*, since

@@ -25,6 +25,7 @@ void main() {
 
     test('release builds have no Developer destination', () {
       expect(labels(developer: false), [
+        'Home',
         'Properties',
         'Activity',
         'Tags',
@@ -35,6 +36,7 @@ void main() {
 
     test('debug builds put Developer before About', () {
       expect(labels(developer: true), [
+        'Home',
         'Properties',
         'Activity',
         'Tags',
@@ -58,7 +60,7 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
-      expect(find.byType(NavigationDestination), findsNWidgets(4));
+      expect(find.byType(NavigationDestination), findsNWidgets(5));
 
       await tester.tap(find.text('More'));
       await settle(tester);
@@ -74,7 +76,7 @@ void main() {
       );
       expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-        3,
+        4,
       );
     });
   });

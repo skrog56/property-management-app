@@ -222,7 +222,7 @@ void main() {
       expect(find.text('42.4 ha · 1 mob'), findsOneWidget);
       expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-        0,
+        1,
       );
     });
 
@@ -512,10 +512,11 @@ void main() {
       expect(find.text('This paddock is gone.'), findsOneWidget);
     });
 
-    testPage('an unknown path lands on Properties', (tester) async {
+    testPage('an unknown path lands on Home', (tester) async {
       await ids();
       await pumpRouted(tester, repository: repo, location: '/nowhere');
 
+      expect(find.text('Head on hand'), findsOneWidget);
       expect(find.text('Riverbend Downs'), findsOneWidget);
     });
 
@@ -574,7 +575,7 @@ void main() {
 
       expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-        2,
+        3,
       );
       expect(findRichText('In North Ridge, Riverbend Downs'), findsOneWidget);
     });

@@ -55,6 +55,10 @@ enum WindowSizeClass {
     WindowSizeClass.extraLarge => 4,
   };
 
+  /// Figures as small as a label and a number, which need less width than a
+  /// card holding a list.
+  int get tileColumns => this == WindowSizeClass.compact ? 2 : 4;
+
   /// How many tiers of a drill-down sit side by side, list-detail style.
   int get panes => switch (this) {
     WindowSizeClass.compact || WindowSizeClass.medium => 1,

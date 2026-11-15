@@ -14,6 +14,9 @@ rather than an oversight; see [`JOURNAL.md`](JOURNAL.md).
 
 ## What it does
 
+- **Home** — where the app opens: the head on hand, headline figures, what is
+  ready to sell, each property, the head in each class, the last 30 days'
+  comings and goings and the latest movements, each leading to its own page.
 - **Properties** — three tiers, each drilling into the next: properties, the
   paddocks under one property, then the livestock standing in one paddock with
   that paddock's own movement history. Head counts at every tier are derived
@@ -380,6 +383,7 @@ lib/
   shell/        Adaptive scaffold, Material 3 breakpoints, the drill-down route
   data/         Drift schema, repository, platform-specific connection
   features/
+    home/             Where the app opens: everything at a glance
     properties/       Three tiers: properties → paddocks → one paddock's livestock
     transfers/        The movement form — one dialog, four kinds — and the
                       shortcuts on a mob: Record death, ready to sell

@@ -5,6 +5,7 @@ import '../features/about/about_page.dart';
 import '../features/activity/activity_page.dart';
 import '../features/developer/dev_mode.dart';
 import '../features/developer/developer_page.dart';
+import '../features/home/home_page.dart';
 import '../features/properties/paths.dart';
 import '../features/properties/properties_browser.dart';
 import '../features/tags/paths.dart';
@@ -15,12 +16,23 @@ import '../shell/tier_route.dart';
 
 const appTitle = 'Property Management App';
 
+const homePath = '/';
+
 /// Destinations whose browser puts its own title, and back button, in a bar.
 const _drawOwnBar = {propertiesPath, tagsPath};
 
 typedef HomeDestination = ({AppDestination destination, GoRoute route});
 
 List<HomeDestination> homeDestinations({bool developer = devMode}) => [
+  (
+    // Not a house, which beside Properties' would read as the same place.
+    destination: const AppDestination(
+      label: 'Home',
+      icon: Icons.space_dashboard_outlined,
+      selectedIcon: Icons.space_dashboard,
+    ),
+    route: GoRoute(path: homePath, builder: (_, _) => const HomePage()),
+  ),
   (
     destination: const AppDestination(
       label: 'Properties',
@@ -127,16 +139,15 @@ List<HomeDestination> homeDestinations({bool developer = devMode}) => [
 ];
 
 GoRouter buildRouter({
-  String initialLocation = propertiesPath,
+  String initialLocation = homePath,
   bool developer = devMode,
 }) {
   final entries = homeDestinations(developer: developer);
 
   return GoRouter(
     initialLocation: initialLocation,
-    onException: (_, _, router) => router.go(propertiesPath),
+    onException: (_, _, router) => router.go(homePath),
     routes: [
-      GoRoute(path: '/', redirect: (_, _) => propertiesPath),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AdaptiveScaffold(
           destinations: [for (final e in entries) e.destination],

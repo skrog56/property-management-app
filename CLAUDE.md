@@ -72,6 +72,8 @@ lib/
                that narrows a long list as you type
   data/        Drift schema, repository, platform-specific connection
   features/
+    home/             Where the app opens: the head on hand, headline
+                      figures and a section for each page, each leading to it
     properties/       Three tiers: properties → paddocks → one paddock's livestock,
                       laid out as list-detail panes by PropertiesBrowser
     transfers/        The movement form — one dialog, four kinds — which a

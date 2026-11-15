@@ -28,7 +28,7 @@ class PropertiesPage extends StatelessWidget {
         }
 
         final summaries = snapshot.data!;
-        if (summaries.isEmpty) return _FirstRun(repository: repository);
+        if (summaries.isEmpty) return FirstRun(repository: repository);
 
         return Scaffold(
           backgroundColor: Colors.transparent,
@@ -50,7 +50,7 @@ class PropertiesPage extends StatelessWidget {
                   mainAxisExtent: 112,
                 ),
                 itemCount: summaries.length,
-                itemBuilder: (context, index) => _PropertyCard(
+                itemBuilder: (context, index) => PropertyCard(
                   summary: summaries[index],
                   selected: summaries[index].property.id == selectedId,
                 ),
@@ -76,8 +76,8 @@ Future<void> addProperty(
   if (name != null) await repository.createProperty(name.value, pic: name.pic);
 }
 
-class _PropertyCard extends StatelessWidget {
-  const _PropertyCard({required this.summary, required this.selected});
+class PropertyCard extends StatelessWidget {
+  const PropertyCard({super.key, required this.summary, this.selected = false});
 
   final PropertySummary summary;
   final bool selected;
@@ -151,8 +151,8 @@ class _PropertyCard extends StatelessWidget {
 
 /// The quick-start from the specification, reduced to its one unskippable
 /// step: without a property there is nowhere to put a paddock.
-class _FirstRun extends StatelessWidget {
-  const _FirstRun({required this.repository});
+class FirstRun extends StatelessWidget {
+  const FirstRun({super.key, required this.repository});
 
   final LivestockRepository repository;
 

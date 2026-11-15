@@ -52,6 +52,13 @@ void main() {
       expect(WindowSizeClass.extraLarge.contentColumns, 3);
     });
 
+    test('figure tiles sit two across until there is room for four', () {
+      expect(WindowSizeClass.compact.tileColumns, 2);
+      for (final sizeClass in WindowSizeClass.values.skip(1)) {
+        expect(sizeClass.tileColumns, 4, reason: '$sizeClass');
+      }
+    });
+
     test('drill-down panes grow with available width', () {
       expect(WindowSizeClass.compact.panes, 1);
       expect(WindowSizeClass.medium.panes, 1);
