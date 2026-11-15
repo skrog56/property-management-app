@@ -4,13 +4,11 @@ import 'package:flutter/rendering.dart';
 /// Overrides the developer can flip at runtime. Everything defaults to off, so
 /// an untouched instance leaves the app exactly as a user would see it.
 class DevSettings extends ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.system;
   double _textScale = 1.0;
   double? _simulatedWidth;
   bool _performanceOverlay = false;
   bool _semanticsDebugger = false;
 
-  ThemeMode get themeMode => _themeMode;
   double get textScale => _textScale;
   double? get simulatedWidth => _simulatedWidth;
   bool get performanceOverlay => _performanceOverlay;
@@ -18,7 +16,6 @@ class DevSettings extends ChangeNotifier {
   bool get paintSize => debugPaintSizeEnabled;
   bool get repaintRainbow => debugRepaintRainbowEnabled;
 
-  set themeMode(ThemeMode value) => _set(() => _themeMode = value);
   set textScale(double value) => _set(() => _textScale = value);
   set simulatedWidth(double? value) => _set(() => _simulatedWidth = value);
   set performanceOverlay(bool value) => _set(() => _performanceOverlay = value);

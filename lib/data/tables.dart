@@ -134,3 +134,9 @@ class MovementTags extends Table with SyncSafe {
   /// Set only when [role] is removed.
   TextColumn get reason => textEnum<TagReason>().nullable()();
 }
+
+/// One row per setting. Its id is the setting's name rather than a UUID, so
+/// two devices that set the same one meet in one row.
+class Settings extends Table with SyncSafe {
+  TextColumn get value => text()();
+}

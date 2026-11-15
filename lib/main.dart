@@ -25,6 +25,8 @@ Future<void> main() async {
 
   final repository = LivestockRepository(AppDatabase.defaults());
   await repository.seedTemplatesIfEmpty();
+  // Before the first frame, so it is drawn in the chosen theme.
+  await repository.settings.load();
 
   runApp(
     PropertyManagementApp(

@@ -239,6 +239,62 @@ void main() {
       expect(find.text('Merinos'), findsOneWidget);
     });
 
+    testPage('opens with the grouping and sort it was left with', (
+      tester,
+    ) async {
+      await repo.createTemplate('Merinos', species: Species.sheep);
+      Future<void> open(LivestockRepository repository) => pumpPage(
+        tester,
+        const TemplatesPage(),
+        height: 2400,
+        repository: repository,
+      );
+
+      await open(repo);
+      await tester.tap(find.text('Group by animal'));
+      await drain(tester);
+      await sortBy(tester, 'Custom Order', 'Name (Z–A)');
+
+      // As after a restart: settings read afresh from the database.
+      await tester.pumpWidget(const SizedBox.shrink());
+      final relaunched = LivestockRepository(db);
+      await tester.runAsync(relaunched.settings.load);
+      await open(relaunched);
+
+      expect(find.text('Cattle'), findsNothing);
+      expect(find.text('Name (Z–A)'), findsOneWidget);
+      expect(top(tester, 'Merinos'), lessThan(top(tester, 'Feeders')));
+    });
+
+    testPage('opens with the defaults when told not to remember', (
+      tester,
+    ) async {
+      await repo.createTemplate('Merinos', species: Species.sheep);
+      await tester.runAsync(
+        () => repo.settings.setRemembersTemplatesView(false),
+      );
+      Future<void> open(LivestockRepository repository) => pumpPage(
+        tester,
+        const TemplatesPage(),
+        height: 2400,
+        repository: repository,
+      );
+
+      await open(repo);
+      await tester.tap(find.text('Group by animal'));
+      await drain(tester);
+      await sortBy(tester, 'Custom Order', 'Name (Z–A)');
+      expect(find.text('Cattle'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      final relaunched = LivestockRepository(db);
+      await tester.runAsync(relaunched.settings.load);
+      await open(relaunched);
+
+      expect(find.text('Cattle'), findsOneWidget);
+      expect(top(tester, 'Feeders'), lessThan(top(tester, 'Merinos')));
+    });
+
     testPage('sorts in their own order first, then as chosen', (tester) async {
       final property = await repo.createProperty('Riverbend Downs');
       final north = await repo.createPaddock(property, 'North Flat');

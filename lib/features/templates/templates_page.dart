@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/app_settings.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../data/tables.dart';
@@ -79,6 +80,29 @@ class _TemplatesPageState extends State<TemplatesPage> {
     if (repository != _repository) {
       _repository = repository;
       _templates = repository.watchTemplates();
+      final settings = repository.settings;
+      if (settings.remembersTemplatesView) {
+        _grouped = settings[AppSettings.templatesGrouped] != 'false';
+        _sort =
+            _Sort.values.asNameMap()[settings[AppSettings.templatesSort]] ??
+            _Sort.custom;
+      }
+    }
+  }
+
+  void _setGrouped(bool grouped) {
+    setState(() => _grouped = grouped);
+    final settings = _repository!.settings;
+    if (settings.remembersTemplatesView) {
+      settings.put(AppSettings.templatesGrouped, '$grouped');
+    }
+  }
+
+  void _setSort(_Sort sort) {
+    setState(() => _sort = sort);
+    final settings = _repository!.settings;
+    if (settings.remembersTemplatesView) {
+      settings.put(AppSettings.templatesSort, sort.name);
     }
   }
 
@@ -276,14 +300,14 @@ class _TemplatesPageState extends State<TemplatesPage> {
           avatar: Icon(_grouped ? Icons.check : Icons.workspaces_outlined),
           label: const Text('Group by animal'),
           selected: _grouped,
-          onSelected: (grouped) => setState(() => _grouped = grouped),
+          onSelected: _setGrouped,
         ),
         MenuAnchor(
           menuChildren: [
             for (final sort in _Sort.values)
               MenuItemButton(
                 leadingIcon: Icon(sort == _sort ? Icons.check : null),
-                onPressed: () => setState(() => _sort = sort),
+                onPressed: () => _setSort(sort),
                 child: Text(sort.label),
               ),
           ],

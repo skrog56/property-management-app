@@ -10,6 +10,7 @@ import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
+import 'generated/schema_v5.dart' as v5;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -436,6 +437,107 @@ void main() {
             actorId: 'local',
           ),
         ]);
+      },
+    );
+  });
+
+  test('a v4 farm keeps everything, and starts with no settings', () async {
+    const at = '2026-11-15T00:00:00.000Z';
+
+    await verifier.testWithDataIntegrity(
+      oldVersion: 4,
+      newVersion: 5,
+      createOld: v4.DatabaseAtV4.new,
+      createNew: v5.DatabaseAtV5.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insert(
+          oldDb.properties,
+          const v4.PropertiesData(
+            id: 'riverbend',
+            createdAt: at,
+            updatedAt: at,
+            name: 'Riverbend Downs',
+          ),
+        );
+        batch.insert(
+          oldDb.paddocks,
+          const v4.PaddocksData(
+            id: 'north',
+            createdAt: at,
+            updatedAt: at,
+            propertyId: 'riverbend',
+            name: 'North Flat',
+            hectares: 120,
+          ),
+        );
+        batch.insert(
+          oldDb.templates,
+          const v4.TemplatesData(
+            id: 'flock',
+            createdAt: at,
+            updatedAt: at,
+            name: 'Flock',
+            isBuiltIn: 0,
+            sortOrder: 0,
+            species: 'sheep',
+          ),
+        );
+        batch.insert(
+          oldDb.livestockClasses,
+          const v4.LivestockClassesData(
+            id: 'ewes',
+            createdAt: at,
+            updatedAt: at,
+            templateId: 'flock',
+            kind: 'Ewes',
+            sortOrder: 0,
+          ),
+        );
+        batch.insert(
+          oldDb.movements,
+          const v4.MovementsData(
+            id: 'intake',
+            createdAt: at,
+            updatedAt: at,
+            occurredAt: at,
+            kind: 'intake',
+            toPaddockId: 'north',
+            toClassId: 'ewes',
+            head: 12,
+            actorId: 'local',
+          ),
+        );
+      },
+      validateItems: (newDb) async {
+        expect(await newDb.select(newDb.properties).get(), hasLength(1));
+        expect(await newDb.select(newDb.paddocks).get(), hasLength(1));
+        expect(await newDb.select(newDb.templates).get(), const [
+          v5.TemplatesData(
+            id: 'flock',
+            createdAt: at,
+            updatedAt: at,
+            name: 'Flock',
+            isBuiltIn: 0,
+            sortOrder: 0,
+            species: 'sheep',
+          ),
+        ]);
+        expect(await newDb.select(newDb.livestockClasses).get(), hasLength(1));
+        expect(await newDb.select(newDb.movements).get(), [
+          const v5.MovementsData(
+            id: 'intake',
+            createdAt: at,
+            updatedAt: at,
+            occurredAt: at,
+            kind: 'intake',
+            toPaddockId: 'north',
+            toClassId: 'ewes',
+            head: 12,
+            actorId: 'local',
+          ),
+        ]);
+        expect(await newDb.select(newDb.settings).get(), isEmpty);
       },
     );
   });

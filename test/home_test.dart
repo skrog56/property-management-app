@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:property_management_app/data/app_database.dart';
+import 'package:property_management_app/data/app_settings.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/tables.dart';
 import 'package:property_management_app/data/tag_numbers.dart';
@@ -142,7 +143,7 @@ void main() {
       );
 
       final flows = (await repo.watchOverview().first).flows;
-      expect(flows.days, 30);
+      expect(flows.retention, Retention.standard);
       expect(flows.broughtIn, 168);
       expect(flows.endedAs(EndState.sold), 5);
       expect(flows.endedAs(EndState.died), 1);
@@ -202,6 +203,28 @@ void main() {
       final overview = await repo.watchOverview().first;
       expect(overview.headBySpecies, {Species.cattle: 168, Species.sheep: 12});
     });
+
+    test('counts over the duration it is given', () async {
+      final ids = await seed();
+      await repo.record(
+        kind: MovementKind.intake,
+        head: 300,
+        toPaddockId: ids.north,
+        toClassId: 'weaners',
+        occurredAt: DateTime.now().subtract(const Duration(days: 40)),
+      );
+
+      Future<Flows> over(Retention retention) async =>
+          (await repo.watchOverview(retention: retention).first).flows;
+
+      expect((await over(Retention.standard)).broughtIn, 168);
+      expect(
+        (await over(const Retention(2, RetentionUnit.months))).broughtIn,
+        468,
+      );
+      expect((await over(Retention.always)).broughtIn, 468);
+      expect((await over(Retention.always)).retention, Retention.always);
+    });
   });
 
   test('figures group their thousands', () {
@@ -215,6 +238,18 @@ void main() {
   });
 
   group('HomePage', () {
+    testPage('its window follows the setting while it is open', (tester) async {
+      await seed();
+      await pumpPage(tester, const HomePage(), repository: repo, height: 3000);
+      expect(find.text('Last 30 days'), findsOneWidget);
+
+      await repo.settings.setRetention(const Retention(1, RetentionUnit.years));
+      await drain(tester);
+
+      expect(find.text('Last 30 days'), findsNothing);
+      expect(find.text('Past year'), findsOneWidget);
+    });
+
     testPage('a new install shows every section, and where to start', (
       tester,
     ) async {

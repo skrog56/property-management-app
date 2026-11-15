@@ -386,18 +386,6 @@ class _DisplayTab extends StatelessWidget {
         _Section(
           title: 'Overrides',
           children: [
-            const Text('Theme'),
-            const SizedBox(height: 8),
-            SegmentedButton<ThemeMode>(
-              segments: const [
-                ButtonSegment(value: ThemeMode.system, label: Text('System')),
-                ButtonSegment(value: ThemeMode.light, label: Text('Light')),
-                ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
-              ],
-              selected: {settings.themeMode},
-              onSelectionChanged: (s) => settings.themeMode = s.single,
-            ),
-            const SizedBox(height: 16),
             const Text('Text scale'),
             const SizedBox(height: 8),
             SegmentedButton<double>(

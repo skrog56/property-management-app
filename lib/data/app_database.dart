@@ -15,6 +15,7 @@ part 'app_database.g.dart';
     Movements,
     LivestockTags,
     MovementTags,
+    Settings,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -23,7 +24,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.defaults() : super(openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -49,6 +50,7 @@ class AppDatabase extends _$AppDatabase {
       },
       from3To4: (m, schema) =>
           m.addColumn(schema.templates, schema.templates.species),
+      from4To5: (m, schema) => m.createTable(schema.settings),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

@@ -190,6 +190,7 @@ void main() {
         ('/', ['Home']),
         ('/activity', ['Home', 'Activity']),
         ('/templates', ['Home', 'Templates']),
+        ('/settings', ['Home', 'Settings']),
         ('/about', ['Home', 'About']),
         ('/properties', ['Home', 'Properties']),
         (

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:property_management_app/data/app_database.dart';
+import 'package:property_management_app/data/app_settings.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/tables.dart';
 import 'package:property_management_app/data/tag_numbers.dart';
@@ -96,7 +97,7 @@ void main() {
       null;
 
   Future<List<Movement>> deaths() =>
-      repo.watchActivity(endState: EndState.died).first;
+      repo.watchActivity(endStates: {EndState.died}).first;
 
   /// Through the picker's typed entry, which does not depend on today.
   Future<void> enterDate(WidgetTester tester, String usDate) async {
@@ -388,14 +389,20 @@ void main() {
       await openPaddock(tester);
 
       expect(find.text('Deaths'), findsOneWidget);
-      expect(find.text('No deaths recorded here.'), findsOneWidget);
+      expect(
+        find.text('No deaths recorded here in the last 30 days.'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.widgetWithText(TextButton, 'Record death'));
       await settle(tester);
       await tester.tap(record());
       await settle(tester);
 
-      expect(find.text('No deaths recorded here.'), findsNothing);
+      expect(
+        find.text('No deaths recorded here in the last 30 days.'),
+        findsNothing,
+      );
       // Once among the deaths, and once in the recent activity below.
       expect(
         findRichText('1 head · North Ridge → died · Calves (Breeder)'),
@@ -408,6 +415,92 @@ void main() {
 
       expect(find.text('This paddock is empty.'), findsOneWidget);
       expect(find.text('Deaths'), findsNothing);
+    });
+
+    group('ended stock', () {
+      DateTime daysAgo(int days) =>
+          DateTime.now().subtract(Duration(days: days));
+
+      Future<void> end(int head, EndState state, {int daysAgo = 0}) =>
+          repo.record(
+            kind: MovementKind.endState,
+            head: head,
+            fromPaddockId: north,
+            fromClassId: classIds['Calves (Breeder)']!,
+            endState: state,
+            occurredAt: daysAgo == 0
+                ? null
+                : DateTime.now().subtract(Duration(days: daysAgo)),
+          );
+
+      /// A death and a sale 40 days ago, and a sale today.
+      Future<void> history() async {
+        await repo.record(
+          kind: MovementKind.intake,
+          head: 10,
+          toPaddockId: north,
+          toClassId: classIds['Calves (Breeder)']!,
+          occurredAt: daysAgo(60),
+        );
+        await end(1, EndState.died, daysAgo: 40);
+        await end(2, EndState.sold, daysAgo: 40);
+        await end(3, EndState.sold);
+      }
+
+      const oldDeath = '1 head · North Ridge → died · Calves (Breeder)';
+      const oldSale = '2 head · North Ridge → sold · Calves (Breeder)';
+      const newSale = '3 head · North Ridge → sold · Calves (Breeder)';
+
+      testPage('are listed only within the duration', (tester) async {
+        await history();
+        await openPaddock(tester);
+
+        expect(
+          find.text('No deaths recorded here in the last 30 days.'),
+          findsOneWidget,
+        );
+        expect(find.text('Recently left'), findsOneWidget);
+        // Each in Recently left, then once more in the recent activity.
+        expect(findRichText(newSale), findsNWidgets(2));
+        expect(findRichText(oldSale), findsOneWidget);
+        expect(findRichText(oldDeath), findsOneWidget);
+      });
+
+      testPage('are all listed while kept always', (tester) async {
+        await history();
+        await repo.settings.setRetention(Retention.always);
+        await openPaddock(tester);
+
+        expect(find.textContaining('No deaths recorded'), findsNothing);
+        expect(findRichText(newSale), findsNWidgets(2));
+        expect(findRichText(oldSale), findsNWidgets(2));
+        expect(findRichText(oldDeath), findsNWidgets(2));
+      });
+
+      testPage('follow a change of duration while open', (tester) async {
+        await history();
+        await openPaddock(tester);
+        expect(findRichText(oldDeath), findsOneWidget);
+
+        await repo.settings.setRetention(
+          const Retention(2, RetentionUnit.months),
+        );
+        await settle(tester);
+
+        expect(findRichText(oldDeath), findsNWidgets(2));
+        expect(findRichText(oldSale), findsNWidgets(2));
+      });
+
+      testPage('leave no Recently left section when nothing has left', (
+        tester,
+      ) async {
+        await intake('Calves (Breeder)', 5);
+        await end(1, EndState.died);
+        await openPaddock(tester);
+
+        expect(find.text('Deaths'), findsOneWidget);
+        expect(find.text('Recently left'), findsNothing);
+      });
     });
   });
 }

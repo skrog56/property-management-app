@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:property_management_app/data/app_database.dart';
+import 'package:property_management_app/data/app_settings.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/tables.dart';
 import 'package:property_management_app/data/tag_numbers.dart';
@@ -47,6 +48,79 @@ void main() {
     await pumpRouted(tester, repository: repo, location: '/tags');
 
     expect(find.textContaining('No tags yet'), findsOneWidget);
+  });
+
+  group('ended long ago', () {
+    final c = nlis('999000000000003');
+    DateTime daysAgo(int days) => DateTime.now().subtract(Duration(days: days));
+
+    /// [a] sold and [c] cancelled, both 50 days ago, and [b] still on hand.
+    Future<void> history() async {
+      await repo.record(
+        kind: MovementKind.intake,
+        head: 5,
+        toPaddockId: north,
+        toClassId: 'calves',
+        tags: [a, b, c],
+        occurredAt: daysAgo(60),
+      );
+      await repo.record(
+        kind: MovementKind.endState,
+        head: 1,
+        fromPaddockId: north,
+        fromClassId: 'calves',
+        endState: EndState.sold,
+        tags: [a],
+        occurredAt: daysAgo(50),
+      );
+      await repo.cancelTag(
+        (await repo.tagStatusByNumber(c))!.tag.id,
+        reason: TagReason.lost,
+        occurredAt: daysAgo(50),
+      );
+    }
+
+    testPage('leaves the list at rest, and says how to find them', (
+      tester,
+    ) async {
+      await history();
+      await pumpRouted(tester, repository: repo, location: '/tags');
+
+      expect(find.text('999 000000000001'), findsNothing);
+      expect(find.text('999 000000000002'), findsOneWidget);
+      // Cancelled is not ended stock.
+      expect(find.text('999 000000000003'), findsOneWidget);
+      expect(
+        find.textContaining('1 tag whose animal left before'),
+        findsOneWidget,
+      );
+
+      await tester.enterText(find.byType(TextField), '0001');
+      await drain(tester);
+
+      expect(find.text('999 000000000001'), findsOneWidget);
+      expect(find.textContaining('whose animal left'), findsNothing);
+    });
+
+    testPage('stay listed while ended stock is kept always', (tester) async {
+      await history();
+      await repo.settings.setRetention(Retention.always);
+      await pumpRouted(tester, repository: repo, location: '/tags');
+
+      expect(find.text('999 000000000001'), findsOneWidget);
+      expect(find.textContaining('whose animal left'), findsNothing);
+    });
+
+    testPage('come back as soon as the duration grows', (tester) async {
+      await history();
+      await pumpRouted(tester, repository: repo, location: '/tags');
+      expect(find.text('999 000000000001'), findsNothing);
+
+      await repo.settings.setRetention(const Retention(90, RetentionUnit.days));
+      await drain(tester);
+
+      expect(find.text('999 000000000001'), findsOneWidget);
+    });
   });
 
   testPage('lists every tag and narrows to a search', (tester) async {

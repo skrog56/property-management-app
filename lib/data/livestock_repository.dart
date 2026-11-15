@@ -6,6 +6,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:uuid/uuid.dart';
 
 import 'app_database.dart';
+import 'app_settings.dart';
 import 'tables.dart';
 import 'tag_numbers.dart';
 
@@ -176,6 +177,10 @@ class TagStatus {
   final LivestockTag? replacedBy;
 
   bool get isActive => role != TagRole.removed && paddock != null;
+
+  /// Left with its animal, sold, died or otherwise ended, rather than
+  /// cancelled or replaced.
+  bool get hasEnded => role != TagRole.removed && paddock == null;
 }
 
 typedef _Resolved = ({TagNumber number, LivestockTag? tag, TagStatus? status});
@@ -230,9 +235,13 @@ typedef PlacedMob = ({Property property, Paddock paddock, MobLine mob});
 
 /// The head that came in and left over a stretch of days, today the last.
 class Flows {
-  const Flows({required this.days, this.broughtIn = 0, this.ended = const {}});
+  const Flows({
+    required this.retention,
+    this.broughtIn = 0,
+    this.ended = const {},
+  });
 
-  final int days;
+  final Retention retention;
   final int broughtIn;
   final Map<EndState, int> ended;
 
@@ -308,6 +317,8 @@ class LivestockRepository {
 
   final AppDatabase db;
 
+  late final settings = AppSettings(db);
+
   /// What each drill-down watch last emitted, so a page can open already drawn.
   final _latest = <String, Object?>{};
 
@@ -351,17 +362,25 @@ class LivestockRepository {
     int limit = 200,
     String? paddockId,
     String? tagId,
-    EndState? endState,
+    Set<EndState>? endStates,
+    DateTime? since,
   }) =>
-      _latest[_activityKey(limit, paddockId, tagId, endState)]
+      _latest[_activityKey(limit, paddockId, tagId, endStates, since)]
           as List<ActivityEntry>?;
 
   static String _activityKey(
     int limit,
     String? paddockId,
     String? tagId,
-    EndState? endState,
-  ) => 'activity:$paddockId:$tagId:${endState?.name}:$limit';
+    Set<EndState>? endStates,
+    DateTime? since,
+  ) {
+    final states = endStates == null
+        ? null
+        : ([for (final s in endStates) s.name]..sort()).join(',');
+    return 'activity:$paddockId:$tagId:$states:'
+        '${since?.toUtc().toIso8601String()}:$limit';
+  }
 
   List<TagStatus>? latestTagsIn(String paddockId) =>
       _latest['tags:$paddockId'] as List<TagStatus>?;
@@ -493,8 +512,11 @@ class LivestockRepository {
   }
 
   /// Every property with its paddocks and their mobs, the tags on hand, and
-  /// what came in and left over the last [days], whole days by [clock].
-  Stream<Overview> watchOverview({int days = 30, DateTime Function()? clock}) {
+  /// what came in and left over [retention], whole days by [clock].
+  Stream<Overview> watchOverview({
+    Retention retention = Retention.standard,
+    DateTime Function()? clock,
+  }) {
     return db
         .customSelect(
           '''
@@ -537,7 +559,7 @@ class LivestockRepository {
                 ),
             ],
             activeTags: await _activeTags(),
-            flows: await _flows(days, (clock ?? DateTime.now)()),
+            flows: await _flows(retention, (clock ?? DateTime.now)()),
           );
         });
   }
@@ -557,22 +579,21 @@ class LivestockRepository {
   }
 
   /// Counted by when each movement happened, not when it was entered, from
-  /// the local midnight that starts the first of the [days].
-  Future<Flows> _flows(int days, DateTime now) async {
-    final local = now.toLocal();
-    final from = DateTime(local.year, local.month, local.day - (days - 1));
+  /// the local midnight that starts [retention].
+  Future<Flows> _flows(Retention retention, DateTime now) async {
+    final from = retention.since(now);
     final rows = await db
         .customSelect(
           '''
           SELECT kind, end_state, SUM(head) AS head FROM movements
-           WHERE deleted_at IS NULL AND occurred_at >= ?1
+           WHERE deleted_at IS NULL ${from == null ? '' : 'AND occurred_at >= ?1'}
              AND kind IN ('${MovementKind.intake.name}',
                           '${MovementKind.endState.name}')
            GROUP BY kind, end_state
           ''',
           // In UTC, as every movement's time is stored, so the two compare
           // as text.
-          variables: [Variable<DateTime>(from.toUtc())],
+          variables: [if (from != null) Variable<DateTime>(from.toUtc())],
           readsFrom: {db.movements},
         )
         .get();
@@ -588,7 +609,7 @@ class LivestockRepository {
         ended[state] = head;
       }
     }
-    return Flows(days: days, broughtIn: broughtIn, ended: ended);
+    return Flows(retention: retention, broughtIn: broughtIn, ended: ended);
   }
 
   /// The bottom tier: one paddock and the mobs standing in it. Emits null once
@@ -674,7 +695,8 @@ class LivestockRepository {
     int limit = 200,
     String? paddockId,
     String? tagId,
-    EndState? endState,
+    Set<EndState>? endStates,
+    DateTime? since,
   }) {
     final variables = <Variable>[];
     String bind(Variable variable) {
@@ -694,8 +716,14 @@ class LivestockRepository {
         'AND deleted_at IS NULL)',
       );
     }
-    if (endState != null) {
-      where.add('end_state = ${bind(Variable<String>(endState.name))}');
+    if (endStates != null) {
+      final states = [
+        for (final s in endStates) bind(Variable<String>(s.name)),
+      ];
+      where.add(states.isEmpty ? '0' : 'end_state IN (${states.join(', ')})');
+    }
+    if (since != null) {
+      where.add('occurred_at >= ${bind(Variable<DateTime>(since.toUtc()))}');
     }
 
     return db
@@ -714,14 +742,16 @@ class LivestockRepository {
     int limit = 200,
     String? paddockId,
     String? tagId,
-    EndState? endState,
+    Set<EndState>? endStates,
+    DateTime? since,
   }) {
     final entries =
         watchActivity(
           limit: limit,
           paddockId: paddockId,
           tagId: tagId,
-          endState: endState,
+          endStates: endStates,
+          since: since,
         ).asyncMap((movements) async {
           final paddocks = {
             for (final p in await db.select(db.paddocks).get()) p.id: p,
@@ -742,7 +772,7 @@ class LivestockRepository {
           ];
         });
     return _remembered(
-      _activityKey(limit, paddockId, tagId, endState),
+      _activityKey(limit, paddockId, tagId, endStates, since),
       entries,
     );
   }

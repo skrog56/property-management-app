@@ -8,6 +8,7 @@ import '../features/developer/developer_page.dart';
 import '../features/home/home_page.dart';
 import '../features/properties/paths.dart';
 import '../features/properties/properties_browser.dart';
+import '../features/settings/settings_page.dart';
 import '../features/tags/paths.dart';
 import '../features/tags/tags_browser.dart';
 import '../features/templates/templates_page.dart';
@@ -145,6 +146,18 @@ List<HomeDestination> homeDestinations({bool developer = devMode}) {
       route: GoRoute(
         path: '/templates',
         builder: (_, _) => const TemplatesPage(),
+      ),
+    ),
+    (
+      destination: const AppDestination(
+        label: 'Settings',
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
+        secondary: true,
+      ),
+      route: GoRoute(
+        path: '/settings',
+        builder: (_, _) => const SettingsPage(),
       ),
     ),
     if (developer)

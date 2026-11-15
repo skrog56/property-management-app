@@ -67,23 +67,46 @@ class PaddockPage extends StatelessWidget {
 }
 
 const _recentActivity = 25;
-const _recentDeaths = 10;
+const _recentEnded = 10;
+
+const _died = {EndState.died};
+const _left = {
+  EndState.meatworks,
+  EndState.sold,
+  EndState.lost,
+  EndState.other,
+};
 
 Future<void> preloadPaddock(LivestockRepository repository, String id) =>
     repository.warm([
       repository.watchPaddockSummary(id),
       repository.watchActivityEntries(paddockId: id, limit: _recentActivity),
-      _watchDeaths(repository, id),
+      _watchEnded(repository, id, _died),
+      _watchEnded(repository, id, _left),
       repository.watchTagsIn(id),
     ]);
 
-Stream<List<ActivityEntry>> _watchDeaths(
+/// Stock that ended here, as far back as the user keeps it in view.
+Stream<List<ActivityEntry>> _watchEnded(
   LivestockRepository repository,
   String paddockId,
+  Set<EndState> states,
 ) => repository.watchActivityEntries(
   paddockId: paddockId,
-  endState: EndState.died,
-  limit: _recentDeaths,
+  endStates: states,
+  since: repository.settings.retention.since(DateTime.now()),
+  limit: _recentEnded,
+);
+
+List<ActivityEntry>? _latestEnded(
+  LivestockRepository repository,
+  String paddockId,
+  Set<EndState> states,
+) => repository.latestActivityEntries(
+  paddockId: paddockId,
+  endStates: states,
+  since: repository.settings.retention.since(DateTime.now()),
+  limit: _recentEnded,
 );
 
 class _PaddockDetail extends StatelessWidget {
@@ -174,6 +197,7 @@ class _PaddockDetail extends StatelessWidget {
               _TagChips(tags: tags),
             ],
             _Deaths(summary: summary, repository: repository),
+            _RecentlyLeft(paddock: paddock, repository: repository),
             const SizedBox(height: 16),
             Text('Recent activity', style: theme.textTheme.titleMedium),
             const Divider(),
@@ -298,8 +322,9 @@ class _MobTile extends StatelessWidget {
   }
 }
 
-/// The deaths recorded here, with a way to record another while anything is
-/// standing. Hidden for a paddock that has had neither.
+/// The deaths recorded here as far back as ended stock is kept in view, with a
+/// way to record another while anything is standing. Hidden for a paddock
+/// with neither.
 class _Deaths extends StatelessWidget {
   const _Deaths({required this.summary, required this.repository});
 
@@ -311,47 +336,35 @@ class _Deaths extends StatelessWidget {
     final theme = Theme.of(context);
     final paddock = summary.paddock;
 
-    return StreamBuilder<List<ActivityEntry>>(
-      initialData: repository.latestActivityEntries(
-        paddockId: paddock.id,
-        endState: EndState.died,
-        limit: _recentDeaths,
-      ),
-      stream: _watchDeaths(repository, paddock.id),
-      builder: (context, snapshot) {
-        final deaths = snapshot.data ?? const <ActivityEntry>[];
+    return _Ended(
+      repository: repository,
+      paddock: paddock,
+      states: _died,
+      builder: (context, deaths, within) {
         if (summary.isEmpty && deaths.isEmpty) return const SizedBox.shrink();
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Text('Deaths', style: theme.textTheme.titleMedium),
-                ),
-                if (!summary.isEmpty)
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    onPressed: () => showDeathDialog(
-                      context,
-                      repository: repository,
-                      paddock: paddock,
-                    ),
-                    icon: const Icon(Icons.heart_broken_outlined),
-                    label: const Text('Record death'),
+        return _EndedSection(
+          title: 'Deaths',
+          action: summary.isEmpty
+              ? null
+              : TextButton.icon(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
                   ),
-              ],
-            ),
-            const Divider(),
+                  onPressed: () => showDeathDialog(
+                    context,
+                    repository: repository,
+                    paddock: paddock,
+                  ),
+                  icon: const Icon(Icons.heart_broken_outlined),
+                  label: const Text('Record death'),
+                ),
+          children: [
             if (deaths.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Text(
-                  'No deaths recorded here.',
+                  'No deaths recorded here${within == null ? '' : ' $within'}.',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
@@ -364,6 +377,104 @@ class _Deaths extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// Stock sold, sent to the meatworks or otherwise ended from here, as far back
+/// as ended stock is kept in view. Hidden when there is none.
+class _RecentlyLeft extends StatelessWidget {
+  const _RecentlyLeft({required this.paddock, required this.repository});
+
+  final Paddock paddock;
+  final LivestockRepository repository;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Ended(
+      repository: repository,
+      paddock: paddock,
+      states: _left,
+      builder: (context, left, _) => left.isEmpty
+          ? const SizedBox.shrink()
+          : _EndedSection(
+              title: 'Recently left',
+              children: [
+                for (final entry in left)
+                  ActivityTile(entry: entry, currentPaddockId: paddock.id),
+              ],
+            ),
+    );
+  }
+}
+
+/// Watches the stock that ended here in [states], afresh whenever the
+/// duration it is kept in view changes.
+class _Ended extends StatelessWidget {
+  const _Ended({
+    required this.repository,
+    required this.paddock,
+    required this.states,
+    required this.builder,
+  });
+
+  final LivestockRepository repository;
+  final Paddock paddock;
+  final Set<EndState> states;
+
+  /// [within] ends a sentence saying how far back, or is null for always.
+  final Widget Function(
+    BuildContext context,
+    List<ActivityEntry> entries,
+    String? within,
+  )
+  builder;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: repository.settings,
+      builder: (context, _) => StreamBuilder<List<ActivityEntry>>(
+        initialData: _latestEnded(repository, paddock.id, states),
+        stream: _watchEnded(repository, paddock.id, states),
+        builder: (context, snapshot) => builder(
+          context,
+          snapshot.data ?? const [],
+          repository.settings.retention.within,
+        ),
+      ),
+    );
+  }
+}
+
+class _EndedSection extends StatelessWidget {
+  const _EndedSection({
+    required this.title,
+    this.action,
+    required this.children,
+  });
+
+  final String title;
+  final Widget? action;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(child: Text(title, style: theme.textTheme.titleMedium)),
+            ?action,
+          ],
+        ),
+        const Divider(),
+        ...children,
+      ],
     );
   }
 }

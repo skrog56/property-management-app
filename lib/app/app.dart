@@ -37,34 +37,30 @@ class _PropertyManagementAppState extends State<PropertyManagementApp> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = widget.devSettings;
+    final dev = widget.devSettings;
+    final app = ListenableBuilder(
+      listenable: Listenable.merge([widget.repository.settings, ?dev]),
+      builder: (context, _) => _app(dev),
+    );
     return RepositoryScope(
       repository: widget.repository,
-      child: settings == null
-          ? _app()
-          : DevSettingsScope(
-              settings: settings,
-              child: ListenableBuilder(
-                listenable: settings,
-                builder: (context, _) => _app(settings),
-              ),
-            ),
+      child: dev == null ? app : DevSettingsScope(settings: dev, child: app),
     );
   }
 
-  Widget _app([DevSettings? settings]) {
+  Widget _app(DevSettings? dev) {
     return MaterialApp.router(
       routerConfig: _router,
       title: appTitle,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
-      // Follows the OS setting on all six targets, including the browser's
+      // System follows the OS on all six targets, including the browser's
       // prefers-color-scheme.
-      themeMode: settings?.themeMode ?? ThemeMode.system,
-      showPerformanceOverlay: settings?.performanceOverlay ?? false,
-      showSemanticsDebugger: settings?.semanticsDebugger ?? false,
-      builder: settings?.apply,
+      themeMode: widget.repository.settings.themeMode,
+      showPerformanceOverlay: dev?.performanceOverlay ?? false,
+      showSemanticsDebugger: dev?.semanticsDebugger ?? false,
+      builder: dev?.apply,
     );
   }
 }

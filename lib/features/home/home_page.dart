@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/app_settings.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../data/tables.dart';
@@ -36,6 +37,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   LivestockRepository? _repository;
   late Stream<Overview> _overview;
+  late Retention _retention;
   late Stream<List<ActivityEntry>> _activity;
   Timer? _midnight;
   final _readyToSell = GlobalKey();
@@ -47,7 +49,10 @@ class _HomePageState extends State<HomePage> {
     super.didChangeDependencies();
     final repository = RepositoryScope.of(context);
     if (repository != _repository) {
+      _repository?.settings.removeListener(_onSettings);
       _repository = repository;
+      _retention = repository.settings.retention;
+      repository.settings.addListener(_onSettings);
       _watchOverview();
       _activity = repository.watchActivityEntries(limit: _recentActivity);
     }
@@ -55,14 +60,27 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _repository?.settings.removeListener(_onSettings);
     _midnight?.cancel();
     super.dispose();
+  }
+
+  void _onSettings() {
+    final retention = _repository!.settings.retention;
+    if (retention == _retention) return;
+    setState(() {
+      _retention = retention;
+      _watchOverview();
+    });
   }
 
   /// The overview fires only when the data changes, so its days are moved on
   /// at each midnight by watching afresh.
   void _watchOverview() {
-    _overview = _repository!.watchOverview(clock: widget.clock);
+    _overview = _repository!.watchOverview(
+      retention: _retention,
+      clock: widget.clock,
+    );
     _midnight?.cancel();
     final now = _now();
     final tomorrow = DateTime(now.year, now.month, now.day + 1);
@@ -673,7 +691,7 @@ class _FlowsSection extends StatelessWidget {
     ];
 
     return _Section(
-      title: 'Last ${flows.days} days',
+      title: flows.retention.title,
       link: 'Activity',
       linkTo: '/activity',
       child: Column(

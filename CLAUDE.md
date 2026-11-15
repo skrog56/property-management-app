@@ -92,6 +92,8 @@ lib/
                       SpeciesIcon, each animal's icon; ClassLine, a class
                       led by it, and classEntry, the same to choose in a
                       SearchPicker
+    settings/         The user's settings: how long ended stock stays
+                      visible, and the theme
     developer/        Debug-only tools; hosts platform_proof as a tab
     platform_proof/   The evidence screen and fact gathering
     about/            Target checklist and build identity
@@ -236,6 +238,18 @@ once.
 Nobody uses the app yet, so a step may replace data rather than carry it over,
 as v3 did with the provisional templates. Say plainly what it discards. That
 stops once the app has real users.
+
+**Settings live in the `settings` table**, one row each, its id the setting's
+name rather than a UUID, so two devices that set the same one meet in one row.
+`AppSettings` (`lib/data/app_settings.dart`) reads them once at launch, keeps
+them in memory and writes each change through. It hangs off the repository as
+`repository.settings`, a `ChangeNotifier`, so a page with the repository has
+them and listens for changes. A feature keeps its own with `settings['name']`
+and `put`. The developer reset leaves them alone.
+
+**How long ended stock stays visible is a `Retention`**, and a page reads its
+cutoff from `retention.since(now)`, null for always. It hides old end states
+from view, never from the ledger: Activity always shows everything.
 
 **A class is never shown without its template.** The same kind can sit in two
 (Backgrounders and Feeders both have Steers), so `StockClass.label` names a

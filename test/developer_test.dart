@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:property_management_app/app/app.dart';
 import 'package:property_management_app/data/app_database.dart';
+import 'package:property_management_app/data/app_settings.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/tables.dart';
 import 'package:property_management_app/features/developer/dev_data.dart';
@@ -30,6 +31,7 @@ void main() {
         'Activity',
         'Tags',
         'Templates',
+        'Settings',
         'About',
       ]);
     });
@@ -41,6 +43,7 @@ void main() {
         'Activity',
         'Tags',
         'Templates',
+        'Settings',
         'Developer',
         'About',
       ]);
@@ -161,6 +164,15 @@ void main() {
       expect(await db.select(db.livestockTags).get(), isEmpty);
       expect(await db.select(db.movementTags).get(), isEmpty);
       expect(await repo.templates(), isNotEmpty);
+    });
+
+    test('wipe keeps the settings', () async {
+      await repo.settings.setRetention(Retention.always);
+      await repo.wipe();
+
+      final next = AppSettings(db);
+      await next.load();
+      expect(next.retention, Retention.always);
     });
   });
 

@@ -34,6 +34,23 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- **Settings**, under More on a phone and in the rail elsewhere. Each choice
+  is kept on the device and applies at once, and is still there after a
+  restart.
+- **How long ended stock stays visible.** Stock that is sold, sent to the
+  meatworks, dies or is lost leaves its paddock's count at once. Settings
+  now sets how long it still shows: 7, 30 or 90 days, a year, always, or a
+  custom number of days, weeks, months or years. It is 30 days to begin
+  with. Home's totals of what came and went, a paddock's Deaths and Recently
+  left, and the Tags list all follow it. Activity always keeps everything.
+- **Recently left**, a section on each paddock listing the stock sold, sent to
+  the meatworks, lost or otherwise ended from it, beside Deaths. It shows only
+  once something has left.
+- **A theme choice**: system, light or dark, in Settings.
+- **Templates can remember its view.** With *Remember the view* on in
+  Settings, as it is to begin with, Group by animal and the sort chosen are
+  kept between launches. Turned off, Templates opens grouped by animal in
+  custom order, and the view kept so far is forgotten.
 - **Home**, the page the app now opens on. It shows the head on hand across
   every property, with a count for each animal once there are two, then the
   number of properties, paddocks (and how many are empty), head ready to sell
@@ -189,6 +206,17 @@ same commit — a deliberate act, never a side effect of another change.
   deployment is configured.
 
 ### Changed
+
+- **Home's "Last 30 days" follows the setting**, and is titled for it, as
+  *Last 6 weeks* or *All time*.
+- **A paddock's Deaths lists only those within the setting**, still at most
+  ten, and says so when there are none, as *No deaths recorded here in the
+  last 30 days*.
+- **The Tags list leaves out tags whose animal left before the setting's
+  start**, and says how many and that a search finds them. A search still
+  looks through every tag. Cancelled and replaced tags stay listed. On a
+  device upgraded to this version these take effect at the 30-day default;
+  choosing Always in Settings shows everything as before.
 - **Every page's bar is a breadcrumb trail from Home**, each step led by its
   icon, as in *Home › Properties › Riverbend Downs › North Ridge*. Each step
   before the page is a link back to it. Where the trail is short of room, the
@@ -273,6 +301,9 @@ same commit — a deliberate act, never a side effect of another change.
   bundle filenames on Linux and Windows are unchanged.
 
 ### Removed
+
+- **The theme override on the Developer page**, replaced by the one in
+  Settings, which is kept between launches.
 
 - **The provisional Beef and Dairy templates.** Nobody uses the app yet, so
   the first launch of this version replaces them rather than carrying them

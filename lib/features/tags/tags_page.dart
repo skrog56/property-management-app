@@ -50,63 +50,113 @@ class _TagsPageState extends State<TagsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final settings = _repository!.settings;
 
-    return StreamBuilder<List<TagStatus>>(
-      stream: _tags,
-      builder: (context, snapshot) {
-        final all = snapshot.data;
-        if (all == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (all.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                'No tags yet. Record them on a movement, or add them to a '
-                'mob from its paddock.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) => StreamBuilder<List<TagStatus>>(
+        stream: _tags,
+        builder: (context, snapshot) {
+          final all = snapshot.data;
+          if (all == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (all.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(
+                  'No tags yet. Record them on a movement, or add them to a '
+                  'mob from its paddock.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
-            ),
-          );
-        }
+            );
+          }
 
-        final query = _search.text.trim();
-        final needle = tagSearchKey(query);
-        final matches = [
-          for (final status in all)
-            if (status.tag.number.contains(needle)) status,
-        ];
+          final query = _search.text.trim();
+          final needle = tagSearchKey(query);
+          // A search looks through every tag; the list at rest leaves out
+          // those whose animal left before ended stock stops being shown.
+          final since = settings.retention.since(DateTime.now());
+          bool shown(TagStatus status) =>
+              since == null ||
+              !status.hasEnded ||
+              !status.occurredAt.isBefore(since);
+          final matches = [
+            for (final status in all)
+              if (needle.isEmpty
+                  ? shown(status)
+                  : status.tag.number.contains(needle))
+                status,
+          ];
+          final hidden = needle.isEmpty ? all.length - matches.length : 0;
+          final note = hidden == 0
+              ? null
+              : _HiddenNote(hidden: hidden, before: since!);
 
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: PillSearchField(
-                controller: _search,
-                hintText: 'Search tag numbers',
-                onChanged: (_) => setState(() {}),
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: PillSearchField(
+                  controller: _search,
+                  hintText: 'Search tag numbers',
+                  onChanged: (_) => setState(() {}),
+                ),
               ),
-            ),
-            Expanded(
-              child: matches.isEmpty
-                  ? Center(child: Text('No tags match "$query".'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-                      itemCount: matches.length,
-                      itemBuilder: (context, index) => _TagTile(
-                        status: matches[index],
-                        selected: matches[index].tag.id == widget.selectedId,
-                        query: query,
-                      ),
-                    ),
-            ),
-          ],
-        );
-      },
+              Expanded(
+                child: switch (matches) {
+                  [] when note != null => Center(child: note),
+                  [] => Center(child: Text('No tags match "$query".')),
+                  _ => ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+                    itemCount: matches.length + (note == null ? 0 : 1),
+                    itemBuilder: (context, index) => index == matches.length
+                        ? note!
+                        : _TagTile(
+                            status: matches[index],
+                            selected:
+                                matches[index].tag.id == widget.selectedId,
+                            query: query,
+                          ),
+                  ),
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Says how many tags the list at rest leaves out, and how to find them.
+class _HiddenNote extends StatelessWidget {
+  const _HiddenNote({required this.hidden, required this.before});
+
+  final int hidden;
+  final DateTime before;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final one = hidden == 1;
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        '$hidden ${one ? 'tag whose animal' : 'tags whose animals'} left '
+        'before ${shortDate(before)} ${one ? 'is' : 'are'} not listed. '
+        'Search for a number to find ${one ? 'it' : 'them'}.',
+        textAlign: TextAlign.center,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
     );
   }
 }
