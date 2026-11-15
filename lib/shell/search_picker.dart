@@ -108,6 +108,13 @@ class _SearchPickerState<T> extends State<SearchPicker<T>> {
 
   @override
   Widget build(BuildContext context) {
+    // As a DropdownButton's entries, not the smaller menu text, so a picker
+    // and a plain dropdown in one form read alike.
+    final entryStyle = ButtonStyle(
+      textStyle: WidgetStatePropertyAll(
+        Theme.of(context).textTheme.titleMedium,
+      ),
+    );
     final searched = [
       for (final e in widget.entries)
         '${e.label} ${e.alsoFoundBy ?? ''}'.toLowerCase(),
@@ -157,6 +164,7 @@ class _SearchPickerState<T> extends State<SearchPicker<T>> {
           DropdownMenuEntry(
             value: i,
             label: e.label,
+            style: entryStyle,
             leadingIcon: switch (e.icon) {
               final icon? => Padding(
                 padding: const EdgeInsetsDirectional.only(start: 12),

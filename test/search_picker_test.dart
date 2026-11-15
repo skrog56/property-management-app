@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:property_management_app/app/theme.dart';
 import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
 import 'package:property_management_app/data/tables.dart';
@@ -177,6 +178,55 @@ void main() {
       matching: find.byType(Scrollable),
     );
     expect(tester.getSize(menu.first).height, lessThanOrEqualTo(360));
+  });
+
+  testWidgets('lists entries in the same text as a plain dropdown', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildTheme(Brightness.light),
+        home: Scaffold(
+          body: Column(
+            children: [
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                items: const [
+                  DropdownMenuItem(value: 'x', child: Text('Plain entry')),
+                ],
+                onChanged: (_) {},
+              ),
+              SearchPicker<String>(
+                label: 'Class',
+                entries: const [SearchEntry('y', 'Picker entry')],
+                value: null,
+                onChanged: (_) {},
+                emptyHint: '',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    TextStyle shown(String text) => tester
+        .widgetList<RichText>(find.byType(RichText))
+        .lastWhere((r) => r.text.toPlainText() == text)
+        .text
+        .style!;
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    final plain = shown('Plain entry');
+    await tester.tap(find.text('Plain entry').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(TextField));
+    await tester.pumpAndSettle();
+    final picker = shown('Picker entry');
+
+    expect(picker.fontSize, plain.fontSize);
+    expect(picker.fontWeight, plain.fontWeight);
+    expect(picker.letterSpacing, plain.letterSpacing);
+    expect(picker.height, plain.height);
   });
 
   testPage('says when there is nothing to choose', (tester) async {
