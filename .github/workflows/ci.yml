@@ -18,7 +18,7 @@ env:
 jobs:
   analyze:
     name: Analyze and test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
@@ -41,18 +41,18 @@ jobs:
       matrix:
         include:
           - name: Web
-            os: ubuntu-latest
+            os: ubuntu-24.04
             build: flutter build web --release
             artifact: build/web
 
           - name: Android
-            os: ubuntu-latest
+            os: ubuntu-24.04
             build: flutter build apk --release
             artifact: build/app/outputs/flutter-apk/app-release.apk
             java: true
 
           - name: Linux
-            os: ubuntu-latest
+            os: ubuntu-24.04
             build: flutter build linux --release
             artifact: build/linux/x64/release/bundle
             gtk: true
