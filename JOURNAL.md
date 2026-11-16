@@ -54,6 +54,13 @@ sweep had filed it as an action for a Data section of Settings.
 - **Tag numbers are written as the app shows them**, an RFID as `999
   000000000002`, which also keeps a spreadsheet from reading one as a
   number.
+- **Export is in three places**, after the user, trying it in Chrome, found
+  it buried at the foot of Settings. It is in the bar on Home and Activity,
+  and the Data card moved to the top of Settings. The user chose those
+  three over a Data destination of its own. The bar gained actions for it:
+  labelled on a wide window, an icon with a tooltip on a phone, where the
+  bar has room for little else. From a paddock's history, the dialog starts
+  with that paddock's property.
 - **Activity's query became a builder.** It also serves a one-shot read with
   no limit, narrowed by property and an end date, so the export lists
   movements exactly as Activity does. Tag lookups are now in slices of 500
@@ -61,12 +68,14 @@ sweep had filed it as an action for a Data section of Settings.
 
 ### Verification
 
-355 tests pass, 28 of them new: each list's rows and columns, property and
+362 tests pass, 35 of them new: each list's rows and columns, property and
 date narrowing, acres, a property with no paddocks, the backup's tables and
 deleted rows, CSV quoting and the formula guard, the zip, the workbook's
 parts, dates and escaping, the PDF taking non-Latin text, and the dialog's
-blockers, JSON, file names, a cancelled and a failed save, and a 320 dp
-phone.
+blockers, JSON, file names, a cancelled and a failed save, a 320 dp phone,
+Data leading Settings, and Export in the bar on Home and Activity, wide and
+on a phone, starting from a paddock's property. The trail test now reads
+the bar's title alone, not its actions.
 
 A throwaway test wrote one export of each format from the sample farm, and
 each was opened by something other than the app. LibreOffice converted every
