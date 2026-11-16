@@ -32,7 +32,7 @@ sweep had filed it as an action for a Data section of Settings.
 - **JSON is a backup, always the whole farm.** Every table as stored, deleted
   rows and settings included, with the schema version and a format version.
   A narrowed backup would not be one. Choosing JSON hides the lists and the
-  range, and the dialog says why.
+  range, and says why.
 - **No restore yet**, the user's choice. The JSON carries what a restore
   would need, so one can be added later without changing the file.
 - **`file_picker` saves the file.** A save dialog on desktop and phones,
@@ -84,10 +84,10 @@ sweep had filed it as an action for a Data section of Settings.
   paddocks to it. Arriving from a paddock's history chooses both.
 - **Formats in the user's order**, PDF, Excel, CSV and JSON, named in title
   case. PDF, first, is also chosen to begin with, the user's call. The
-  export bar leads its file
-  name with the chosen format's icon, at the user's request.
+  export bar leads its file name with the chosen format's icon, at the
+  user's request.
 - **Activity's query became a builder.** It also serves a one-shot read with
-  no limit, narrowed by property and an end date, so the export lists
+  no limit, narrowed by property, paddock and an end date, so the export lists
   movements exactly as Activity does. Tag lookups are now in slices of 500
   ids, as a whole ledger would pass SQLite's limit on bound variables.
 
@@ -96,15 +96,14 @@ sweep had filed it as an action for a Data section of Settings.
 371 tests pass, 44 of them new: each list's rows and columns, property and
 date narrowing, acres, a property with no paddocks, the backup's tables and
 deleted rows, CSV quoting and the formula guard, the zip, the workbook's
-parts, dates and escaping, the PDF taking non-Latin text, and the dialog's
-blockers, JSON, file names, a cancelled and a failed save, four widths
+parts, dates and escaping, the PDF taking non-Latin text, and the Data
+tab's blockers, JSON, file names, a cancelled and a failed save, four widths
 from 320 dp, the two tabs, Export in the bar on Home and Activity, wide and
 on a phone, reaching the Data tab again after leaving it, and starting from
 a paddock and its property, a property or paddock added while the tab is
 open, paddocks following the property, the formats' order and the bar's
-icon. The trail test now reads the bar's title alone, not
-its actions, and the Settings tests scroll the settings list rather than
-the tabs' pager.
+icon. The trail test now reads the bar's title alone, not its actions, and
+the Settings tests scroll the settings list rather than the tabs' pager.
 
 A throwaway render with the bundled Roboto and Material icons showed the
 Data tab at 360, 800 and 1300 dp, and again at 360 and 1300 dp arriving
@@ -120,8 +119,9 @@ linux` passed.
 
 ### Open
 
-- The save dialog itself has not been tried on any target, only behind a
-  test's saver. Linux goes through the XDG desktop portal.
+- The user checked the Data tab in Chrome and was happy with it. Saving has
+  not been confirmed on any target: in tests it goes through a saver that
+  only keeps the file. Linux goes through the XDG desktop portal.
 - Not opened in Excel proper, only LibreOffice.
 - Restore from a JSON backup, and the other two Data actions, erase all data
   and restore default templates.
