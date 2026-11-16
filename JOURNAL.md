@@ -7,6 +7,85 @@ dead ends, surprises and open questions, so context survives between sessions.
 
 ---
 
+## 2026-11-16 — Export
+
+### What prompted it
+
+Export was the last open item of Phase 2. The specification gives it one
+line: export the data in "probably just offer them all" formats. The settings
+sweep had filed it as an action for a Data section of Settings.
+
+### Decided
+
+- **Four formats, all in this round**, the user's choice: an Excel workbook,
+  CSV, a PDF report and a JSON backup.
+- **Five lists, chosen each time.** Movements, stock on hand, tags,
+  properties and paddocks, and templates and classes. All are ticked to begin
+  with. The user chose this over always exporting everything, or only
+  movements and stock.
+- **Narrowed by property and dates**, the user's choice over exporting the
+  whole farm always. The dates narrow movements only; the other lists are as
+  they stand. Templates are farm-wide, so a property leaves them whole. A
+  property's tags are those whose latest movement was there, so a tag that
+  left with a sale or death appears only in a whole-farm export. The sale is
+  still in that property's movements.
+- **JSON is a backup, always the whole farm.** Every table as stored, deleted
+  rows and settings included, with the schema version and a format version.
+  A narrowed backup would not be one. Choosing JSON hides the lists and the
+  range, and the dialog says why.
+- **No restore yet**, the user's choice. The JSON carries what a restore
+  would need, so one can be added later without changing the file.
+- **`file_picker` saves the file.** A save dialog on desktop and phones,
+  which writes the file itself, and a download in a browser, from one call
+  on all six targets. `share_plus` cannot share files on Linux. macOS needs
+  the `files.user-selected.read-write` entitlement, now in both files.
+- **The workbook is written by hand.** The `excel` package was last
+  published in 2024 and needs an `xml` older than `pdf` accepts. A workbook
+  is six small XML parts in a zip, and `archive` was already arriving with
+  `pdf`. Dates are real dates and numbers real numbers, under a bold header
+  that stays in view.
+- **CSV opens cleanly in Excel.** It starts with a byte-order mark so Excel
+  reads it as UTF-8. Text starting with `=`, `+`, `-` or `@` gets a leading
+  apostrophe, so a note cannot run as a formula. More than one list is a zip
+  of one CSV each.
+- **The PDF uses the bundled Roboto.** The PDF standard fonts cover Latin-1
+  alone. Columns are sized to their contents. With equal widths, dates and
+  tag numbers wrapped.
+- **Tag numbers are written as the app shows them**, an RFID as `999
+  000000000002`, which also keeps a spreadsheet from reading one as a
+  number.
+- **Activity's query became a builder.** It also serves a one-shot read with
+  no limit, narrowed by property and an end date, so the export lists
+  movements exactly as Activity does. Tag lookups are now in slices of 500
+  ids, as a whole ledger would pass SQLite's limit on bound variables.
+
+### Verification
+
+355 tests pass, 28 of them new: each list's rows and columns, property and
+date narrowing, acres, a property with no paddocks, the backup's tables and
+deleted rows, CSV quoting and the formula guard, the zip, the workbook's
+parts, dates and escaping, the PDF taking non-Latin text, and the dialog's
+blockers, JSON, file names, a cancelled and a failed save, and a 320 dp
+phone.
+
+A throwaway test wrote one export of each format from the sample farm, and
+each was opened by something other than the app. LibreOffice converted every
+sheet of the workbook, with its dates read as dates. `pdftotext` and
+`pdfinfo` read the PDF as two landscape A4 pages, and its pages were rendered
+and looked at. `json.tool` parsed the JSON. `unzip` listed the CSVs. The test
+and the files were deleted afterwards. `flutter build web` and `flutter build
+linux` passed.
+
+### Open
+
+- The save dialog itself has not been tried on any target, only behind a
+  test's saver. Linux goes through the XDG desktop portal.
+- Not opened in Excel proper, only LibreOffice.
+- Restore from a JSON backup, and the other two Data actions, erase all data
+  and restore default templates.
+- An export builds on the UI thread. That is fine at a sample farm's size
+  but not measured on a long ledger.
+
 ## 2026-11-15 — Three fixes from the settings sweep, and a paddock's history
 
 ### What prompted it
