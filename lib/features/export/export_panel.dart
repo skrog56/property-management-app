@@ -29,7 +29,7 @@ class ExportPanel extends StatefulWidget {
 }
 
 class _ExportPanelState extends State<ExportPanel> {
-  var _format = ExportFormat.xlsx;
+  var _format = ExportFormat.pdf;
   final _lists = {...ExportList.values};
   String? _propertyId;
   String? _paddockId;

@@ -95,7 +95,7 @@ void main() {
     expect(find.byType(ExportPanel), findsOneWidget);
   });
 
-  testPage('starts as a workbook of every list', (tester) async {
+  testPage('starts as a PDF of every list', (tester) async {
     await open(tester);
 
     final boxes = tester.widgetList<CheckboxListTile>(
@@ -104,7 +104,7 @@ void main() {
     expect(boxes, hasLength(5));
     expect(boxes.every((box) => box.value!), isTrue);
     expect(find.text('All properties'), findsOneWidget);
-    expect(find.text('livestock-export-${today()}.xlsx'), findsOneWidget);
+    expect(find.text('livestock-export-${today()}.pdf'), findsOneWidget);
     expect(exportEnabled(tester), isTrue);
   });
 
@@ -194,10 +194,10 @@ void main() {
           .first,
       matching: find.byIcon(icon),
     );
-    expect(fileIcon(Icons.table_chart_outlined), findsOneWidget);
-
-    await tap(tester, find.text(ExportFormat.pdf.label));
     expect(fileIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
+
+    await tap(tester, find.text(ExportFormat.xlsx.label));
+    expect(fileIcon(Icons.table_chart_outlined), findsOneWidget);
   });
 
   testPage('no list ticked blocks the export', (tester) async {
@@ -252,11 +252,18 @@ void main() {
 
   testPage('Export hands the file over and says so', (tester) async {
     await open(tester);
-    await tap(tester, exportButton());
+    // Built outside the test's fake clock, as the fonts load for real.
+    await tester.runAsync(() async {
+      await tester.tap(exportButton());
+      while (saved.isEmpty) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+    });
+    await settle(tester);
 
-    final name = 'livestock-export-${today()}.xlsx';
+    final name = 'livestock-export-${today()}.pdf';
     expect(saved.single.name, name);
-    expect(saved.single.bytes.sublist(0, 2), 'PK'.codeUnits);
+    expect(String.fromCharCodes(saved.single.bytes.sublist(0, 5)), '%PDF-');
     expect(find.text('Exported $name'), findsOneWidget);
     // The panel stays, for another export.
     expect(exportEnabled(tester), isTrue);

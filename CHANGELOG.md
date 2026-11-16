@@ -36,7 +36,7 @@ same commit — a deliberate act, never a side effect of another change.
 
 - **Export.** Settings has two tabs, *Settings* and *Data*, and *Data*
   saves the farm's records as a PDF report, an Excel workbook, CSV or a JSON
-  backup. *Export* in the bar on Home and Activity opens it.
+  backup, starting on PDF. *Export* in the bar on Home and Activity opens it.
   - The lists are movements, stock on hand, tags, properties and paddocks,
     and templates and classes. All are ticked to begin with, and any can be
     left out.
