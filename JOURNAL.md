@@ -83,7 +83,8 @@ sweep had filed it as an action for a Data section of Settings.
   it. It narrows movements to those in or out of it, and stock, tags and
   paddocks to it. Arriving from a paddock's history chooses both.
 - **Formats in the user's order**, PDF, Excel, CSV and JSON, named in title
-  case. Excel is still chosen to begin with. The export bar leads its file
+  case. PDF, first, is also chosen to begin with, the user's call. The
+  export bar leads its file
   name with the chosen format's icon, at the user's request.
 - **Activity's query became a builder.** It also serves a one-shot read with
   no limit, narrowed by property and an end date, so the export lists
