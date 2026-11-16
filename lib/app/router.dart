@@ -10,7 +10,6 @@ import '../features/developer/developer_page.dart';
 import '../features/home/home_page.dart';
 import '../features/properties/paths.dart';
 import '../features/properties/properties_browser.dart';
-import '../features/export/export_dialog.dart';
 import '../features/settings/settings_page.dart';
 import '../features/tags/paths.dart';
 import '../features/tags/tags_browser.dart';
@@ -160,8 +159,13 @@ List<HomeDestination> homeDestinations({bool developer = devMode}) {
         secondary: true,
       ),
       route: GoRoute(
-        path: '/settings',
-        builder: (_, _) => const SettingsPage(),
+        path: settingsPath,
+        builder: (_, state) => SettingsPage(
+          tab: state.uri.queryParameters['tab'] == SettingsTab.data.name
+              ? SettingsTab.data
+              : SettingsTab.settings,
+          paddockId: state.uri.queryParameters['paddock'],
+        ),
       ),
     ),
     if (developer)
@@ -231,11 +235,12 @@ GoRouter buildRouter({
                         BarAction(
                           icon: Icons.download_outlined,
                           label: 'Export',
-                          onPressed: (context) => showExportDialog(
-                            context,
-                            paddockId: route.path == activityPath
-                                ? state.uri.queryParameters['paddock']
-                                : null,
+                          onPressed: (context) => context.go(
+                            exportLocation(
+                              paddockId: route.path == activityPath
+                                  ? state.uri.queryParameters['paddock']
+                                  : null,
+                            ),
                           ),
                         ),
                     ],

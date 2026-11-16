@@ -73,7 +73,8 @@ lib/
                unchosen with one tap where nothing is a choice too, and TrailBar, every
                page's bar: the Crumbs from Home to the page, each led by
                its icon, or on a phone the page alone, and its BarActions,
-               labelled, or on a phone icons alone
+               labelled, or on a phone icons alone; KeptTab, a tab that
+               keeps its state while another is shown
   data/        Drift schema, repository, platform-specific connection
   features/
     home/             Where the app opens: the head on hand, headline
@@ -95,13 +96,13 @@ lib/
                       SpeciesIcon, each animal's icon; ClassLine, a class
                       led by it, and classEntry, the same to choose in a
                       SearchPicker
-    settings/         The user's settings: how long ended stock stays
-                      visible, the default movement type, property and
-                      end destination, whether tags
-                      are used and the default tag type, the area unit,
-                      the Templates view and the theme
-    export/           The Export dialog, opened from the bar on Home and
-                      Activity and from Settings' Data card: the lists
+    settings/         Two tabs, kept in the URL (`?tab=data`). Settings:
+                      how long ended stock stays visible, the default
+                      movement type, property and end destination, whether
+                      tags are used and the default tag type, the area
+                      unit, the Templates view and the theme. Data: the
+                      export, which the bar on Home and Activity links to
+    export/           ExportPanel, the Data tab: the lists
                       (ExportData, read from what the app already
                       derives), their four formats, and saving through
                       file_picker, which tests replace with an ExportSaver

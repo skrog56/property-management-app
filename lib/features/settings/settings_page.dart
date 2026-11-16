@@ -1,19 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/app_settings.dart';
 import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../data/tables.dart';
+import '../../shell/kept_tab.dart';
 import '../../shell/search_picker.dart';
-import '../export/export_dialog.dart';
+import '../export/export_panel.dart';
 import '../export/save_export.dart';
 import '../tags/tag_labels.dart';
 import '../transfers/movement_dialog.dart';
 import 'retention_dialog.dart';
 
-/// The user's settings, each kept on this device and applied as it changes.
+const settingsPath = '/settings';
+
+/// The Data tab, with [paddockId]'s property chosen if one is given.
+String exportLocation({String? paddockId}) => Uri(
+  path: settingsPath,
+  queryParameters: {'tab': SettingsTab.data.name, 'paddock': ?paddockId},
+).toString();
+
+enum SettingsTab { settings, data }
+
+/// Two tabs: the user's settings, and the farm's data to export. The tab is
+/// kept in the URL, so a link can open either.
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key, this.exportSaver = saveWithPicker});
+  const SettingsPage({
+    super.key,
+    this.tab = SettingsTab.settings,
+    this.paddockId,
+    this.exportSaver = saveWithPicker,
+  });
+
+  final SettingsTab tab;
+
+  /// Handed to the export, which chooses its property.
+  final String? paddockId;
 
   final ExportSaver exportSaver;
 
@@ -21,7 +44,76 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _SettingsPageState extends State<SettingsPage>
+    with SingleTickerProviderStateMixin {
+  late final _tabs = TabController(
+    length: SettingsTab.values.length,
+    initialIndex: widget.tab.index,
+    vsync: this,
+  )..addListener(_followTab);
+
+  @override
+  void didUpdateWidget(SettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.tab != oldWidget.tab) _tabs.animateTo(widget.tab.index);
+  }
+
+  /// Puts the chosen tab in the URL, so a link to the other one is always a
+  /// change of location, even back to where it was.
+  void _followTab() {
+    if (_tabs.indexIsChanging) return;
+    final tab = SettingsTab.values[_tabs.index];
+    if (tab == widget.tab) return;
+    GoRouter.maybeOf(
+      context,
+    )?.go(tab == SettingsTab.data ? exportLocation() : settingsPath);
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TabBar(
+          controller: _tabs,
+          tabs: const [
+            Tab(text: 'Settings'),
+            Tab(text: 'Data'),
+          ],
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabs,
+            children: [
+              const KeptTab(child: _SettingsTab()),
+              KeptTab(
+                child: ExportPanel(
+                  save: widget.exportSaver,
+                  paddockId: widget.paddockId,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The user's settings, each kept on this device and applied as it changes.
+class _SettingsTab extends StatefulWidget {
+  const _SettingsTab();
+
+  @override
+  State<_SettingsTab> createState() => _SettingsTabState();
+}
+
+class _SettingsTabState extends State<_SettingsTab> {
   /// Counts the times Custom was opened, so the duration field is rebuilt
   /// from the stored choice afterwards, which a cancel leaves as it was.
   var _customOpened = 0;
@@ -62,27 +154,6 @@ class _SettingsPageState extends State<SettingsPage> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _Section(
-              title: 'Data',
-              children: [
-                Text(
-                  "Save the farm's records as a spreadsheet, CSV, a PDF "
-                  'report, or a JSON backup of everything recorded.',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () =>
-                        showExportDialog(context, save: widget.exportSaver),
-                    icon: const Icon(Icons.download_outlined),
-                    label: const Text('Export…'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
             _Section(
               title: 'Ended stock',
               children: [

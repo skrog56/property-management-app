@@ -34,10 +34,11 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
-- **Export.** *Export* in the bar on Home and Activity, and in a Data card
-  at the top of Settings, saves the farm's records as an Excel workbook, CSV,
-  a PDF report or a JSON backup. From a paddock's history in Activity, it
-  starts with that paddock's property.
+- **Export.** Settings has two tabs, *Settings* and *Data*, and *Data*
+  saves the farm's records as an Excel workbook, CSV, a PDF report or a JSON
+  backup. *Export* in the bar on Home and Activity opens it. From a
+  paddock's history in Activity, it starts with that paddock's property. It
+  shows the name of the file it will save before saving it.
   The lists are movements, stock on hand, tags, properties and paddocks, and
   templates and classes. All are ticked to begin with, and any can be left
   out. An export can be narrowed to one property, and its movements to a

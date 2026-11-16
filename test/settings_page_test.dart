@@ -56,7 +56,12 @@ void main() {
     await tester.scrollUntilVisible(
       finder,
       200,
-      scrollable: find.byType(Scrollable).first,
+      // The settings list, not the tabs' pager beside it.
+      scrollable: find
+          .byWidgetPredicate(
+            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+          )
+          .first,
     );
     await tester.ensureVisible(finder);
     await settle(tester);

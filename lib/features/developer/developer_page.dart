@@ -5,6 +5,7 @@ import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../shell/breakpoints.dart';
 import '../../shell/form_dialog.dart';
+import '../../shell/kept_tab.dart';
 import '../platform_proof/platform_proof_page.dart';
 import 'dev_data.dart';
 import 'dev_log.dart';
@@ -37,39 +38,16 @@ class DeveloperPage extends StatelessWidget {
           Expanded(
             child: TabBarView(
               children: [
-                const _KeepAlive(child: PlatformProofPage()),
-                const _KeepAlive(child: _DataTab()),
-                const _KeepAlive(child: _DisplayTab()),
-                _KeepAlive(child: _LogTab(log: log ?? DevLog.instance)),
+                const KeptTab(child: PlatformProofPage()),
+                const KeptTab(child: _DataTab()),
+                const KeptTab(child: _DisplayTab()),
+                KeptTab(child: _LogTab(log: log ?? DevLog.instance)),
               ],
             ),
           ),
         ],
       ),
     );
-  }
-}
-
-/// `TabBarView` disposes a tab on leaving it, so without this every switch
-/// re-runs the tab's queries — each a worker round trip on web.
-class _KeepAlive extends StatefulWidget {
-  const _KeepAlive({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_KeepAlive> createState() => _KeepAliveState();
-}
-
-class _KeepAliveState extends State<_KeepAlive>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return widget.child;
   }
 }
 

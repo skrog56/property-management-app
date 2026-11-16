@@ -39,6 +39,18 @@ Future<FontPair> bundledRoboto() async => (
   bold: await rootBundle.load('assets/fonts/Roboto-Bold.ttf'),
 );
 
+/// What an export of [lists] as [format] on [at]'s day is called. One list
+/// as CSV is a file of its own; several are a zip of one each.
+String exportFileName(ExportFormat format, Set<ExportList> lists, DateTime at) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  final day = '${at.year}-${two(at.month)}-${two(at.day)}';
+  return switch (format) {
+    ExportFormat.csv when lists.length == 1 => '${lists.single.slug}-$day.csv',
+    ExportFormat.csv => 'livestock-export-$day.zip',
+    _ => 'livestock-export-$day.${format.extension}',
+  };
+}
+
 /// [lists] of [repository] narrowed to [range], written as [format]. A JSON
 /// backup is always the whole farm, so it ignores both.
 Future<ExportFile> buildExport(
@@ -51,18 +63,12 @@ Future<ExportFile> buildExport(
   Future<FontPair> Function() fonts = bundledRoboto,
 }) async {
   final at = now ?? DateTime.now();
-  String two(int n) => n.toString().padLeft(2, '0');
-  final day = '${at.year}-${two(at.month)}-${two(at.day)}';
-  String named(String stem, String extension) => '$stem-$day.$extension';
-  const stem = 'livestock-export';
-
-  Future<List<ExportSheet>> sheets() =>
-      repository.exportSheets(lists, range: range);
+  final name = exportFileName(format, lists, at);
 
   switch (format) {
     case ExportFormat.json:
       return ExportFile(
-        named(stem, 'json'),
+        name,
         'application/json',
         jsonBytes(
           await repository.exportTables(),
@@ -71,27 +77,23 @@ Future<ExportFile> buildExport(
         ),
       );
     case ExportFormat.csv:
-      final all = await sheets();
-      return all.length == 1
-          ? ExportFile(
-              named(all.single.list.slug, 'csv'),
-              'text/csv',
-              csvBytes(all.single),
-            )
-          : ExportFile(named(stem, 'zip'), 'application/zip', csvZipBytes(all));
+      final sheets = await repository.exportSheets(lists, range: range);
+      return sheets.length == 1
+          ? ExportFile(name, 'text/csv', csvBytes(sheets.single))
+          : ExportFile(name, 'application/zip', csvZipBytes(sheets));
     case ExportFormat.xlsx:
       return ExportFile(
-        named(stem, 'xlsx'),
+        name,
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        xlsxBytes(await sheets()),
+        xlsxBytes(await repository.exportSheets(lists, range: range)),
       );
     case ExportFormat.pdf:
       final font = await fonts();
       return ExportFile(
-        named(stem, 'pdf'),
+        name,
         'application/pdf',
         await pdfBytes(
-          await sheets(),
+          await repository.exportSheets(lists, range: range),
           description: describeRange(range, propertyName: propertyName),
           exportedAt: at,
           regular: font.regular,

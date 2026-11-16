@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:property_management_app/data/app_database.dart';
 import 'package:property_management_app/data/livestock_repository.dart';
-import 'package:property_management_app/features/export/export_dialog.dart';
 import 'package:property_management_app/features/export/export_formats.dart';
+import 'package:property_management_app/features/export/export_panel.dart';
 import 'package:property_management_app/features/export/save_export.dart';
 import 'package:property_management_app/features/settings/settings_page.dart';
 import 'package:property_management_app/shell/form_dialog.dart';
@@ -17,41 +17,48 @@ void main() {
   late AppDatabase db;
   late LivestockRepository repo;
   late List<ExportFile> saved;
-  late bool keep;
+  late Future<bool> Function(ExportFile) save;
 
   setUp(() async {
     db = AppDatabase(NativeDatabase.memory());
     repo = LivestockRepository(db);
     await repo.createProperty('Riverbend Downs');
     saved = [];
-    keep = true;
+    save = (file) async {
+      saved.add(file);
+      return true;
+    };
   });
 
   tearDown(() => db.close());
 
-  Future<bool> save(ExportFile file) async {
-    saved.add(file);
-    return keep;
+  String today() {
+    final now = DateTime.now();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${now.year}-${two(now.month)}-${two(now.day)}';
   }
 
+  /// Settings on its Data tab.
   Future<void> open(WidgetTester tester, {double width = 420}) async {
     await pumpPage(
       tester,
-      SettingsPage(exportSaver: save),
+      SettingsPage(tab: SettingsTab.data, exportSaver: (f) => save(f)),
       repository: repo,
       width: width,
+      // Tall enough that the list builds every card.
+      height: 2400,
     );
-    final button = find.text('Export…');
-    await tester.scrollUntilVisible(
-      button,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.ensureVisible(button);
+    expect(find.byType(ExportPanel), findsOneWidget);
+  }
+
+  Finder inPanel(Finder finder) =>
+      find.descendant(of: find.byType(ExportPanel), matching: finder);
+
+  Future<void> tap(WidgetTester tester, Finder finder) async {
+    await tester.ensureVisible(finder);
+    await tester.pump();
+    await tester.tap(finder);
     await settle(tester);
-    await tester.tap(button);
-    await settle(tester);
-    expect(find.byType(ExportDialog), findsOneWidget);
   }
 
   Finder exportButton() => find.widgetWithText(FilledButton, 'Export');
@@ -59,19 +66,12 @@ void main() {
   bool exportEnabled(WidgetTester tester) =>
       tester.widget<FilledButton>(exportButton()).onPressed != null;
 
-  Future<void> chooseFormat(WidgetTester tester, ExportFormat format) async {
-    await tester.tap(find.byType(DropdownButtonFormField<ExportFormat>));
-    await settle(tester);
-    await tester.tap(find.text(format.label).last);
-    await settle(tester);
-  }
-
   /// Types [date] into the picker the field opens.
   Future<void> typeDate(WidgetTester tester, String field, String date) async {
-    await tester.tap(
+    await tap(
+      tester,
       find.ancestor(of: find.text(field), matching: find.byType(InkWell)).first,
     );
-    await settle(tester);
     await tester.tap(find.byIcon(Icons.edit_outlined));
     await settle(tester);
     await tester.enterText(
@@ -85,24 +85,33 @@ void main() {
     await settle(tester);
   }
 
-  testPage('opens from Settings with every list ticked', (tester) async {
+  testPage('Settings opens on its settings, Data beside them', (tester) async {
+    await pumpPage(tester, const SettingsPage(), repository: repo);
+    expect(find.text('Ended stock'), findsOneWidget);
+    expect(find.byType(ExportPanel), findsNothing);
+
+    await tester.tap(find.widgetWithText(Tab, 'Data'));
+    await settle(tester);
+    expect(find.byType(ExportPanel), findsOneWidget);
+  });
+
+  testPage('starts as a workbook of every list', (tester) async {
     await open(tester);
 
-    expect(find.text(ExportFormat.xlsx.label), findsOneWidget);
     final boxes = tester.widgetList<CheckboxListTile>(
       find.byType(CheckboxListTile),
     );
     expect(boxes, hasLength(5));
     expect(boxes.every((box) => box.value!), isTrue);
     expect(find.text('All properties'), findsOneWidget);
+    expect(find.text('livestock-export-${today()}.xlsx'), findsOneWidget);
     expect(exportEnabled(tester), isTrue);
   });
 
   testPage('no list ticked blocks the export', (tester) async {
     await open(tester);
     for (final box in find.byType(CheckboxListTile).evaluate().toList()) {
-      await tester.tap(find.byWidget(box.widget));
-      await tester.pump();
+      await tap(tester, find.byWidget(box.widget));
     }
 
     expect(find.text('Choose at least one list'), findsOneWidget);
@@ -118,9 +127,11 @@ void main() {
     expect(find.text('From is after To'), findsOneWidget);
     expect(exportEnabled(tester), isFalse);
     final decorators = tester.widgetList<InputDecorator>(
-      find.descendant(
-        of: find.byType(Row),
-        matching: find.byType(InputDecorator),
+      inPanel(
+        find.descendant(
+          of: find.byType(Row),
+          matching: find.byType(InputDecorator),
+        ),
       ),
     );
     expect(
@@ -128,8 +139,7 @@ void main() {
       hasLength(2),
     );
 
-    await tester.tap(find.byTooltip('Clear From'));
-    await tester.pump();
+    await tap(tester, find.byTooltip('Clear From'));
     expect(find.text('From is after To'), findsNothing);
     expect(exportEnabled(tester), isTrue);
   });
@@ -138,105 +148,83 @@ void main() {
     tester,
   ) async {
     await open(tester);
-    await chooseFormat(tester, ExportFormat.json);
+    await tap(tester, find.text(ExportFormat.json.label));
 
     expect(find.byType(CheckboxListTile), findsNothing);
     expect(find.text('All properties'), findsNothing);
-    expect(find.textContaining('always holds the whole farm'), findsOneWidget);
+    expect(find.text('What a backup holds'), findsOneWidget);
 
-    await tester.tap(exportButton());
-    await settle(tester);
-    expect(saved.single.name, endsWith('.json'));
+    await tap(tester, exportButton());
+    expect(saved.single.name, 'livestock-export-${today()}.json');
   });
 
-  testPage('Export hands the file over, closes and says so', (tester) async {
+  testPage('Export hands the file over and says so', (tester) async {
     await open(tester);
-    await tester.tap(exportButton());
-    await settle(tester);
+    await tap(tester, exportButton());
 
-    final now = DateTime.now();
-    String two(int n) => n.toString().padLeft(2, '0');
-    final name =
-        'livestock-export-${now.year}-${two(now.month)}-${two(now.day)}.xlsx';
+    final name = 'livestock-export-${today()}.xlsx';
     expect(saved.single.name, name);
     expect(saved.single.bytes.sublist(0, 2), 'PK'.codeUnits);
-    expect(find.byType(ExportDialog), findsNothing);
     expect(find.text('Exported $name'), findsOneWidget);
+    // The panel stays, for another export.
+    expect(exportEnabled(tester), isTrue);
   });
 
   testPage('one list as CSV is a file of its own', (tester) async {
     await open(tester);
-    await chooseFormat(tester, ExportFormat.csv);
+    await tap(tester, find.text(ExportFormat.csv.label));
+    expect(find.text('livestock-export-${today()}.zip'), findsOneWidget);
     for (final title in [
       'Movements',
       'Stock on hand',
       'Tags',
       'Templates and classes',
     ]) {
-      await tester.tap(
-        find.descendant(
-          of: find.byType(ExportDialog),
-          matching: find.text(title),
-        ),
-      );
-      await tester.pump();
+      await tap(tester, inPanel(find.text(title)));
     }
-    await tester.tap(exportButton());
-    await settle(tester);
+    await tap(tester, exportButton());
 
-    expect(saved.single.name, startsWith('properties-and-paddocks-'));
+    expect(saved.single.name, 'properties-and-paddocks-${today()}.csv');
     expect(saved.single.mimeType, 'text/csv');
   });
 
-  testPage('a cancelled save leaves the dialog open', (tester) async {
-    keep = false;
+  testPage('a cancelled save says nothing', (tester) async {
+    save = (file) async {
+      saved.add(file);
+      return false;
+    };
     await open(tester);
-    await tester.tap(exportButton());
-    await settle(tester);
+    await tap(tester, exportButton());
 
     expect(saved, hasLength(1));
-    expect(find.byType(ExportDialog), findsOneWidget);
+    expect(find.textContaining('Exported'), findsNothing);
     expect(exportEnabled(tester), isTrue);
   });
 
   testPage('a failed save says why and can be tried again', (tester) async {
-    await pumpPage(
-      tester,
-      Builder(
-        builder: (context) => TextButton(
-          onPressed: () => showExportDialog(
-            context,
-            save: (_) async => throw StateError('disk full'),
-          ),
-          child: const Text('go'),
-        ),
-      ),
-      repository: repo,
-    );
-    await tester.tap(find.text('go'));
-    await settle(tester);
-    await tester.tap(exportButton());
-    await settle(tester);
+    save = (_) async => throw StateError('disk full');
+    await open(tester);
+    await tap(tester, exportButton());
 
     expect(find.textContaining('disk full'), findsOneWidget);
     expect(exportEnabled(tester), isTrue);
   });
 
-  testPage('Data leads Settings', (tester) async {
-    await pumpPage(tester, SettingsPage(exportSaver: save), repository: repo);
-    expect(
-      tester.getTopLeft(find.text('Data')).dy,
-      lessThan(tester.getTopLeft(find.text('Ended stock')).dy),
-    );
-    expect(find.text('Export…').hitTestable(), findsOneWidget);
-  });
+  for (final width in [320.0, 700.0, 1000.0, 1700.0]) {
+    testPage('fits ${width.round()} dp', (tester) async {
+      await open(tester, width: width);
+      expect(tester.takeException(), isNull);
+      await tap(tester, find.text(ExportFormat.json.label));
+      expect(tester.takeException(), isNull);
+    });
+  }
 
-  group('the bar offers Export', () {
+  group('the bar leads to the Data tab', () {
     Finder inBar(Finder finder) =>
         find.descendant(of: find.byType(TrailBar), matching: finder);
 
     for (final location in ['/', '/activity']) {
-      testPage('on $location, labelled on a wide window', (tester) async {
+      testPage('from $location, labelled on a wide window', (tester) async {
         await pumpRouted(
           tester,
           repository: repo,
@@ -245,21 +233,41 @@ void main() {
         );
         await tester.tap(inBar(find.widgetWithText(TextButton, 'Export')));
         await settle(tester);
-        expect(find.byType(ExportDialog), findsOneWidget);
+        expect(find.byType(ExportPanel), findsOneWidget);
+        expect(find.byType(FormDialog), findsNothing);
       });
 
-      testPage('on $location, as an icon on a phone', (tester) async {
+      testPage('from $location, as an icon on a phone', (tester) async {
         await pumpRouted(tester, repository: repo, location: location);
         expect(inBar(find.text('Export')), findsNothing);
         await tester.tap(inBar(find.byTooltip('Export')));
         await settle(tester);
-        expect(find.byType(ExportDialog), findsOneWidget);
+        expect(find.byType(ExportPanel), findsOneWidget);
       });
     }
 
-    testPage('not on Settings, which has its own', (tester) async {
+    testPage('not on Settings, which holds it', (tester) async {
       await pumpRouted(tester, repository: repo, location: '/settings');
       expect(inBar(find.byTooltip('Export')), findsNothing);
+    });
+
+    testPage('again after leaving it for the settings tab', (tester) async {
+      await pumpRouted(tester, repository: repo, location: '/', width: 1200);
+      Future<void> export() async {
+        await tester.tap(inBar(find.widgetWithText(TextButton, 'Export')));
+        await settle(tester);
+      }
+
+      await export();
+      await tester.tap(find.widgetWithText(Tab, 'Settings'));
+      await settle(tester);
+      expect(find.text('Ended stock'), findsOneWidget);
+
+      await tester.tap(find.text('Home').first);
+      await settle(tester);
+      await export();
+      expect(find.byType(ExportPanel), findsOneWidget);
+      expect(find.text('Ended stock'), findsNothing);
     });
 
     testPage("from a paddock's history, with its property chosen", (
@@ -273,8 +281,9 @@ void main() {
         tester,
         repository: repo,
         location: '/activity?paddock=$paddock',
+        width: 1200,
       );
-      await tester.tap(inBar(find.byTooltip('Export')));
+      await tester.tap(inBar(find.widgetWithText(TextButton, 'Export')));
       await settle(tester);
 
       expect(
@@ -283,18 +292,7 @@ void main() {
             .value,
         property,
       );
-      expect(
-        find.descendant(
-          of: find.byType(ExportDialog),
-          matching: find.text('Riverbend Downs'),
-        ),
-        findsOneWidget,
-      );
+      expect(inPanel(find.text('Riverbend Downs')), findsOneWidget);
     });
-  });
-
-  testPage('fits a narrow phone', (tester) async {
-    await open(tester, width: 320);
-    expect(tester.takeException(), isNull);
   });
 }
