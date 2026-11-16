@@ -61,6 +61,20 @@ sweep had filed it as an action for a Data section of Settings.
   labelled on a wide window, an icon with a tooltip on a phone, where the
   bar has room for little else. From a paddock's history, the dialog starts
   with that paddock's property.
+- **Then Export became a tab of Settings**, the user's design, after
+  seeing it in place. Settings has two tabs, built as the Developer page's
+  are: *Settings* and *Data*. The export dialog became a panel filling the
+  Data tab, and the bar's Export on Home and Activity goes there rather than
+  opening anything. On a wide window the four formats are cards in a row,
+  and the lists sit beside the property and dates. The panel shows the file
+  name it will save, and stays after an export, ready for another.
+  - **The tab is kept in the URL**, `/settings?tab=data`. Without that, a
+    second Export from Home, after switching back to the settings tab,
+    would go to the same location and change nothing.
+  - **The tab is called Data**, not Export, so restore and the other Data
+    actions have somewhere to go.
+  - **The Developer page's keep-alive moved to the shell as `KeptTab`**, for
+    both pages. Flutter already has a `KeepAlive`.
 - **Activity's query became a builder.** It also serves a one-shot read with
   no limit, narrowed by property and an end date, so the export lists
   movements exactly as Activity does. Tag lookups are now in slices of 500
@@ -68,14 +82,19 @@ sweep had filed it as an action for a Data section of Settings.
 
 ### Verification
 
-362 tests pass, 35 of them new: each list's rows and columns, property and
+366 tests pass, 39 of them new: each list's rows and columns, property and
 date narrowing, acres, a property with no paddocks, the backup's tables and
 deleted rows, CSV quoting and the formula guard, the zip, the workbook's
 parts, dates and escaping, the PDF taking non-Latin text, and the dialog's
-blockers, JSON, file names, a cancelled and a failed save, a 320 dp phone,
-Data leading Settings, and Export in the bar on Home and Activity, wide and
-on a phone, starting from a paddock's property. The trail test now reads
-the bar's title alone, not its actions.
+blockers, JSON, file names, a cancelled and a failed save, four widths
+from 320 dp, the two tabs, Export in the bar on Home and Activity, wide and
+on a phone, reaching the Data tab again after leaving it, and starting from
+a paddock's property. The trail test now reads the bar's title alone, not
+its actions, and the Settings tests scroll the settings list rather than
+the tabs' pager.
+
+A throwaway render with the bundled Roboto and Material icons showed the
+Data tab at 360, 800 and 1300 dp. It was deleted afterwards.
 
 A throwaway test wrote one export of each format from the sample farm, and
 each was opened by something other than the app. LibreOffice converted every
