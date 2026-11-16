@@ -23,15 +23,16 @@ enum ExportList {
   final String slug;
 }
 
-/// What an export is narrowed to. Dates are whole local days, both included,
-/// and narrow only the movements.
+/// What an export is narrowed to. A paddock is one of the property's. Dates
+/// are whole local days, both included, and narrow only the movements.
 @immutable
 class ExportRange {
-  const ExportRange({this.propertyId, this.from, this.to});
+  const ExportRange({this.propertyId, this.paddockId, this.from, this.to});
 
   static const everything = ExportRange();
 
   final String? propertyId;
+  final String? paddockId;
   final DateTime? from;
   final DateTime? to;
 
@@ -71,7 +72,15 @@ extension ExportData on LivestockRepository {
     final properties = [
       for (final stock in overview.properties)
         if (range.propertyId == null || stock.property.id == range.propertyId)
-          stock,
+          range.paddockId == null
+              ? stock
+              : PropertyStock(
+                  property: stock.property,
+                  paddocks: [
+                    for (final p in stock.paddocks)
+                      if (p.paddock.id == range.paddockId) p,
+                  ],
+                ),
     ];
 
     return [
@@ -111,6 +120,7 @@ extension ExportData on LivestockRepository {
   Future<ExportSheet> _movementSheet(ExportRange range) async {
     final entries = await activityEntries(
       propertyId: range.propertyId,
+      paddockId: range.paddockId,
       since: range.since,
       until: range.until,
     );
@@ -215,7 +225,9 @@ extension ExportData on LivestockRepository {
       ],
       [
         for (final s in statuses)
-          if (range.propertyId == null || s.property?.id == range.propertyId)
+          if ((range.propertyId == null ||
+                  s.property?.id == range.propertyId) &&
+              (range.paddockId == null || s.paddock?.id == range.paddockId))
             [
               s.tag.tagNumber.display,
               s.tag.scheme.label,
@@ -299,8 +311,12 @@ extension on EndState {
 }
 
 /// What a list holds and where it came from, for a report's heading.
-String describeRange(ExportRange range, {String? propertyName}) {
-  final where = propertyName ?? 'All properties';
+String describeRange(
+  ExportRange range, {
+  String? propertyName,
+  String? paddockName,
+}) {
+  final where = [propertyName ?? 'All properties', ?paddockName].join(' · ');
   final (from, to) = (range.from, range.to);
   final when = switch ((from, to)) {
     (null, null) => 'all movements',

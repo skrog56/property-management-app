@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../data/app_database.dart';
+import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../shell/breakpoints.dart';
 import '../../shell/card_grid.dart';
@@ -29,43 +32,74 @@ class _ExportPanelState extends State<ExportPanel> {
   var _format = ExportFormat.xlsx;
   final _lists = {...ExportList.values};
   String? _propertyId;
+  String? _paddockId;
   DateTime? _from;
   DateTime? _to;
-  List<Property> _properties = const [];
   var _busy = false;
   String? _error;
+
+  // Watched, not read once: the tab is kept while others are used, and a
+  // property added meanwhile must still be offered.
+  LivestockRepository? _repository;
+  StreamSubscription<List<Property>>? _propertyWatch;
+  StreamSubscription<List<Paddock>>? _paddockWatch;
+  List<Property> _properties = const [];
+  List<Paddock> _paddocks = const [];
+
+  /// A paddock asked for before the paddocks have loaded.
+  String? _pendingPaddock;
 
   @override
   void initState() {
     super.initState();
-    // After the first frame, where the scope can be read.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    _pendingPaddock = widget.paddockId;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final repository = RepositoryScope.of(context);
+    if (repository == _repository) return;
+    _repository = repository;
+    _propertyWatch?.cancel();
+    _paddockWatch?.cancel();
+    _propertyWatch = repository.watchProperties().listen(
+      (properties) => setState(
+        () =>
+            _properties = [...properties]
+              ..sort((a, b) => a.name.compareTo(b.name)),
+      ),
+    );
+    _paddockWatch = repository.watchPaddocks().listen((paddocks) {
+      setState(() {
+        _paddocks = paddocks;
+        _choosePending();
+      });
+    });
   }
 
   @override
   void didUpdateWidget(ExportPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.paddockId != null && widget.paddockId != oldWidget.paddockId) {
-      _load();
+      _pendingPaddock = widget.paddockId;
+      _choosePending();
     }
   }
 
-  Future<void> _load() async {
-    if (!mounted) return;
-    final repository = RepositoryScope.of(context);
-    final db = repository.db;
-    final properties = await repository.properties()
-      ..sort((a, b) => a.name.compareTo(b.name));
-    final paddock = widget.paddockId == null
-        ? null
-        : await (db.select(
-            db.paddocks,
-          )..where((p) => p.id.equals(widget.paddockId!))).getSingleOrNull();
-    if (!mounted) return;
-    setState(() {
-      _properties = properties;
-      if (paddock != null) _propertyId = paddock.propertyId;
-    });
+  @override
+  void dispose() {
+    _propertyWatch?.cancel();
+    _paddockWatch?.cancel();
+    super.dispose();
+  }
+
+  void _choosePending() {
+    final paddock = _paddocks.where((p) => p.id == _pendingPaddock).firstOrNull;
+    if (paddock == null) return;
+    _pendingPaddock = null;
+    _propertyId = paddock.propertyId;
+    _paddockId = paddock.id;
   }
 
   bool get _backup => _format == ExportFormat.json;
@@ -104,9 +138,18 @@ class _ExportPanelState extends State<ExportPanel> {
         repository,
         format: _format,
         lists: _lists,
-        range: ExportRange(propertyId: _propertyId, from: _from, to: _to),
+        range: ExportRange(
+          propertyId: _propertyId,
+          paddockId: _paddockId,
+          from: _from,
+          to: _to,
+        ),
         propertyName: _properties
             .where((p) => p.id == _propertyId)
+            .firstOrNull
+            ?.name,
+        paddockName: _paddocks
+            .where((p) => p.id == _paddockId)
             .firstOrNull
             ?.name,
       );
@@ -147,6 +190,7 @@ class _ExportPanelState extends State<ExportPanel> {
           ],
         );
         final action = _Action(
+          icon: _format.icon,
           fileName: exportFileName(_format, _lists, DateTime.now()),
           blocker: _blocker,
           error: _error,
@@ -213,12 +257,33 @@ class _ExportPanelState extends State<ExportPanel> {
           optional: true,
           searchIcon: true,
           value: _propertyId,
-          onChanged: (id) => setState(() => _propertyId = id),
+          onChanged: (id) => setState(() {
+            if (id != _propertyId) _paddockId = null;
+            _propertyId = id;
+          }),
           entries: [
             for (final p in _properties)
               SearchEntry(p.id, p.name, alsoFoundBy: p.pic),
           ],
           emptyHint: 'No properties yet',
+        ),
+        const SizedBox(height: 16),
+        SearchPicker<String>(
+          // Rebuilt for each property, so it starts from that one's list.
+          key: ValueKey(_propertyId),
+          label: 'Paddock',
+          hint: 'All paddocks',
+          optional: true,
+          searchIcon: true,
+          value: _paddockId,
+          onChanged: (id) => setState(() => _paddockId = id),
+          entries: [
+            for (final p in _paddocks)
+              if (p.propertyId == _propertyId) SearchEntry(p.id, p.name),
+          ],
+          emptyHint: _propertyId == null
+              ? 'Choose a property first'
+              : 'No paddocks on this property',
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
@@ -409,12 +474,15 @@ class _Backup extends StatelessWidget {
 /// The file to be saved, what stops it, and the button that saves it.
 class _Action extends StatelessWidget {
   const _Action({
+    required this.icon,
     required this.fileName,
     required this.blocker,
     required this.error,
     required this.onExport,
   });
 
+  /// The chosen format's.
+  final IconData icon;
   final String fileName;
   final String? blocker;
   final String? error;
@@ -440,11 +508,7 @@ class _Action extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.insert_drive_file_outlined,
-                      size: 20,
-                      color: muted,
-                    ),
+                    Icon(icon, size: 20, color: muted),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(

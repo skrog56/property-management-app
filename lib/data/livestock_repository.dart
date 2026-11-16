@@ -706,16 +706,18 @@ class LivestockRepository {
     since: since,
   ).watch().map(_movements);
 
-  /// Movements in or out of [propertyId]'s paddocks, from [since] and before
-  /// [until], newest first, read once and without a limit.
+  /// Movements in or out of [propertyId]'s paddocks, or [paddockId], from
+  /// [since] and before [until], newest first, read once and without a limit.
   Future<List<ActivityEntry>> activityEntries({
     String? propertyId,
+    String? paddockId,
     DateTime? since,
     DateTime? until,
   }) async => _entries(
     _movements(
       await _activityQuery(
         propertyId: propertyId,
+        paddockId: paddockId,
         since: since,
         until: until,
       ).get(),
@@ -1429,6 +1431,13 @@ class LivestockRepository {
 
   Stream<List<Property>> watchProperties() =>
       (db.select(db.properties)..where((p) => p.deletedAt.isNull())).watch();
+
+  /// Every live paddock, by name.
+  Stream<List<Paddock>> watchPaddocks() =>
+      (db.select(db.paddocks)
+            ..where((p) => p.deletedAt.isNull())
+            ..orderBy([(p) => OrderingTerm(expression: p.name)]))
+          .watch();
 
   /// Emits null for an unknown or deleted property, which a deep link can name.
   Stream<Property?> watchProperty(String id) => _remembered(

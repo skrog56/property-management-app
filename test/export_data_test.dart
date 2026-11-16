@@ -96,6 +96,30 @@ void main() {
     expect((await sheet(ExportList.tags, range: range)).rows, isEmpty);
   });
 
+  test('a paddock narrows them further', () async {
+    final property = await propertyId('Riverbend Downs');
+    final northFlat = (await repo.paddocksIn(
+      property,
+    )).firstWhere((p) => p.name == 'North Flat').id;
+    final range = ExportRange(propertyId: property, paddockId: northFlat);
+
+    final movements = await sheet(ExportList.movements, range: range);
+    expect(movements.rows, hasLength(4));
+    for (final row in movements.rows) {
+      expect([row[4], row[6]], contains('North Flat'));
+    }
+    expect(column(await sheet(ExportList.stock, range: range), 'Paddock'), [
+      'North Flat',
+    ]);
+    expect(column(await sheet(ExportList.paddocks, range: range), 'Paddock'), [
+      'North Flat',
+    ]);
+    expect(
+      column(await sheet(ExportList.tags, range: range), 'Paddock').toSet(),
+      {'North Flat'},
+    );
+  });
+
   test('a property leaves templates whole', () async {
     final all = await sheet(ExportList.templates);
     final narrowed = await sheet(

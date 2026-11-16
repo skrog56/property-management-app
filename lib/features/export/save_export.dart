@@ -59,6 +59,7 @@ Future<ExportFile> buildExport(
   Set<ExportList> lists = const {...ExportList.values},
   ExportRange range = ExportRange.everything,
   String? propertyName,
+  String? paddockName,
   DateTime? now,
   Future<FontPair> Function() fonts = bundledRoboto,
 }) async {
@@ -94,7 +95,11 @@ Future<ExportFile> buildExport(
         'application/pdf',
         await pdfBytes(
           await repository.exportSheets(lists, range: range),
-          description: describeRange(range, propertyName: propertyName),
+          description: describeRange(
+            range,
+            propertyName: propertyName,
+            paddockName: paddockName,
+          ),
           exportedAt: at,
           regular: font.regular,
           bold: font.bold,

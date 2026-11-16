@@ -108,6 +108,98 @@ void main() {
     expect(exportEnabled(tester), isTrue);
   });
 
+  testPage('offers PDF, Excel, CSV and JSON, in that order', (tester) async {
+    await open(tester, width: 1200);
+    final lefts = [
+      for (final label in [
+        'PDF Report',
+        'Excel Workbook',
+        'CSV',
+        'JSON Backup',
+      ])
+        tester.getTopLeft(inPanel(find.text(label))).dx,
+    ];
+    expect([...lefts]..sort(), lefts);
+  });
+
+  Finder picker(String label) => find.byWidgetPredicate(
+    (w) => w is SearchPicker<String> && w.label == label,
+  );
+
+  List<String> offered(WidgetTester tester, String label) => [
+    for (final entry
+        in tester.widget<SearchPicker<String>>(picker(label)).entries)
+      entry.label,
+  ];
+
+  Future<void> choose(WidgetTester tester, String label, String entry) async {
+    await tester.enterText(
+      find.descendant(of: picker(label), matching: find.byType(TextField)),
+      entry,
+    );
+    await settle(tester);
+  }
+
+  testPage('offers a property added after it opened', (tester) async {
+    await open(tester);
+    expect(offered(tester, 'Property'), ['Riverbend Downs']);
+
+    await tester.runAsync(() => repo.createProperty('Glenmore Station'));
+    await drain(tester);
+    expect(offered(tester, 'Property'), [
+      'Glenmore Station',
+      'Riverbend Downs',
+    ]);
+  });
+
+  testPage("offers a property's paddocks once it is chosen", (tester) async {
+    final riverbend = (await repo.properties()).single.id;
+    final glenmore = await repo.createProperty('Glenmore Station');
+    await repo.createPaddock(riverbend, 'North Flat');
+    await repo.createPaddock(glenmore, 'Top Run');
+    await open(tester);
+
+    expect(find.text('Choose a property first'), findsOneWidget);
+    expect(offered(tester, 'Paddock'), isEmpty);
+
+    await choose(tester, 'Property', 'Riverbend Downs');
+    expect(offered(tester, 'Paddock'), ['North Flat']);
+    await choose(tester, 'Paddock', 'North Flat');
+    expect(
+      tester.widget<SearchPicker<String>>(picker('Paddock')).value,
+      isNotNull,
+    );
+
+    // Another property's paddocks, and none of them chosen.
+    await choose(tester, 'Property', 'Glenmore Station');
+    expect(offered(tester, 'Paddock'), ['Top Run']);
+    expect(
+      tester.widget<SearchPicker<String>>(picker('Paddock')).value,
+      isNull,
+    );
+
+    await tester.runAsync(() => repo.createPaddock(glenmore, 'Bottom Run'));
+    await drain(tester);
+    expect(offered(tester, 'Paddock'), ['Bottom Run', 'Top Run']);
+  });
+
+  testPage("leads the file name with the format's icon", (tester) async {
+    await open(tester);
+    Finder fileIcon(IconData icon) => find.descendant(
+      of: find
+          .ancestor(
+            of: find.textContaining('livestock-export-'),
+            matching: find.byType(Row),
+          )
+          .first,
+      matching: find.byIcon(icon),
+    );
+    expect(fileIcon(Icons.table_chart_outlined), findsOneWidget);
+
+    await tap(tester, find.text(ExportFormat.pdf.label));
+    expect(fileIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
+  });
+
   testPage('no list ticked blocks the export', (tester) async {
     await open(tester);
     for (final box in find.byType(CheckboxListTile).evaluate().toList()) {
@@ -270,7 +362,7 @@ void main() {
       expect(find.text('Ended stock'), findsNothing);
     });
 
-    testPage("from a paddock's history, with its property chosen", (
+    testPage("from a paddock's history, with it and its property chosen", (
       tester,
     ) async {
       final property = (await repo.properties()).single.id;
@@ -287,12 +379,15 @@ void main() {
       await settle(tester);
 
       expect(
-        tester
-            .widget<SearchPicker<String>>(find.byType(SearchPicker<String>))
-            .value,
+        tester.widget<SearchPicker<String>>(picker('Property')).value,
         property,
       );
+      expect(
+        tester.widget<SearchPicker<String>>(picker('Paddock')).value,
+        paddock,
+      );
       expect(inPanel(find.text('Riverbend Downs')), findsOneWidget);
+      expect(inPanel(find.text('North Flat')), findsOneWidget);
     });
   });
 }

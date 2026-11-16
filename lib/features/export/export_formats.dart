@@ -9,10 +9,10 @@ import 'export_data.dart';
 
 /// The ways an export can be written.
 enum ExportFormat {
-  xlsx('Excel workbook', 'xlsx'),
+  pdf('PDF Report', 'pdf'),
+  xlsx('Excel Workbook', 'xlsx'),
   csv('CSV', 'csv'),
-  pdf('PDF report', 'pdf'),
-  json('JSON backup', 'json');
+  json('JSON Backup', 'json');
 
   const ExportFormat(this.label, this.extension);
 
