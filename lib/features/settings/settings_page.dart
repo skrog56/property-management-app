@@ -5,13 +5,17 @@ import '../../data/livestock_repository.dart';
 import '../../data/repository_scope.dart';
 import '../../data/tables.dart';
 import '../../shell/search_picker.dart';
+import '../export/export_dialog.dart';
+import '../export/save_export.dart';
 import '../tags/tag_labels.dart';
 import '../transfers/movement_dialog.dart';
 import 'retention_dialog.dart';
 
 /// The user's settings, each kept on this device and applied as it changes.
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({super.key, this.exportSaver = saveWithPicker});
+
+  final ExportSaver exportSaver;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -287,6 +291,27 @@ class _SettingsPageState extends State<SettingsPage> {
                   selected: {settings.themeMode},
                   onSelectionChanged: (mode) =>
                       settings.setThemeMode(mode.single),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _Section(
+              title: 'Data',
+              children: [
+                Text(
+                  "Save the farm's records as a spreadsheet, CSV, a PDF "
+                  'report, or a JSON backup of everything recorded.',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () =>
+                        showExportDialog(context, save: widget.exportSaver),
+                    icon: const Icon(Icons.download_outlined),
+                    label: const Text('Export…'),
+                  ),
                 ),
               ],
             ),

@@ -99,6 +99,10 @@ lib/
                       end destination, whether tags
                       are used and the default tag type, the area unit,
                       the Templates view and the theme
+    export/           The Export dialog, opened from Settings: the lists
+                      (ExportData, read from what the app already
+                      derives), their four formats, and saving through
+                      file_picker, which tests replace with an ExportSaver
     developer/        Debug-only tools; hosts platform_proof as a tab
     platform_proof/   The evidence screen and fact gathering
     about/            Target checklist and build identity
@@ -282,7 +286,8 @@ and a sync client copying a live SQLite file can corrupt it.
 ### Dependencies
 
 `device_info_plus`, `package_info_plus`, `drift` + `drift_flutter`,
-`path_provider`, `uuid`, `go_router`, and `flutter_localizations` from the
+`path_provider`, `uuid`, `go_router`, `file_picker`, `pdf`, `archive`, and
+`flutter_localizations` from the
 SDK, which sets the app in Australian English (`lib/app/locale.dart`) so
 Flutter's own widgets read and write dates dd/mm/yyyy, as the app does. A test
 that opens a date picker needs the same locale, which `pumpPage` and
@@ -290,12 +295,19 @@ that opens a date picker needs the same locale, which `pumpPage` and
 supports all six targets — a plugin that misses one silently removes a target
 from the matrix.
 
-Two obvious choices are already rejected on exactly those grounds, so do not
+Three obvious choices are already rejected on exactly those grounds, so do not
 reach for them without reopening the decision:
 
 - **`cloud_firestore`** does not support Linux.
 - **`google_maps_flutter`** does not support Linux, macOS or Windows. Use
   `flutter_map`, which is pure Dart, when the map screen lands.
+- **`share_plus`** cannot share files on Linux. Export saves through
+  `file_picker` instead, which needs the macOS
+  `files.user-selected.read-write` entitlement.
+
+**`excel`** is rejected too, for another reason: it has not been published
+since 2024 and needs an `xml` older than `pdf` accepts. The workbook is
+written by hand in `export_formats.dart` and zipped with `archive`.
 
 Animal icons are not a dependency either. Material Icons has no cattle, sheep
 or goats, so `SpeciesIcon` paints IconOven's MIT-licensed stroke icons from

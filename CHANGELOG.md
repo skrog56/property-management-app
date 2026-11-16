@@ -34,6 +34,14 @@ same commit — a deliberate act, never a side effect of another change.
 
 ### Added
 
+- **Export.** *Export…* in a new Data card at the foot of Settings saves the
+  farm's records as an Excel workbook, CSV, a PDF report or a JSON backup.
+  The lists are movements, stock on hand, tags, properties and paddocks, and
+  templates and classes. All are ticked to begin with, and any can be left
+  out. An export can be narrowed to one property, and its movements to a
+  range of days. A JSON backup always holds everything recorded, exactly as
+  stored, deleted rows and settings included. Desktop and phones ask where to
+  save; a browser downloads the file.
 - **A paddock's whole history.** *View all* beside a paddock's Recent
   activity, which shows its latest 25, opens Activity narrowed to the
   movements in or out of that paddock. A chip at the top names it, and

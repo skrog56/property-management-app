@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' show min;
 
 import 'package:drift/drift.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -697,6 +698,42 @@ class LivestockRepository {
     String? tagId,
     Set<EndState>? endStates,
     DateTime? since,
+  }) => _activityQuery(
+    limit: limit,
+    paddockId: paddockId,
+    tagId: tagId,
+    endStates: endStates,
+    since: since,
+  ).watch().map(_movements);
+
+  /// Movements in or out of [propertyId]'s paddocks, from [since] and before
+  /// [until], newest first, read once and without a limit.
+  Future<List<ActivityEntry>> activityEntries({
+    String? propertyId,
+    DateTime? since,
+    DateTime? until,
+  }) async => _entries(
+    _movements(
+      await _activityQuery(
+        propertyId: propertyId,
+        since: since,
+        until: until,
+      ).get(),
+    ),
+  );
+
+  List<Movement> _movements(List<QueryRow> rows) => [
+    for (final row in rows) db.movements.map(row.data),
+  ];
+
+  Selectable<QueryRow> _activityQuery({
+    int? limit,
+    String? paddockId,
+    String? propertyId,
+    String? tagId,
+    Set<EndState>? endStates,
+    DateTime? since,
+    DateTime? until,
   }) {
     final variables = <Variable>[];
     String bind(Variable variable) {
@@ -708,6 +745,14 @@ class LivestockRepository {
     if (paddockId != null) {
       final paddock = bind(Variable<String>(paddockId));
       where.add('(from_paddock_id = $paddock OR to_paddock_id = $paddock)');
+    }
+    if (propertyId != null) {
+      final paddocks =
+          'SELECT id FROM paddocks '
+          'WHERE property_id = ${bind(Variable<String>(propertyId))}';
+      where.add(
+        '(from_paddock_id IN ($paddocks) OR to_paddock_id IN ($paddocks))',
+      );
     }
     if (tagId != null) {
       where.add(
@@ -725,17 +770,42 @@ class LivestockRepository {
     if (since != null) {
       where.add('occurred_at >= ${bind(Variable<DateTime>(since.toUtc()))}');
     }
+    if (until != null) {
+      where.add('occurred_at < ${bind(Variable<DateTime>(until.toUtc()))}');
+    }
 
-    return db
-        .customSelect(
-          'SELECT * FROM movements WHERE ${where.join(' AND ')} '
-          'ORDER BY occurred_at DESC, created_at DESC '
-          'LIMIT ${bind(Variable<int>(limit))}',
-          variables: variables,
-          readsFrom: {db.movements, db.movementTags, ..._labelTables},
-        )
-        .watch()
-        .map((rows) => [for (final row in rows) db.movements.map(row.data)]);
+    return db.customSelect(
+      'SELECT * FROM movements WHERE ${where.join(' AND ')} '
+      'ORDER BY occurred_at DESC, created_at DESC'
+      '${limit == null ? '' : ' LIMIT ${bind(Variable<int>(limit))}'}',
+      variables: variables,
+      readsFrom: {
+        db.movements,
+        db.movementTags,
+        if (propertyId != null) db.paddocks,
+        ..._labelTables,
+      },
+    );
+  }
+
+  Future<List<ActivityEntry>> _entries(List<Movement> movements) async {
+    final paddocks = {
+      for (final p in await db.select(db.paddocks).get()) p.id: p,
+    };
+    final classes = await _classesById();
+    final tags = await _tagRefs({for (final m in movements) m.id});
+
+    return [
+      for (final m in movements)
+        ActivityEntry(
+          movement: m,
+          fromPaddock: paddocks[m.fromPaddockId],
+          toPaddock: paddocks[m.toPaddockId],
+          fromClass: classes[m.fromClassId],
+          toClass: classes[m.toClassId],
+          tags: tags[m.id] ?? const [],
+        ),
+    ];
   }
 
   Stream<List<ActivityEntry>> watchActivityEntries({
@@ -745,32 +815,13 @@ class LivestockRepository {
     Set<EndState>? endStates,
     DateTime? since,
   }) {
-    final entries =
-        watchActivity(
-          limit: limit,
-          paddockId: paddockId,
-          tagId: tagId,
-          endStates: endStates,
-          since: since,
-        ).asyncMap((movements) async {
-          final paddocks = {
-            for (final p in await db.select(db.paddocks).get()) p.id: p,
-          };
-          final classes = await _classesById();
-          final tags = await _tagRefs({for (final m in movements) m.id});
-
-          return [
-            for (final m in movements)
-              ActivityEntry(
-                movement: m,
-                fromPaddock: paddocks[m.fromPaddockId],
-                toPaddock: paddocks[m.toPaddockId],
-                fromClass: classes[m.fromClassId],
-                toClass: classes[m.toClassId],
-                tags: tags[m.id] ?? const [],
-              ),
-          ];
-        });
+    final entries = watchActivity(
+      limit: limit,
+      paddockId: paddockId,
+      tagId: tagId,
+      endStates: endStates,
+      since: since,
+    ).asyncMap(_entries);
     return _remembered(
       _activityKey(limit, paddockId, tagId, endStates, since),
       entries,
@@ -779,16 +830,27 @@ class LivestockRepository {
 
   Future<Map<String, List<TagRef>>> _tagRefs(Set<String> movementIds) async {
     if (movementIds.isEmpty) return const {};
-    final rows =
+    // In slices, as a whole ledger exported at once would pass SQLite's
+    // limit on bound variables.
+    final ids = movementIds.toList();
+    final rows = <TypedResult>[];
+    for (var i = 0; i < ids.length; i += 500) {
+      rows.addAll(
         await (db.select(db.movementTags).join([
                 innerJoin(
                   db.livestockTags,
                   db.livestockTags.id.equalsExp(db.movementTags.tagId),
                 ),
               ])
-              ..where(db.movementTags.movementId.isIn(movementIds))
+              ..where(
+                db.movementTags.movementId.isIn(
+                  ids.sublist(i, min(i + 500, ids.length)),
+                ),
+              )
               ..where(db.movementTags.deletedAt.isNull()))
-            .get();
+            .get(),
+      );
+    }
 
     final refs = <String, List<TagRef>>{};
     for (final row in rows) {
