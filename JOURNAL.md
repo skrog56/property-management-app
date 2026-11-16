@@ -75,6 +75,16 @@ sweep had filed it as an action for a Data section of Settings.
     actions have somewhere to go.
   - **The Developer page's keep-alive moved to the shell as `KeptTab`**, for
     both pages. Flutter already has a `KeepAlive`.
+- **A paddock too, and choices that keep up.** The user seeded the sample
+  farm with the Data tab already open, and could not then choose a property:
+  the tab read the properties once, and stays alive while other pages are
+  used. It now watches properties and paddocks. A paddock can be chosen once
+  a property is, from that property's alone, and changing the property clears
+  it. It narrows movements to those in or out of it, and stock, tags and
+  paddocks to it. Arriving from a paddock's history chooses both.
+- **Formats in the user's order**, PDF, Excel, CSV and JSON, named in title
+  case. Excel is still chosen to begin with. The export bar leads its file
+  name with the chosen format's icon, at the user's request.
 - **Activity's query became a builder.** It also serves a one-shot read with
   no limit, narrowed by property and an end date, so the export lists
   movements exactly as Activity does. Tag lookups are now in slices of 500
@@ -82,19 +92,22 @@ sweep had filed it as an action for a Data section of Settings.
 
 ### Verification
 
-366 tests pass, 39 of them new: each list's rows and columns, property and
+371 tests pass, 44 of them new: each list's rows and columns, property and
 date narrowing, acres, a property with no paddocks, the backup's tables and
 deleted rows, CSV quoting and the formula guard, the zip, the workbook's
 parts, dates and escaping, the PDF taking non-Latin text, and the dialog's
 blockers, JSON, file names, a cancelled and a failed save, four widths
 from 320 dp, the two tabs, Export in the bar on Home and Activity, wide and
 on a phone, reaching the Data tab again after leaving it, and starting from
-a paddock's property. The trail test now reads the bar's title alone, not
+a paddock and its property, a property or paddock added while the tab is
+open, paddocks following the property, the formats' order and the bar's
+icon. The trail test now reads the bar's title alone, not
 its actions, and the Settings tests scroll the settings list rather than
 the tabs' pager.
 
 A throwaway render with the bundled Roboto and Material icons showed the
-Data tab at 360, 800 and 1300 dp. It was deleted afterwards.
+Data tab at 360, 800 and 1300 dp, and again at 360 and 1300 dp arriving
+from a paddock. It was deleted afterwards.
 
 A throwaway test wrote one export of each format from the sample farm, and
 each was opened by something other than the app. LibreOffice converted every
