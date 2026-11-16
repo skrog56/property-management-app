@@ -11,14 +11,17 @@ import 'save_export.dart';
 
 /// Chooses what to export and how, then hands the file to [save]. Says what
 /// was saved once the dialog has closed.
+///
+/// Opened from a paddock's history, it starts with that paddock's property.
 Future<void> showExportDialog(
   BuildContext context, {
   ExportSaver save = saveWithPicker,
+  String? paddockId,
 }) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
   final saved = await showFormDialog<String>(
     context,
-    builder: (_) => ExportDialog(save: save),
+    builder: (_) => ExportDialog(save: save, paddockId: paddockId),
   );
   if (saved != null) {
     messenger?.showSnackBar(SnackBar(content: Text('Exported $saved')));
@@ -26,9 +29,12 @@ Future<void> showExportDialog(
 }
 
 class ExportDialog extends StatefulWidget {
-  const ExportDialog({super.key, required this.save});
+  const ExportDialog({super.key, required this.save, this.paddockId});
 
   final ExportSaver save;
+
+  /// Chooses this paddock's property to begin with.
+  final String? paddockId;
 
   @override
   State<ExportDialog> createState() => _ExportDialogState();
@@ -51,16 +57,20 @@ class _ExportDialogState extends State<ExportDialog> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadProperties());
   }
 
-  void _loadProperties() {
+  Future<void> _loadProperties() async {
     if (!mounted) return;
-    RepositoryScope.of(context).properties().then((properties) {
-      if (mounted) {
-        setState(
-          () =>
-              _properties = properties
-                ..sort((a, b) => a.name.compareTo(b.name)),
-        );
-      }
+    final repository = RepositoryScope.of(context);
+    final properties = await repository.properties()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    final paddock = widget.paddockId == null
+        ? null
+        : await (repository.db.select(
+            repository.db.paddocks,
+          )..where((p) => p.id.equals(widget.paddockId!))).getSingleOrNull();
+    if (!mounted) return;
+    setState(() {
+      _properties = properties;
+      _propertyId ??= paddock?.propertyId;
     });
   }
 

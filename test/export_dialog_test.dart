@@ -8,6 +8,8 @@ import 'package:property_management_app/features/export/export_formats.dart';
 import 'package:property_management_app/features/export/save_export.dart';
 import 'package:property_management_app/features/settings/settings_page.dart';
 import 'package:property_management_app/shell/form_dialog.dart';
+import 'package:property_management_app/shell/search_picker.dart';
+import 'package:property_management_app/shell/trail_bar.dart';
 
 import 'support.dart';
 
@@ -171,7 +173,12 @@ void main() {
       'Tags',
       'Templates and classes',
     ]) {
-      await tester.tap(find.text(title));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(ExportDialog),
+          matching: find.text(title),
+        ),
+      );
       await tester.pump();
     }
     await tester.tap(exportButton());
@@ -213,6 +220,77 @@ void main() {
 
     expect(find.textContaining('disk full'), findsOneWidget);
     expect(exportEnabled(tester), isTrue);
+  });
+
+  testPage('Data leads Settings', (tester) async {
+    await pumpPage(tester, SettingsPage(exportSaver: save), repository: repo);
+    expect(
+      tester.getTopLeft(find.text('Data')).dy,
+      lessThan(tester.getTopLeft(find.text('Ended stock')).dy),
+    );
+    expect(find.text('Export…').hitTestable(), findsOneWidget);
+  });
+
+  group('the bar offers Export', () {
+    Finder inBar(Finder finder) =>
+        find.descendant(of: find.byType(TrailBar), matching: finder);
+
+    for (final location in ['/', '/activity']) {
+      testPage('on $location, labelled on a wide window', (tester) async {
+        await pumpRouted(
+          tester,
+          repository: repo,
+          location: location,
+          width: 1200,
+        );
+        await tester.tap(inBar(find.widgetWithText(TextButton, 'Export')));
+        await settle(tester);
+        expect(find.byType(ExportDialog), findsOneWidget);
+      });
+
+      testPage('on $location, as an icon on a phone', (tester) async {
+        await pumpRouted(tester, repository: repo, location: location);
+        expect(inBar(find.text('Export')), findsNothing);
+        await tester.tap(inBar(find.byTooltip('Export')));
+        await settle(tester);
+        expect(find.byType(ExportDialog), findsOneWidget);
+      });
+    }
+
+    testPage('not on Settings, which has its own', (tester) async {
+      await pumpRouted(tester, repository: repo, location: '/settings');
+      expect(inBar(find.byTooltip('Export')), findsNothing);
+    });
+
+    testPage("from a paddock's history, with its property chosen", (
+      tester,
+    ) async {
+      final property = (await repo.properties()).single.id;
+      await repo.createProperty('Glenmore Station');
+      final paddock = await repo.createPaddock(property, 'North Flat');
+
+      await pumpRouted(
+        tester,
+        repository: repo,
+        location: '/activity?paddock=$paddock',
+      );
+      await tester.tap(inBar(find.byTooltip('Export')));
+      await settle(tester);
+
+      expect(
+        tester
+            .widget<SearchPicker<String>>(find.byType(SearchPicker<String>))
+            .value,
+        property,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(ExportDialog),
+          matching: find.text('Riverbend Downs'),
+        ),
+        findsOneWidget,
+      );
+    });
   });
 
   testPage('fits a narrow phone', (tester) async {

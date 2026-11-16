@@ -10,6 +10,7 @@ import '../features/developer/developer_page.dart';
 import '../features/home/home_page.dart';
 import '../features/properties/paths.dart';
 import '../features/properties/properties_browser.dart';
+import '../features/export/export_dialog.dart';
 import '../features/settings/settings_page.dart';
 import '../features/tags/paths.dart';
 import '../features/tags/tags_browser.dart';
@@ -225,6 +226,19 @@ GoRouter buildRouter({
                     null,
                   (:final destination, :final route) => TrailBar(
                     _trailTo(destination, route.path),
+                    actions: [
+                      if (route.path == homePath || route.path == activityPath)
+                        BarAction(
+                          icon: Icons.download_outlined,
+                          label: 'Export',
+                          onPressed: (context) => showExportDialog(
+                            context,
+                            paddockId: route.path == activityPath
+                                ? state.uri.queryParameters['paddock']
+                                : null,
+                          ),
+                        ),
+                    ],
                   ),
                 },
                 title: appTitle,

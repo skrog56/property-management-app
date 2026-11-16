@@ -18,13 +18,29 @@ class Crumb {
   final String path;
 }
 
+/// Something a page's bar offers besides its trail.
+@immutable
+class BarAction {
+  const BarAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final void Function(BuildContext context) onPressed;
+}
+
 /// A page's bar: the trail to the page, from Home, each step before it a
 /// link. A compact bar shows only the page, with a back arrow below the top of
-/// a destination.
+/// a destination, and its [actions] as icons alone.
 class TrailBar extends StatelessWidget implements PreferredSizeWidget {
-  TrailBar(this.crumbs, {super.key}) : assert(crumbs.isNotEmpty);
+  TrailBar(this.crumbs, {super.key, this.actions = const []})
+    : assert(crumbs.isNotEmpty);
 
   final List<Crumb> crumbs;
+  final List<BarAction> actions;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -40,6 +56,17 @@ class TrailBar extends StatelessWidget implements PreferredSizeWidget {
             // where a compact bar's does.
             titleSpacing: 16 - _inset.left,
             title: _Trail(crumbs),
+            actions: [
+              for (final action in actions)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: TextButton.icon(
+                    onPressed: () => action.onPressed(context),
+                    icon: Icon(action.icon),
+                    label: Text(action.label),
+                  ),
+                ),
+            ],
           );
         }
         return AppBar(
@@ -49,6 +76,14 @@ class TrailBar extends StatelessWidget implements PreferredSizeWidget {
               ? BackButton(onPressed: () => _up(context))
               : null,
           title: _CrumbContent(crumbs.last, current: true),
+          actions: [
+            for (final action in actions)
+              IconButton(
+                tooltip: action.label,
+                onPressed: () => action.onPressed(context),
+                icon: Icon(action.icon),
+              ),
+          ],
         );
       },
     );

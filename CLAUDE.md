@@ -72,7 +72,8 @@ lib/
                that narrows a long list as you type, and can leave it
                unchosen with one tap where nothing is a choice too, and TrailBar, every
                page's bar: the Crumbs from Home to the page, each led by
-               its icon, or on a phone the page alone
+               its icon, or on a phone the page alone, and its BarActions,
+               labelled, or on a phone icons alone
   data/        Drift schema, repository, platform-specific connection
   features/
     home/             Where the app opens: the head on hand, headline
@@ -99,7 +100,8 @@ lib/
                       end destination, whether tags
                       are used and the default tag type, the area unit,
                       the Templates view and the theme
-    export/           The Export dialog, opened from Settings: the lists
+    export/           The Export dialog, opened from the bar on Home and
+                      Activity and from Settings' Data card: the lists
                       (ExportData, read from what the app already
                       derives), their four formats, and saving through
                       file_picker, which tests replace with an ExportSaver

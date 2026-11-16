@@ -178,10 +178,21 @@ void main() {
       return (property: property, paddock: paddock, tag: tag);
     }
 
-    List<String> trail(WidgetTester tester) => [
-      for (final text in tester.widgetList<Text>(_inBar(find.byType(Text))))
-        ?text.data,
-    ];
+    // The bar's title alone, not its actions.
+    List<String> trail(WidgetTester tester) {
+      final title = tester
+          .widget<NavigationToolbar>(_inBar(find.byType(NavigationToolbar)))
+          .middle!;
+      return [
+        for (final text in tester.widgetList<Text>(
+          find.descendant(
+            of: find.byWidget(title),
+            matching: find.byType(Text),
+          ),
+        ))
+          ?text.data,
+      ];
+    }
 
     testPage('starts its trail at Home', (tester) async {
       final ids = await seed();

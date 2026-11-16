@@ -63,6 +63,27 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.all(16),
           children: [
             _Section(
+              title: 'Data',
+              children: [
+                Text(
+                  "Save the farm's records as a spreadsheet, CSV, a PDF "
+                  'report, or a JSON backup of everything recorded.',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () =>
+                        showExportDialog(context, save: widget.exportSaver),
+                    icon: const Icon(Icons.download_outlined),
+                    label: const Text('Export…'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _Section(
               title: 'Ended stock',
               children: [
                 Text(
@@ -291,27 +312,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   selected: {settings.themeMode},
                   onSelectionChanged: (mode) =>
                       settings.setThemeMode(mode.single),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _Section(
-              title: 'Data',
-              children: [
-                Text(
-                  "Save the farm's records as a spreadsheet, CSV, a PDF "
-                  'report, or a JSON backup of everything recorded.',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () =>
-                        showExportDialog(context, save: widget.exportSaver),
-                    icon: const Icon(Icons.download_outlined),
-                    label: const Text('Export…'),
-                  ),
                 ),
               ],
             ),
